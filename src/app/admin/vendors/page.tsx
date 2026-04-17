@@ -231,7 +231,6 @@ export default function AdminVendors() {
           </div>
         </div>
       )}
-      )}
 
       {/* Decision Modal */}
       {decisionModal.vendorId && (

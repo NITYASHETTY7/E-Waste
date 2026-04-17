@@ -146,7 +146,7 @@ const MOCK_BIDS: Bid[] = [
 ];
 
 const MOCK_USERS: User[] = [
-  { id: 'A1', name: 'Super Admin', role: 'admin', email: 'admin@weconnect.com', status: 'active', registeredAt: '2026-02-15T10:00:00.000Z' },
+  { id: 'A1', name: 'Super Admin', role: 'admin', email: 'admin@weconnect.com', status: 'active', registeredAt: '2026-02-15T10:00:00.000Z', onboardingStep: 5 },
   { id: 'C1', name: 'Tech Corp Ltd', role: 'client', email: 'client@weconnect.com', status: 'active', phone: '+91 98765 43210', registeredAt: '2026-03-01T10:00:00.000Z', onboardingStep: 5 },
   { id: 'C2', name: 'Global Infra Pvt Ltd', role: 'client', email: 'info@globalinfra.com', status: 'active', phone: '+91 87654 32109', registeredAt: '2026-03-15T10:00:00.000Z', onboardingStep: 5 },
   { id: 'C3', name: 'Manufacturing Hub', role: 'client', email: 'ops@manhub.com', status: 'active', phone: '+91 76543 21098', registeredAt: '2026-03-25T10:00:00.000Z', onboardingStep: 5 },
@@ -155,7 +155,7 @@ const MOCK_USERS: User[] = [
   { id: 'V3', name: 'RecycleFirst India', role: 'vendor', email: 'ops@recyclefirst.in', status: 'active', phone: '+91 54321 09876', registeredAt: '2026-04-01T10:00:00.000Z', onboardingStep: 5 },
   { id: 'V4', name: 'PureRecovery Solutions', role: 'vendor', email: 'contact@purerecovery.com', status: 'pending', phone: '+91 43210 98765', registeredAt: '2026-04-14T10:00:00.000Z', onboardingStep: 4 },
   { id: 'V5', name: 'Urban Miners', role: 'vendor', email: 'hello@urbanminers.com', status: 'pending', phone: '+91 32109 87654', registeredAt: '2026-04-15T10:00:00.000Z', onboardingStep: 2 },
-  { id: 'G1', name: 'Individual User', role: 'guest', email: 'guest@weconnect.com', status: 'active', registeredAt: '2026-04-16T13:00:00.000Z' },
+  { id: 'G1', name: 'Individual User', role: 'guest', email: 'guest@weconnect.com', status: 'active', registeredAt: '2026-04-16T13:00:00.000Z', onboardingStep: 5 },
 ];
 
 const MOCK_NOTIFICATIONS: Notification[] = [
@@ -238,6 +238,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         id: `${role[0].toUpperCase()}${Date.now()}`, name: identifier, role,
         email: identifier.includes('@') ? identifier : `${identifier.toLowerCase().replace(/\s/g, '.')}@example.com`,
         status: role === 'vendor' ? 'pending' : 'active',
+        onboardingStep: 1,
         registeredAt: new Date().toISOString(),
       };
       setState(prev => ({ ...prev, currentUser: newUser, users: [...prev.users, newUser] }));

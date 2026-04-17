@@ -8,8 +8,7 @@ import Link from "next/link";
 export default function ConsumerDashboard() {
   const { currentUser, listings } = useApp();
   
-  // Filter listings for this user if applicable, otherwise show a sample
-  const userPickups = listings.filter(l => l.clientId === currentUser?.id);
+  const userPickups = listings.filter(l => l.userId === currentUser?.id);
   
   const stats = [
     { label: "Waste Diverted", value: "124 KG", icon: "eco", color: "text-emerald-600", bg: "bg-emerald-50" },

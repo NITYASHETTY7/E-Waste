@@ -14,6 +14,13 @@ const VENDOR_LINKS = [
   { href: "/vendor/profile", icon: "badge", label: "Profile & Docs" },
 ];
 
+const CLIENT_LINKS = [
+  { href: "/client/dashboard", icon: "dashboard", label: "Dashboard" },
+  { href: "/client/post", icon: "add_circle", label: "Post E-Waste" },
+  { href: "/client/listings", icon: "inventory_2", label: "My Listings" },
+  { href: "/client/bids", icon: "gavel", label: "Bids Received" },
+  { href: "/client/live-auction", icon: "sensors", label: "Live Auction" },
+  { href: "/client/reports", icon: "bar_chart", label: "Reports" },
   { href: "/client/notifications", icon: "notifications", label: "Notifications" },
   { href: "/client/profile", icon: "person", label: "Profile" },
 ];

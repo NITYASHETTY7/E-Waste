@@ -176,7 +176,6 @@ export default function AdminTransactions() {
           </tbody>
         </table>
       </div>
-      </div>
 
       {/* Decision Modal */}
       {decisionModal.bidId && (

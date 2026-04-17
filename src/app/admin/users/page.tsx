@@ -215,7 +215,6 @@ export default function AdminUsers() {
           </div>
         </div>
       )}
-      )}
 
       {/* Decision Modal */}
       {decisionModal.userId && (

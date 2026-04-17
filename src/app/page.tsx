@@ -96,25 +96,25 @@ function LandingPageContent() {
   return (
     <div className="bg-[#F5F7FA] min-h-screen flex flex-col relative text-[#1A1A2E]">
       {/* 1. NAVBAR */}
-      <nav className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 bg-[#FFFFFF] border-b border-[#E2E8F0] ${isScrolled ? 'shadow-[0_4px_16px_rgba(0,0,0,0.1)]' : 'shadow-[0_1px_3px_rgba(0,0,0,0.08)]'}`}>
-        <div className="max-w-7xl mx-auto px-6 md:px-10 py-3 md:py-4 flex items-center justify-between w-full">
+      <nav className={`fixed top-0 left-0 w-full z-50 transition-all duration-500 flex items-center ${isScrolled ? 'opacity-0 pointer-events-none' : 'bg-transparent shadow-[0_4px_20px_rgba(0,0,0,0.25)] py-2'}`}>
+        <div className="max-w-7xl mx-auto px-6 md:px-10 py-1.5 md:py-2 flex items-center justify-between w-full">
           {/* Logo */}
           <div className="flex-shrink-0 flex items-center gap-3 cursor-pointer" onClick={() => router.push('/')}>
-            <img src="/logo%203.png" alt="We Connect" className="h-[40px] md:h-[50px] object-contain" />
-            <span className="text-xl font-black text-slate-900 tracking-tighter hidden sm:block">WE CONNECT</span>
+            <img src="/logo%203.png" alt="We Connect" className="h-[32px] md:h-[40px] object-contain" />
+            <span className={`text-xl font-black tracking-tighter hidden sm:block transition-colors duration-300 ${isScrolled ? 'text-slate-900' : 'text-white'}`}>WE CONNECT</span>
           </div>
 
           {/* Desktop Links */}
           <div className="hidden lg:flex items-center gap-8 relative">
-            <button suppressHydrationWarning onClick={() => window.scrollTo(0, 0)} className="text-[#4A5568] hover:text-[#1E8E3E] font-bold transition-colors">Home</button>
-            <button suppressHydrationWarning onClick={() => scrollTo('about')} className="text-[#4A5568] hover:text-[#1E8E3E] font-bold transition-colors">About</button>
+            <button suppressHydrationWarning onClick={() => window.scrollTo(0, 0)} className={`font-bold transition-colors duration-300 ${isScrolled ? 'text-[#4A5568] hover:text-[#1E8E3E]' : 'text-white hover:text-emerald-400'}`}>Home</button>
+            <button suppressHydrationWarning onClick={() => scrollTo('about')} className={`font-bold transition-colors duration-300 ${isScrolled ? 'text-[#4A5568] hover:text-[#1E8E3E]' : 'text-white hover:text-emerald-400'}`}>About</button>
 
             <div className="relative">
               <button
                 suppressHydrationWarning
                 onClick={() => setLoginDropdownOpen(!loginDropdownOpen)}
                 onBlur={() => setTimeout(() => setLoginDropdownOpen(false), 200)}
-                className="text-[#4A5568] hover:text-[#1E8E3E] font-bold transition-colors flex items-center gap-1"
+                className={`font-bold transition-colors duration-300 flex items-center gap-1 ${isScrolled ? 'text-[#4A5568] hover:text-[#1E8E3E]' : 'text-white hover:text-emerald-400'}`}
               >
                 Login <span className="material-symbols-outlined text-[18px]">expand_more</span>
               </button>
@@ -140,7 +140,7 @@ function LandingPageContent() {
           </div>
 
           {/* Mobile Toggle */}
-          <button suppressHydrationWarning className="lg:hidden text-[#1A1A2E] p-2" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+          <button suppressHydrationWarning className={`p-2 transition-colors duration-300 ${isScrolled ? 'text-[#1A1A2E]' : 'text-white'}`} onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
             <span className="material-symbols-outlined text-[28px]">{mobileMenuOpen ? 'close' : 'menu'}</span>
           </button>
         </div>
@@ -558,7 +558,7 @@ function LandingPageContent() {
           </h2>
           <div className="relative z-10 flex flex-col sm:flex-row gap-6 justify-center">
             <button suppressHydrationWarning onClick={() => router.push('/get-started')} className="btn-primary font-black text-xs uppercase tracking-widest px-8 h-12 shadow-lg shadow-emerald-700/20 active:scale-95 transition-all">
-              Register Now
+              Get Started
             </button>
           </div>
         </div>

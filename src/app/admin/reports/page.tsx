@@ -268,7 +268,7 @@ export default function AdminReports() {
                             <td className="p-4 font-bold text-slate-900">{vendor.name}</td>
                             <td className="p-4">
                                <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${vendor.status === "active" ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"}`}>
-                                  {vendor.status.toUpperCase()}
+                                  {vendor.status?.toUpperCase() || "PENDING"}
                                </span>
                             </td>
                             <td className="p-4 text-center font-bold text-slate-700">{vendorBids.length} bids</td>

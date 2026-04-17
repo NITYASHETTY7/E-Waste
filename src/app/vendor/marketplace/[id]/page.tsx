@@ -88,7 +88,7 @@ export default function VendorAuctionDetail() {
             </div>
             <div className="flex items-center gap-2 mt-1">
               <span className={`pill text-[10px] ${isSealedPhase ? "bg-blue-600 text-white" : listing.auctionPhase === 'live' ? "bg-red-600 text-white" : "bg-slate-500 text-white"}`}>
-                  {listing.auctionPhase?.toUpperCase().replace('_', ' ')}
+                  {listing.auctionPhase?.toUpperCase().replace('_', ' ') || 'ACTIVE'}
               </span>
               <span className="text-xs text-slate-500 uppercase tracking-widest font-bold">{listing.category}</span>
             </div>

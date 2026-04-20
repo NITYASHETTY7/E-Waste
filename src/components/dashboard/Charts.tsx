@@ -62,7 +62,7 @@ export const InteractiveLineChart: React.FC<DashboardChartProps> = ({ title, sub
         </select>
       </div>
       
-      <div className="flex-1 w-full overflow-hidden">
+      <div className="flex-1 w-full min-h-0 min-w-0 overflow-hidden">
         <ResponsiveContainer width="99%" height="100%">
           <AreaChart data={activeData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
             <defs>
@@ -129,7 +129,7 @@ export const InteractiveDonutChart: React.FC<DashboardChartProps & { percentage:
     >
       <h3 className="font-bold text-slate-900 w-full text-left mb-6">{title}</h3>
       
-      <div className="relative w-full flex-1 flex items-center justify-center overflow-hidden">
+      <div className="relative w-full flex-1 flex items-center justify-center min-h-0 min-w-0 overflow-hidden">
         <ResponsiveContainer width="99%" height="100%">
           <PieChart>
             <Pie
@@ -194,7 +194,7 @@ export const InteractiveBarChart: React.FC<DashboardChartProps & { data: any[] }
         </select>
       </div>
 
-      <div className="flex-1 w-full overflow-hidden">
+      <div className="flex-1 w-full min-h-0 min-w-0 overflow-hidden">
         <ResponsiveContainer width="99%" height="100%">
           <BarChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />

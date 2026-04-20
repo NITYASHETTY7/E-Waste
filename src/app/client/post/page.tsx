@@ -22,7 +22,7 @@ const REQUIRED_DOCS = [
   { id: "terms", label: "Terms & Conditions of Auction", required: true },
   { id: "asset_details", label: "Asset Details / Description Document", required: true },
   { id: "inventory_doc", label: "Inventory Document", required: true },
-  { id: "material_list", label: "Material List", required: true },
+  { id: "material_list", label: "Material List (Excel Only)", required: true },
   { id: "weight_cert", label: "Weight Certificate", required: true },
   { id: "location_proof", label: "Location Proof", required: true },
   { id: "ownership", label: "Title Documents / Ownership Proof", required: true },
@@ -33,19 +33,20 @@ const REQUIRED_DOCS = [
 ];
 
 export default function ClientPost() {
-  const { addListing, currentUser } = useApp();
+  const { addListing, currentUser, users } = useApp();
   const [selectedCategory, setSelectedCategory] = useState("");
   const [form, setForm] = useState({
     title: "", weight: "", description: "", location: "",
     pickupAddress: "", urgency: "medium" as "low" | "medium" | "high",
-    auctionStartDate: "", auctionEndDate: "",
-    basePrice: "", bidIncrement: "",
+    sealedBidStartDate: "", sealedBidEndDate: "",
+    invitationDeadline: "",
   });
   const [images, setImages] = useState<string[]>([]);
   const [documents, setDocuments] = useState<{name: string, url: string, type: string}[]>([]);
 
   const [success, setSuccess] = useState(false);
-  const [step, setStep] = useState<"category" | "details" | "auction" | "media">("category");
+  const [step, setStep] = useState<"category" | "details" | "auction" | "media" | "invites">("category");
+  const [selectedVendors, setSelectedVendors] = useState<string[]>([]);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const set = (k: string, v: string) => { setForm(p => ({ ...p, [k]: v })); setErrors(p => { const n = {...p}; delete n[k]; return n; }); };
@@ -61,12 +62,17 @@ export default function ClientPost() {
       if (Object.keys(errs).length > 0) { setErrors(errs); return; }
       setStep("auction");
     } else if (step === "auction") {
-      if (!form.auctionStartDate) errs.auctionStartDate = "Required";
-      if (!form.auctionEndDate) errs.auctionEndDate = "Required";
-      if (!form.basePrice || isNaN(Number(form.basePrice))) errs.basePrice = "Valid price required";
-      if (!form.bidIncrement || isNaN(Number(form.bidIncrement))) errs.bidIncrement = "Valid increment required";
+      if (!form.sealedBidStartDate) errs.sealedBidStartDate = "Required";
+      if (!form.sealedBidEndDate) errs.sealedBidEndDate = "Required";
       if (Object.keys(errs).length > 0) { setErrors(errs); return; }
       setStep("media");
+    } else if (step === "media") {
+      const missingDocs = REQUIRED_DOCS.filter(d => d.required && !documents.some(doc => doc.type === d.id));
+      if (missingDocs.length > 0) { 
+        setErrors({ media: `Missing required documents: ${missingDocs.map(d => d.label).join(', ')}` }); 
+        return; 
+      }
+      setStep("invites");
     }
   };
 
@@ -74,21 +80,15 @@ export default function ClientPost() {
     e.preventDefault();
     if (images.length === 0) { setErrors({ media: "Please upload at least one image." }); return; }
     
-    const missingDocs = REQUIRED_DOCS.filter(d => d.required && !documents.some(doc => doc.type === d.id));
-    if (missingDocs.length > 0) { 
-       setErrors({ media: `Missing required documents: ${missingDocs.map(d => d.label).join(', ')}` }); 
-       return; 
-    }
-
     addListing({
       title: form.title, category: selectedCategory, weight: Number(form.weight),
       location: form.location, userId: currentUser?.id || "", userName: currentUser?.name || "",
       description: form.description, urgency: form.urgency,
       pickupAddress: form.pickupAddress,
-      auctionStartDate: new Date(form.auctionStartDate).toISOString(),
-      auctionEndDate: new Date(form.auctionEndDate).toISOString(),
-      basePrice: Number(form.basePrice),
-      bidIncrement: Number(form.bidIncrement),
+      sealedBidStartDate: new Date(form.sealedBidStartDate).toISOString(),
+      sealedBidEndDate: new Date(form.sealedBidEndDate).toISOString(),
+      invitationDeadline: form.invitationDeadline ? new Date(form.invitationDeadline).toISOString() : undefined,
+      invitedVendorIds: selectedVendors,
       images, documents
     });
     setSuccess(true);
@@ -110,8 +110,8 @@ export default function ClientPost() {
     );
   }
 
-  const stepsList = ["Category", "Details", "Auction", "Media"];
-  const currentStepIndex = step === "category" ? 0 : step === "details" ? 1 : step === "auction" ? 2 : 3;
+  const stepsList = ["Category", "Details", "Sealed Bid", "Media", "Invites"];
+  const currentStepIndex = step === "category" ? 0 : step === "details" ? 1 : step === "auction" ? 2 : step === "media" ? 3 : 4;
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-20">
@@ -215,44 +215,56 @@ export default function ClientPost() {
       {step === "auction" && (
         <div className="animate-fade-in space-y-6">
           <div className="card p-6 space-y-6">
-             <h3 className="text-sm font-black uppercase tracking-widest text-[color:var(--color-on-surface-variant)]">Auction Timeline</h3>
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-               {/* FIX: Use onBlur on wrapper div to dismiss picker once user picks and clicks away */}
-               <div>
-                  <label className="label">Auction Start Date & Time *</label>
-                  <input
-                    type="datetime-local"
-                    className={`input-base ${errors.auctionStartDate ? "ring-2 ring-red-400" : ""}`}
-                    value={form.auctionStartDate}
-                    onChange={e => { set("auctionStartDate", e.target.value); }}
-                    onInput={e => { if (e.currentTarget.value.length >= 16) e.currentTarget.blur(); }}
-                  />
-               </div>
-               <div>
-                  <label className="label">Auction End Date & Time *</label>
-                  <input
-                    type="datetime-local"
-                    className={`input-base ${errors.auctionEndDate ? "ring-2 ring-red-400" : ""}`}
-                    value={form.auctionEndDate}
-                    onChange={e => { set("auctionEndDate", e.target.value); }}
-                    onInput={e => { if (e.currentTarget.value.length >= 16) e.currentTarget.blur(); }}
-                  />
-               </div>
-             </div>
+            <div>
+              <h3 className="text-sm font-black uppercase tracking-widest text-[color:var(--color-on-surface-variant)]">Sealed Bid Window</h3>
+              <p className="text-xs text-[color:var(--color-on-surface-variant)] mt-1">Set when the sealed bidding phase opens and closes. Typically 2–3 hours. Vendors who accept your invitation will bid privately during this window.</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="label">Sealed Bid Opens *</label>
+                <input
+                  type="datetime-local"
+                  className={`input-base ${errors.sealedBidStartDate ? "ring-2 ring-red-400" : ""}`}
+                  value={form.sealedBidStartDate}
+                  onChange={e => { set("sealedBidStartDate", e.target.value); }}
+                  onInput={e => { if (e.currentTarget.value.length >= 16) e.currentTarget.blur(); }}
+                />
+                {errors.sealedBidStartDate && <p className="text-red-500 text-xs mt-1">{errors.sealedBidStartDate}</p>}
+              </div>
+              <div>
+                <label className="label">Sealed Bid Closes *</label>
+                <input
+                  type="datetime-local"
+                  className={`input-base ${errors.sealedBidEndDate ? "ring-2 ring-red-400" : ""}`}
+                  value={form.sealedBidEndDate}
+                  onChange={e => { set("sealedBidEndDate", e.target.value); }}
+                  onInput={e => { if (e.currentTarget.value.length >= 16) e.currentTarget.blur(); }}
+                />
+                {errors.sealedBidEndDate && <p className="text-red-500 text-xs mt-1">{errors.sealedBidEndDate}</p>}
+              </div>
+            </div>
+            <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl flex items-start gap-3">
+              <span className="material-symbols-outlined text-blue-500 text-base mt-0.5">info</span>
+              <p className="text-xs text-blue-700 leading-relaxed">
+                <strong>Base price, tick size, and open bidding schedule</strong> are configured after invitation responses are received. You will set these when you click <em>"Schedule Open Bidding"</em> on your listings page.
+              </p>
+            </div>
           </div>
-          <div className="card p-6 space-y-6">
-             <h3 className="text-sm font-black uppercase tracking-widest text-[color:var(--color-on-surface-variant)]">Pricing Logic</h3>
-             <p className="text-xs text-[color:var(--color-on-surface-variant)] -mt-2">Set the minimum starting threshold and the standardized bid increment value. Vendors will systematically increase the bid by the increment block.</p>
-             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-               <div>
-                  <label className="label">Base Price (₹) *</label>
-                  <input type="number" min="0" className={`input-base ${errors.basePrice ? "ring-2 ring-red-400" : ""}`} value={form.basePrice} onChange={e => set("basePrice", e.target.value)} placeholder="e.g. 100000" />
-               </div>
-               <div>
-                  <label className="label">Bid Increment (₹) *</label>
-                  <input type="number" min="1" className={`input-base ${errors.bidIncrement ? "ring-2 ring-red-400" : ""}`} value={form.bidIncrement} onChange={e => set("bidIncrement", e.target.value)} placeholder="e.g. 500" />
-               </div>
-             </div>
+          <div className="card p-6 space-y-4">
+            <div>
+              <h3 className="text-sm font-black uppercase tracking-widest text-[color:var(--color-on-surface-variant)]">Invitation Deadline</h3>
+              <p className="text-xs text-[color:var(--color-on-surface-variant)] mt-1">Optional: deadline by which invited vendors must respond.</p>
+            </div>
+            <div>
+              <label className="label">Vendor Response Deadline (optional)</label>
+              <input
+                type="datetime-local"
+                className="input-base"
+                value={form.invitationDeadline}
+                onChange={e => { set("invitationDeadline", e.target.value); }}
+                onInput={e => { if (e.currentTarget.value.length >= 16) e.currentTarget.blur(); }}
+              />
+            </div>
           </div>
           <div className="flex flex-col-reverse sm:flex-row gap-4 justify-between mt-8">
             <button onClick={() => setStep("details")} className="btn-outline w-full sm:w-auto px-8 py-3 rounded-xl font-bold">← Back</button>
@@ -326,7 +338,11 @@ export default function ClientPost() {
                             </div>
                          ) : (
                             <label className="btn-outline px-4 py-2 text-xs font-black uppercase tracking-widest rounded-lg cursor-pointer flex items-center gap-2 hover:bg-slate-100 w-fit">
-                               <input type="file" accept=".pdf,.doc,.docx" className="hidden" onChange={(e) => {
+                               <input 
+                                 type="file" 
+                                 accept={docReq.id === "material_list" ? ".xlsx,.xls,.csv" : ".pdf,.doc,.docx"} 
+                                 className="hidden" 
+                                 onChange={(e) => {
                                   if (e.target.files?.length) {
                                      const file = e.target.files[0];
                                      const reader = new FileReader();
@@ -349,9 +365,45 @@ export default function ClientPost() {
 
           <div className="flex flex-col-reverse sm:flex-row gap-4 justify-between mt-8">
             <button type="button" onClick={() => setStep("auction")} className="btn-outline w-full sm:w-auto px-8 py-4 rounded-xl font-bold">← Back</button>
+            <button type="button" onClick={handleNext} className="btn-primary w-full sm:flex-1 py-4 rounded-xl font-black text-sm uppercase tracking-widest shadow-lg flex items-center justify-center gap-2">
+               Next Step →
+            </button>
+          </div>
+        </form>
+      )}
+
+      {step === "invites" && (
+        <form onSubmit={handleSubmit} className="animate-fade-in space-y-6">
+          <div className="card p-6 space-y-4">
+             <h3 className="text-sm font-black uppercase tracking-widest text-[color:var(--color-on-surface-variant)]">Step 5: Select Vendors</h3>
+             <p className="text-xs text-[color:var(--color-on-surface-variant)]">Choose specialized vendors to invite for this auction. They will receive an invitation to bid.</p>
+             
+             <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2">
+                {users.filter(u => u.role === 'vendor' && u.status === 'active').map(vendor => (
+                  <label key={vendor.id} className={`flex items-center gap-4 p-4 rounded-xl border-2 transition-all cursor-pointer ${selectedVendors.includes(vendor.id) ? "border-[color:var(--color-primary)] bg-[color:var(--color-secondary-container)]" : "border-[color:var(--color-outline-variant)] bg-white hover:border-[color:var(--color-primary)]/30"}`}>
+                    <input 
+                      type="checkbox" 
+                      className="w-5 h-5 accent-[color:var(--color-primary)]"
+                      checked={selectedVendors.includes(vendor.id)}
+                      onChange={(e) => {
+                        if (e.target.checked) setSelectedVendors([...selectedVendors, vendor.id]);
+                        else setSelectedVendors(selectedVendors.filter(id => id !== vendor.id));
+                      }}
+                    />
+                    <div>
+                      <p className="font-black text-sm text-[color:var(--color-on-surface)]">{vendor.name}</p>
+                      <p className="text-[10px] text-[color:var(--color-on-surface-variant)] uppercase font-bold tracking-wider">{vendor.onboardingProfile?.materialSpecializations?.join(', ') || 'General Recycler'}</p>
+                    </div>
+                  </label>
+                ))}
+             </div>
+          </div>
+
+          <div className="flex flex-col-reverse sm:flex-row gap-4 justify-between mt-8">
+            <button type="button" onClick={() => setStep("media")} className="btn-outline w-full sm:w-auto px-8 py-4 rounded-xl font-bold">← Back</button>
             <button type="submit" className="btn-tertiary w-full sm:flex-1 py-4 rounded-xl font-black text-sm uppercase tracking-widest shadow-lg flex items-center justify-center gap-2">
-              <span className="material-symbols-outlined">gavel</span>
-              Start E-Auction
+              <span className="material-symbols-outlined">send</span>
+              Submit & Send Invitations
             </button>
           </div>
         </form>

@@ -9,10 +9,19 @@ export default function ConfigureLiveAuction() {
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
-  const { listings, bids, editListing, updateAuctionPhase, addNotification } = useApp();
+  const { listings, bids, users, editListing, updateAuctionPhase, addNotification } = useApp();
 
   const listing = listings.find(l => l.id === id);
+  const isFromInvitationWindow = listing?.auctionPhase === 'invitation_window';
   const sealedBids = bids.filter(b => b.listingId === id && b.type === "sealed");
+  const interestedVendors = listing?.vendorResponses?.filter(r => r.status === 'interested') || [];
+  const declinedVendors = listing?.vendorResponses?.filter(r => r.status === 'declined') || [];
+  const pendingVendors = (listing?.invitedVendorIds || []).filter(
+    vid => !listing?.vendorResponses?.find(r => r.vendorId === vid)
+  );
+  const sealedBidAvg = sealedBids.length > 0 ? Math.round(sealedBids.reduce((s, b) => s + b.amount, 0) / sealedBids.length) : 0;
+  const sealedBidMax = sealedBids.length > 0 ? Math.max(...sealedBids.map(b => b.amount)) : 0;
+  const sealedBidMin = sealedBids.length > 0 ? Math.min(...sealedBids.map(b => b.amount)) : 0;
 
   const [form, setForm] = useState({
     basePrice: "",
@@ -86,8 +95,12 @@ export default function ConfigureLiveAuction() {
           <span className="material-symbols-outlined text-sm">arrow_back</span>
         </Link>
         <div>
-          <h2 className="text-3xl font-headline font-extrabold tracking-tight text-[color:var(--color-on-surface)]">Configure Live Auction</h2>
-          <p className="text-[color:var(--color-on-surface-variant)] mt-1">Transform your sealed bid listing into a competitive open auction.</p>
+          <h2 className="text-3xl font-headline font-extrabold tracking-tight text-[color:var(--color-on-surface)]">Schedule Open Bidding</h2>
+          <p className="text-[color:var(--color-on-surface-variant)] mt-1">
+            {isFromInvitationWindow
+              ? "Set base price, tick size, and schedule the live open auction for accepted vendors."
+              : "Configure pricing and timing for the open auction phase."}
+          </p>
         </div>
       </div>
 
@@ -158,13 +171,67 @@ export default function ConfigureLiveAuction() {
           <div className="flex gap-4">
              <Link href="/client/listings" className="btn-outline flex-1 py-4 rounded-xl text-center">Cancel</Link>
              <button onClick={handleStart} className="btn-tertiary flex-[2] py-4 rounded-xl font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg">
-                <span className="material-symbols-outlined">rocket_launch</span>
-                Launch Live Auction
+                <span className="material-symbols-outlined">{isFromInvitationWindow ? "event_available" : "rocket_launch"}</span>
+                {isFromInvitationWindow ? "Schedule Open Bidding" : "Launch Live Auction"}
              </button>
           </div>
         </div>
 
         <div className="space-y-6">
+          {listing.invitedVendorIds && listing.invitedVendorIds.length > 0 && (
+            <div className="card p-6 bg-white border border-amber-100">
+              <h4 className="text-xs font-black uppercase tracking-widest text-amber-600 mb-4 flex items-center gap-2">
+                <span className="material-symbols-outlined text-sm">mail</span>
+                Vendor Invitation Responses
+              </h4>
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                <div className="bg-emerald-50 p-2 rounded-xl text-center border border-emerald-100">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-emerald-600">Accepted</p>
+                  <p className="text-xl font-headline font-bold text-emerald-700">{interestedVendors.length}</p>
+                </div>
+                <div className="bg-red-50 p-2 rounded-xl text-center border border-red-100">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-red-600">Declined</p>
+                  <p className="text-xl font-headline font-bold text-red-700">{declinedVendors.length}</p>
+                </div>
+                <div className="bg-slate-50 p-2 rounded-xl text-center border border-slate-100">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Pending</p>
+                  <p className="text-xl font-headline font-bold text-slate-600">{pendingVendors.length}</p>
+                </div>
+              </div>
+              <div className="space-y-2">
+                {listing.invitedVendorIds.map(vid => {
+                  const vendor = users.find(u => u.id === vid);
+                  const response = listing.vendorResponses?.find(r => r.vendorId === vid);
+                  return (
+                    <div key={vid} className="flex items-center justify-between p-2 bg-slate-50 rounded-lg border border-slate-100">
+                      <div className="flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${response?.status === 'interested' ? 'bg-emerald-500' : response?.status === 'declined' ? 'bg-red-500' : 'bg-slate-300'}`} />
+                        <p className="text-xs font-bold text-slate-700">{vendor?.name || vid}</p>
+                      </div>
+                      <span className={`text-[9px] font-black px-2 py-0.5 rounded uppercase tracking-widest ${
+                        response?.status === 'interested' ? 'bg-emerald-100 text-emerald-700' :
+                        response?.status === 'declined' ? 'bg-red-100 text-red-700' :
+                        'bg-slate-200 text-slate-500'
+                      }`}>
+                        {response?.status === 'interested' ? 'Accepted' : response?.status === 'declined' ? 'Declined' : 'No Reply'}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+              {listing.sealedBidStartDate && (
+                <div className="mt-4 p-3 bg-blue-50 rounded-xl border border-blue-100">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-blue-600 mb-1">Sealed Bid Window</p>
+                  <p className="text-xs font-bold text-blue-800">
+                    {new Date(listing.sealedBidStartDate).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                    {' → '}
+                    {listing.sealedBidEndDate ? new Date(listing.sealedBidEndDate).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="card p-6 bg-[color:var(--color-primary-container)] text-[color:var(--color-on-primary-container)]">
              <h4 className="text-xs font-black uppercase tracking-widest opacity-70 mb-4">Sealed Bid Intelligence</h4>
              <div className="space-y-4">
@@ -174,8 +241,23 @@ export default function ConfigureLiveAuction() {
                 </div>
                 {sealedBids.length > 0 && (
                   <div className="space-y-3">
-                    <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Highest Sealed Bids</p>
-                    {sealedBids.sort((a,b) => b.amount - a.amount).slice(0, 3).map((bid, i) => (
+                    <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Bid Range & Average</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="bg-white/40 p-2 rounded-lg text-center">
+                        <p className="text-[9px] opacity-60 uppercase font-black">Min</p>
+                        <p className="text-xs font-headline font-bold">₹{(sealedBidMin/1000).toFixed(0)}k</p>
+                      </div>
+                      <div className="bg-white/60 p-2 rounded-lg text-center border border-white/40">
+                        <p className="text-[9px] opacity-60 uppercase font-black">Avg</p>
+                        <p className="text-xs font-headline font-bold">₹{(sealedBidAvg/1000).toFixed(0)}k</p>
+                      </div>
+                      <div className="bg-white/40 p-2 rounded-lg text-center">
+                        <p className="text-[9px] opacity-60 uppercase font-black">Max</p>
+                        <p className="text-xs font-headline font-bold">₹{(sealedBidMax/1000).toFixed(0)}k</p>
+                      </div>
+                    </div>
+                    <p className="text-[10px] font-black uppercase tracking-widest opacity-60 mt-2">Top Bids</p>
+                    {[...sealedBids].sort((a,b) => b.amount - a.amount).slice(0, 3).map((bid, i) => (
                       <div key={bid.id} className="flex justify-between items-center bg-white/40 p-2 rounded-lg border border-white/20">
                          <span className="text-xs font-bold truncate max-w-[100px]">{bid.vendorName}</span>
                          <span className="text-sm font-headline font-bold">₹{bid.amount.toLocaleString()}</span>
@@ -185,7 +267,7 @@ export default function ConfigureLiveAuction() {
                 )}
                 <div className="pt-2">
                    <p className="text-[10px] italic leading-tight opacity-70">
-                     Use these sealed bid values to determine your optimal starting base price and tick size. 
+                     Use these sealed bid values to determine your optimal starting base price and tick size.
                      Generally, a base price close to the median sealed bid encourages more competitive participation.
                    </p>
                 </div>

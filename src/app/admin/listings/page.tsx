@@ -1,18 +1,30 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useApp } from "@/context/AppContext";
+import { useSearchParams } from "next/navigation";
 import DecisionModal from "@/components/admin/DecisionModal";
+import Link from "next/link";
 
 export default function AdminListings() {
   const { listings, bids, updateListingStatus, users, assignVendor } = useApp();
+  const searchParams = useSearchParams();
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<"all" | "active" | "completed" | "pending" | "verified">("all");
+  const [filter, setFilter] = useState<"all" | "active" | "completed" | "pending" | "verified" | "live">("all");
   const [decisionModal, setDecisionModal] = useState<{ isOpen: boolean; listingId: string | null }>({ isOpen: false, listingId: null });
   const [assignModal, setAssignModal] = useState<{ isOpen: boolean; listingId: string | null }>({ isOpen: false, listingId: null });
 
+  useEffect(() => {
+    if (searchParams?.get("live") === "1") setFilter("live");
+  }, [searchParams]);
+
+  const liveListing = listings.filter(l => l.auctionPhase === "live");
+
   const filtered = listings
-    .filter(l => filter === "all" || l.status === filter)
+    .filter(l => {
+      if (filter === "live") return l.auctionPhase === "live";
+      return filter === "all" || l.status === filter;
+    })
     .filter(l => l.title.toLowerCase().includes(search.toLowerCase()) || l.location.toLowerCase().includes(search.toLowerCase()));
 
   const stats = {
@@ -20,6 +32,7 @@ export default function AdminListings() {
     active: listings.filter(l => l.status === "active").length,
     completed: listings.filter(l => l.status === "completed").length,
     pending: listings.filter(l => l.status === "pending").length,
+    live: liveListing.length,
   };
 
   return (
@@ -36,10 +49,11 @@ export default function AdminListings() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {[
           { label: "Total", value: stats.total, color: "bg-[color:var(--color-secondary-container)]", textColor: "text-[color:var(--color-primary)]", icon: "inventory_2" },
           { label: "Active", value: stats.active, color: "bg-emerald-50", textColor: "text-emerald-700", icon: "check_circle" },
+          { label: "Live Now", value: stats.live, color: "bg-red-50", textColor: "text-red-700", icon: "sensors" },
           { label: "Completed", value: stats.completed, color: "bg-blue-50", textColor: "text-blue-700", icon: "task_alt" },
           { label: "Pending", value: stats.pending, color: "bg-amber-50", textColor: "text-amber-700", icon: "pending" },
         ].map(s => (
@@ -56,12 +70,13 @@ export default function AdminListings() {
       </div>
 
       <div className="flex gap-1 p-1 bg-[color:var(--color-surface-container-low)] rounded-xl w-fit">
-        {(["all", "active", "completed", "pending"] as const).map(f => (
+        {(["all", "live", "active", "completed", "pending"] as const).map(f => (
           <button key={f} onClick={() => setFilter(f)}
-            className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${
+            className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all flex items-center gap-1.5 ${
               filter === f ? "bg-white shadow-sm text-[color:var(--color-on-surface)]" : "text-[color:var(--color-on-surface-variant)]"
             }`}>
-            {f}
+            {f === "live" && <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />}
+            {f} {f === "live" && `(${stats.live})`}
           </button>
         ))}
       </div>
@@ -103,6 +118,13 @@ export default function AdminListings() {
                   </td>
                   <td>
                     <div className="flex gap-2">
+                      {listing.auctionPhase === "live" && (
+                        <Link href={`/admin/auctions/${listing.id}/live`}
+                          className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-600 hover:text-white transition-colors border border-purple-200" title="Observe Live Auction">
+                          <span className="material-symbols-outlined text-sm">visibility</span>
+                          Watch
+                        </Link>
+                      )}
                       {listing.status === "pending" && (
                         <button onClick={() => setDecisionModal({ isOpen: true, listingId: listing.id })}
                           className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center hover:bg-emerald-600 hover:text-white transition-all" title="Review Listing">

@@ -7,6 +7,7 @@ import { useApp } from "@/context/AppContext";
 const VENDOR_LINKS = [
   { href: "/vendor/dashboard", icon: "dashboard", label: "Dashboard" },
   { href: "/vendor/marketplace", icon: "storefront", label: "Auctions" },
+  { href: "/vendor/invitations", icon: "mail", label: "Invitations" },
   { href: "/vendor/live-auction", icon: "sensors", label: "Live Auction" },
   { href: "/vendor/bids", icon: "gavel", label: "My Bids" },
   { href: "/vendor/pickups", icon: "local_shipping", label: "Logistics" },
@@ -38,6 +39,7 @@ const ADMIN_LINKS = [
   { href: "/admin/vendors", icon: "recycling", label: "Vendors" },
   { href: "/admin/users", icon: "domain", label: "Clients" },
   { href: "/admin/listings", icon: "inventory_2", label: "Listings" },
+  { href: "/admin/listings?live=1", icon: "sensors", label: "Live Auctions" },
   { href: "/admin/transactions", icon: "payments", label: "Transactions" },
   { href: "/admin/reports", icon: "bar_chart", label: "Reports" },
   { href: "/admin/profile", icon: "person", label: "Profile" },

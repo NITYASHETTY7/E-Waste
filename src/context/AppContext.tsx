@@ -13,7 +13,7 @@ interface AppContextType extends AppState {
   saveOnboardingBankDetails: (bank: BankDetails) => void;
   completeOnboarding: () => void;
   addListing: (listing: Omit<Listing, 'id' | 'createdAt' | 'status'>) => void;
-  addBid: (bid: Omit<Bid, 'id' | 'createdAt' | 'status'>) => void;
+  addBid: (bid: Omit<Bid, 'id' | 'createdAt' | 'status' | 'type'>) => void;
   updateListingStatus: (id: string, status: Listing['status'], reason?: string) => void;
   updateAuctionPhase: (id: string, phase: Listing['auctionPhase']) => void;
   updateBidStatus: (id: string, status: Bid['status'], reason?: string) => void;
@@ -24,6 +24,8 @@ interface AppContextType extends AppState {
   markNotificationRead: (id: string) => void;
   editListing: (id: string, updates: Partial<Listing>) => void;
   editBid: (id: string, updates: Partial<Bid>) => void;
+  respondToInvitation: (listingId: string, vendorId: string, status: 'interested' | 'declined') => void;
+  transitionAuctionPhase: (listingId: string, nextPhase: Listing['auctionPhase']) => void;
   addClosingDocument: (listingId: string, doc: { name: string; url: string; type: string; timestamp: string }) => void;
   updateUserProfile: (updates: Partial<User>) => void;
   changePassword: (newPassword: string) => void;
@@ -34,7 +36,7 @@ interface AppContextType extends AppState {
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
-const STORAGE_KEY = 'weconnect_state_v10';
+const STORAGE_KEY = 'weconnect_state_v11';
 
 const MOCK_LISTINGS: Listing[] = [
   {
@@ -130,6 +132,22 @@ const MOCK_LISTINGS: Listing[] = [
     createdAt: '2026-04-17T09:00:00.000Z', urgency: 'low', bidCount: 1, viewCount: 22,
     auctionPhase: 'sealed_bid', basePrice: 400, highestEmdAmount: 50,
     images: ['https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&w=800&q=80']
+  },
+  {
+    id: 'ECO18990', title: 'Bulk Desktop Computers (Office Decommission Lot)', category: 'Laptops & PCs',
+    weight: 800, location: 'MG Road, Bangalore', status: 'active', userId: 'C1',
+    userName: 'Tech Corp Ltd', description: 'Bulk lot of 40 desktop computers from office decommission. Core i3/Pentium era hardware. HDD securely wiped. Non-functional screens excluded.',
+    createdAt: '2026-04-19T09:00:00.000Z', urgency: 'medium', bidCount: 0, viewCount: 8,
+    auctionPhase: 'invitation_window',
+    invitedVendorIds: ['V1', 'V2', 'V3'],
+    vendorResponses: [
+      { vendorId: 'V1', status: 'interested', respondedAt: '2026-04-19T11:00:00.000Z' },
+      { vendorId: 'V2', status: 'declined', respondedAt: '2026-04-19T10:30:00.000Z' },
+    ],
+    sealedBidStartDate: '2026-04-20T14:00:00.000Z',
+    sealedBidEndDate: '2026-04-20T17:00:00.000Z',
+    invitationDeadline: '2026-04-21T18:00:00.000Z',
+    images: ['https://images.unsplash.com/photo-1547082299-de196ea013d6?auto=format&fit=crop&w=800&q=80']
   }
 ];
 
@@ -164,8 +182,59 @@ const MOCK_USERS: User[] = [
   { id: 'V1', name: 'Green Recyclers Pvt Ltd', role: 'vendor', email: 'vendor@weconnect.com', status: 'active', phone: '+91 76543 21098', registeredAt: '2026-03-05T10:00:00.000Z', onboardingStep: 5 },
   { id: 'V2', name: 'EcoMetal Solutions', role: 'vendor', email: 'info@ecometal.com', status: 'active', phone: '+91 65432 10987', registeredAt: '2026-03-20T10:00:00.000Z', onboardingStep: 5 },
   { id: 'V3', name: 'RecycleFirst India', role: 'vendor', email: 'ops@recyclefirst.in', status: 'active', phone: '+91 54321 09876', registeredAt: '2026-04-01T10:00:00.000Z', onboardingStep: 5 },
-  { id: 'V4', name: 'PureRecovery Solutions', role: 'vendor', email: 'contact@purerecovery.com', status: 'pending', phone: '+91 43210 98765', registeredAt: '2026-04-14T10:00:00.000Z', onboardingStep: 4 },
-  { id: 'V5', name: 'Urban Miners', role: 'vendor', email: 'hello@urbanminers.com', status: 'pending', phone: '+91 32109 87654', registeredAt: '2026-04-15T10:00:00.000Z', onboardingStep: 2 },
+  {
+    id: 'V4', name: 'PureRecovery Solutions', role: 'vendor', email: 'contact@purerecovery.com',
+    status: 'pending', phone: '+91 43210 98765', registeredAt: '2026-04-14T10:00:00.000Z', onboardingStep: 4,
+    onboardingProfile: {
+      companyName: 'PureRecovery Solutions Pvt Ltd', contactPerson: 'Arjun Mehta',
+      email: 'contact@purerecovery.com', phone: '+91 43210 98765',
+      address: 'Plot 14, Sector 18, HSIIDC Industrial Area', city: 'Faridabad',
+      state: 'Haryana', pincode: '121002',
+      companyRegistrationNo: 'U90000HR2019PTC082341', processingCapacity: '500 MT / Month',
+      materialSpecializations: ['IT Equipment', 'Batteries', 'Components'],
+      cpcbNo: 'CPCB/R/HR/2021/0842',
+    },
+    documents: [
+      { name: 'CPCB Certificate', fileName: 'CPCB_Certificate_PureRecovery.pdf', size: '2.1 MB', uploadedAt: '2026-04-14T10:00:00.000Z', status: 'pending' },
+      { name: 'GST Certificate', fileName: 'GST_PureRecovery.pdf', size: '1.2 MB', uploadedAt: '2026-04-14T10:05:00.000Z', status: 'pending' },
+      { name: 'Company Registration', fileName: 'CIN_PureRecovery.pdf', size: '3.4 MB', uploadedAt: '2026-04-14T10:10:00.000Z', status: 'pending' },
+      { name: 'EMD Proof', fileName: 'EMD_BankReceipt.pdf', size: '0.8 MB', uploadedAt: '2026-04-14T10:15:00.000Z', status: 'pending' },
+    ],
+    bankDetails: {
+      accountHolderName: 'PureRecovery Solutions Pvt Ltd', bankName: 'HDFC Bank',
+      accountNumber: '50200012345678', ifscCode: 'HDFC0001234', accountType: 'current',
+    },
+  },
+  {
+    id: 'V5', name: 'Urban Miners', role: 'vendor', email: 'hello@urbanminers.com',
+    status: 'pending', phone: '+91 32109 87654', registeredAt: '2026-04-15T10:00:00.000Z', onboardingStep: 2,
+    onboardingProfile: {
+      companyName: 'Urban Miners', contactPerson: 'Priya Nair',
+      email: 'hello@urbanminers.com', phone: '+91 32109 87654',
+      address: '7B, Anna Salai, Nungambakkam', city: 'Chennai',
+      state: 'Tamil Nadu', pincode: '600034',
+      companyRegistrationNo: 'U90000TN2023PTC145678', processingCapacity: '200 MT / Month',
+      materialSpecializations: ['Mobile Devices', 'Cables & Wiring'],
+      cpcbNo: 'Application Pending',
+    },
+  },
+  {
+    id: 'C4', name: 'InnoTech Systems Pvt Ltd', role: 'client', email: 'admin@innotech.in',
+    status: 'pending', phone: '+91 22334 55667', registeredAt: '2026-04-18T09:00:00.000Z', onboardingStep: 3,
+    onboardingProfile: {
+      companyName: 'InnoTech Systems Pvt Ltd', contactPerson: 'Vikram Rao',
+      email: 'admin@innotech.in', phone: '+91 22334 55667',
+      address: '302, Amar Tower, Bandra Kurla Complex', city: 'Mumbai',
+      state: 'Maharashtra', pincode: '400051',
+      gstin: '27AABCI9999A1Z5', industrySector: 'Information Technology',
+      numberOfEmployees: '201-500',
+    },
+    documents: [
+      { name: 'GST Certificate', fileName: 'GST_InnoTech.pdf', size: '1.5 MB', uploadedAt: '2026-04-18T09:00:00.000Z', status: 'pending' },
+      { name: 'Company Incorporation', fileName: 'CIN_InnoTech.pdf', size: '2.2 MB', uploadedAt: '2026-04-18T09:05:00.000Z', status: 'pending' },
+      { name: 'Address Proof', fileName: 'AddressProof_InnoTech.pdf', size: '1.1 MB', uploadedAt: '2026-04-18T09:10:00.000Z', status: 'pending' },
+    ],
+  },
   { id: 'G1', name: 'Individual User', role: 'guest', email: 'guest@weconnect.com', status: 'active', registeredAt: '2026-04-16T13:00:00.000Z', onboardingStep: 5 },
   { id: 'CON1', name: 'Rahul Sharma', role: 'consumer', email: 'consumer@weconnect.com', status: 'active', phone: '+91 91234 56789', registeredAt: '2026-04-16T13:00:00.000Z', onboardingStep: 5 },
 ];
@@ -353,18 +422,61 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const newListing: Listing = {
       ...listing, id: `L${Date.now()}`,
       createdAt: new Date().toISOString(), status: 'pending', bidCount: 0, viewCount: 0,
-      auctionPhase: 'sealed_bid',
+      auctionPhase: listing.invitedVendorIds?.length ? 'invitation_window' : 'sealed_bid',
     };
-    setState(prev => ({ 
-      ...prev, 
-      listings: [newListing, ...prev.listings],
-      notifications: [...prev.notifications, ...prev.users.filter(u => u.role === 'admin').map(admin => ({
-        id: `N${Date.now()}${admin.id}`, userId: admin.id, type: 'general' as const, title: 'New Listing Review', message: `A new e-waste listing "${listing.title}" is pending your review.`, read: false, createdAt: new Date().toISOString()
-      }))]
+    setState(prev => {
+      const notifications = [...prev.notifications];
+      
+      // Admin notification
+      prev.users.filter(u => u.role === 'admin').forEach(admin => {
+        notifications.push({
+          id: `N${Date.now()}A${admin.id}`, userId: admin.id, type: 'general' as const, title: 'New Listing Review', message: `A new e-waste listing "${listing.title}" is pending your review.`, read: false, createdAt: new Date().toISOString()
+        });
+      });
+
+      // Vendor invitations
+      if (listing.invitedVendorIds?.length) {
+        listing.invitedVendorIds.forEach(vId => {
+          notifications.push({
+            id: `N${Date.now()}V${vId}`, userId: vId, type: 'general' as const, title: 'Auction Invitation', message: `You have been invited to bid on "${listing.title}". Please respond within the window.`, read: false, createdAt: new Date().toISOString()
+          });
+        });
+      }
+
+      return { 
+        ...prev, 
+        listings: [newListing, ...prev.listings],
+        notifications
+      };
+    });
+  };
+
+  const respondToInvitation = (listingId: string, vendorId: string, status: 'interested' | 'declined') => {
+    setState(prev => ({
+      ...prev,
+      listings: prev.listings.map(l => {
+        if (l.id !== listingId) return l;
+        const responses = l.vendorResponses || [];
+        const existingIdx = responses.findIndex(r => r.vendorId === vendorId);
+        const newResponses = [...responses];
+        if (existingIdx >= 0) {
+          newResponses[existingIdx] = { vendorId, status, respondedAt: new Date().toISOString() };
+        } else {
+          newResponses.push({ vendorId, status, respondedAt: new Date().toISOString() });
+        }
+        return { ...l, vendorResponses: newResponses };
+      })
     }));
   };
 
-  const addBid = (bid: Omit<Bid, 'id' | 'createdAt' | 'status'>) => {
+  const transitionAuctionPhase = (listingId: string, nextPhase: Listing['auctionPhase']) => {
+    setState(prev => ({
+      ...prev,
+      listings: prev.listings.map(l => l.id === listingId ? { ...l, auctionPhase: nextPhase } : l)
+    }));
+  };
+
+  const addBid = (bid: Omit<Bid, 'id' | 'createdAt' | 'status' | 'type'>) => {
     const listing = state.listings.find(l => l.id === bid.listingId);
     const bidType = (listing?.auctionPhase === 'sealed_bid') ? 'sealed' : 'open';
     const newBid: Bid = { ...bid, id: `B${Date.now()}`, createdAt: new Date().toISOString(), status: 'pending', type: bidType };
@@ -503,7 +615,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       saveOnboardingProfile, saveOnboardingDocuments, saveOnboardingBankDetails, completeOnboarding,
       addListing, addBid, updateListingStatus, updateAuctionPhase, updateBidStatus, updateUserStatus, assignVendor,
       acceptBid, addNotification, markNotificationRead, editListing,
-      editBid, addClosingDocument, updateUserProfile, changePassword, deleteAccount,
+      editBid, respondToInvitation, addClosingDocument, updateUserProfile, changePassword, deleteAccount, transitionAuctionPhase,
       isSidebarOpen: state.isSidebarOpen ?? false,
       setIsSidebarOpen: (open: boolean) => setState(prev => ({ ...prev, isSidebarOpen: open })),
     }}>

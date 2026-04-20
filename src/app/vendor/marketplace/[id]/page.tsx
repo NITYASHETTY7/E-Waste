@@ -10,7 +10,7 @@ export default function VendorAuctionDetail() {
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
-  const { listings, bids, users, currentUser, addBid, addNotification } = useApp();
+  const { listings, bids, users, currentUser, addBid, addNotification, respondToInvitation } = useApp();
 
   const listing = listings.find(l => l.id === id);
 
@@ -28,7 +28,23 @@ export default function VendorAuctionDetail() {
   const requiredBidAmount = topBid ? topBid.amount + (listing.bidIncrement || 0) : (listing.basePrice || 0);
   
   const isSealedPhase = listing.auctionPhase === 'sealed_bid';
+  const isInvitationPhase = listing.auctionPhase === 'invitation_window';
+  const myResponse = listing.vendorResponses?.find(r => r.vendorId === currentUser?.id);
+  const hasAccepted = myResponse?.status === 'interested';
+  const hasDeclined = myResponse?.status === 'declined';
   const hasSubmittedSealed = myBids.some(b => b.type === 'sealed');
+
+  const handleInvitation = async (status: 'interested' | 'declined') => {
+    if (!currentUser) return;
+    await respondToInvitation(listing.id, currentUser.id, status);
+    setAlertMsg({
+      type: status === 'interested' ? "success" : "info",
+      msg: status === 'interested' ? "Invitation accepted! Please complete verification." : "Invitation declined."
+    });
+    if (status === 'declined') {
+      setTimeout(() => router.push('/vendor/marketplace'), 2000);
+    }
+  };
 
   const handlePlaceBid = () => {
     const amount = Number(customBid);
@@ -204,41 +220,78 @@ export default function VendorAuctionDetail() {
            <div className="card p-6 border-none bg-slate-900 text-white relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-3xl -mt-16 -mr-16" />
               
-              {!preReqsCleared ? (
-                <div className="relative z-10 space-y-6">
-                   <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
-                         <span className="material-symbols-outlined text-amber-400">gavel</span>
+              {isInvitationPhase && !myResponse ? (
+                  <div className="relative z-10 space-y-6">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
+                          <span className="material-symbols-outlined text-blue-400">mail</span>
+                        </div>
+                        <h4 className="font-headline font-bold">Exclusive Invitation</h4>
+                    </div>
+                    <p className="text-xs text-slate-400 leading-relaxed">
+                      You have been hand-selected by the client to participate in this auction. 
+                      Would you like to accept this invitation before the deadline?
+                    </p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button onClick={() => handleInvitation('interested')} className="btn-primary py-4 rounded-xl text-[10px] font-black uppercase tracking-widest bg-emerald-500 hover:bg-emerald-600 border-none text-slate-900">
+                        Yes, I'm In
+                      </button>
+                      <button onClick={() => handleInvitation('declined')} className="btn-primary py-4 rounded-xl text-[10px] font-black uppercase tracking-widest bg-white/10 hover:bg-white/20 border-white/10 text-white">
+                        No, Decline
+                      </button>
+                    </div>
+                    {listing.invitationDeadline && (
+                      <p className="text-[10px] text-center text-slate-500 font-bold uppercase tracking-widest">
+                        Deadline: {formatWithMs(listing.invitationDeadline)}
+                      </p>
+                    )}
+                  </div>
+               ) : hasDeclined ? (
+                  <div className="relative z-10 p-8 text-center bg-white/5 rounded-2xl border border-dashed border-white/10">
+                    <span className="material-symbols-outlined text-3xl text-red-400 mb-2">cancel</span>
+                    <p className="text-sm font-bold">Invitation Declined</p>
+                    <p className="text-[10px] text-slate-400 mt-1 uppercase font-black">You opted out of this auction</p>
+                  </div>
+               ) : !preReqsCleared && (isInvitationPhase || isSealedPhase || listing.auctionPhase === 'live') ? (
+                 <div className="relative z-10 space-y-6">
+                    <div className="flex items-center gap-3">
+                       <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
+                          <span className="material-symbols-outlined text-amber-400">gavel</span>
+                       </div>
+                       <h4 className="font-headline font-bold">Participation Rights</h4>
+                    </div>
+                    {isInvitationPhase && hasAccepted && (
+                      <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-[10px] text-emerald-400 font-bold uppercase tracking-widest text-center">
+                        Invitation Accepted
                       </div>
-                      <h4 className="font-headline font-bold">Participation Rights</h4>
-                   </div>
-                   <p className="text-xs text-slate-400 leading-relaxed">To safeguard the integrity of this lot, you must upload the following compliance documents for manual verification before entering.</p>
-                   <div className="space-y-3">
-                      {PRE_REQ_DOCS.map(doc => (
-                         <label key={doc} className="flex flex-col gap-1.5 p-3 rounded-xl bg-white/5 border border-white/10 cursor-pointer hover:bg-white/10 transition-colors">
-                            <span className="text-[10px] font-black uppercase text-slate-400">{doc}</span>
-                            <div className="flex items-center justify-between">
-                               <span className="text-[11px] font-bold text-slate-200 truncate">{preReqDocs[doc]?.name || "Select PDF..."}</span>
-                               <input type="file" accept=".pdf" className="hidden" onChange={e => {
-                                  if (e.target.files?.length) setPreReqDocs(p => ({...p, [doc]: e.target.files![0]}));
-                               }} />
-                               <span className="material-symbols-outlined text-sm text-white/30">upload_file</span>
-                            </div>
-                         </label>
-                      ))}
-                   </div>
-                   <button onClick={() => {
-                      if (Object.keys(preReqDocs).length >= PRE_REQ_DOCS.length) {
-                         setPreReqsCleared(true);
-                         setAlertMsg({ type: "success", msg: "Verification documents authorized. Interface unlocked." });
-                      } else {
-                         setAlertMsg({ type: "error", msg: "All mandatory documents must be uploaded." });
-                      }
-                   }} className="btn-primary w-full py-4 rounded-xl text-xs font-black uppercase tracking-widest bg-emerald-500 hover:bg-emerald-600 border-none text-slate-900">
-                      Validate & Proceed
-                   </button>
-                </div>
-              ) : (
+                    )}
+                    <p className="text-xs text-slate-400 leading-relaxed">To safeguard the integrity of this lot, you must upload the following compliance documents for manual verification before entering.</p>
+                    <div className="space-y-3">
+                       {PRE_REQ_DOCS.map(doc => (
+                          <label key={doc} className="flex flex-col gap-1.5 p-3 rounded-xl bg-white/5 border border-white/10 cursor-pointer hover:bg-white/10 transition-colors">
+                             <span className="text-[10px] font-black uppercase text-slate-400">{doc}</span>
+                             <div className="flex items-center justify-between">
+                                <span className="text-[11px] font-bold text-slate-200 truncate">{preReqDocs[doc]?.name || "Select PDF..."}</span>
+                                <input type="file" accept=".pdf" className="hidden" onChange={e => {
+                                   if (e.target.files?.length) setPreReqDocs(p => ({...p, [doc]: e.target.files![0]}));
+                                }} />
+                                <span className="material-symbols-outlined text-sm text-white/30">upload_file</span>
+                             </div>
+                          </label>
+                       ))}
+                    </div>
+                    <button onClick={() => {
+                       if (Object.keys(preReqDocs).length >= PRE_REQ_DOCS.length) {
+                          setPreReqsCleared(true);
+                          setAlertMsg({ type: "success", msg: "Verification documents authorized. Interface unlocked." });
+                       } else {
+                          setAlertMsg({ type: "error", msg: "All mandatory documents must be uploaded." });
+                       }
+                    }} className="btn-primary w-full py-4 rounded-xl text-xs font-black uppercase tracking-widest bg-emerald-500 hover:bg-emerald-600 border-none text-slate-900">
+                       Validate & Proceed
+                    </button>
+                 </div>
+               ) : (
                 <div className="relative z-10 space-y-6">
                    <div className="flex items-center justify-between">
                       <h4 className="font-headline font-bold">{isSealedPhase ? "Place Sealed Bid" : "Auction Floor"}</h4>

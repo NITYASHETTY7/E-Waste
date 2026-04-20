@@ -60,7 +60,10 @@ export function useAuction(listingId: string) {
     let newEndDate = listing.auctionEndDate;
     let newExtensions = listing.currentExtensions || 0;
 
-    if (diffMs < extensionThresholdMs && (listing.currentExtensions || 0) < (listing.maxExtensions || 24)) {
+    const maxTotalExtensionMs = 24 * 60 * 1000; // 24 minutes total cap
+    const totalExtendedMs = newExtensions * extensionThresholdMs;
+
+    if (diffMs < extensionThresholdMs && totalExtendedMs < maxTotalExtensionMs) {
       newEndDate = new Date(end.getTime() + extensionThresholdMs).toISOString();
       newExtensions += 1;
       
@@ -82,7 +85,6 @@ export function useAuction(listingId: string) {
       vendorId: currentUser.id,
       vendorName: currentUser.name,
       amount,
-      type: 'open',
     });
 
     return { success: true };

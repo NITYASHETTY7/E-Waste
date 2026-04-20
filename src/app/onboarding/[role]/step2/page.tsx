@@ -62,15 +62,20 @@ export default function OnboardingStep2() {
 
   const handleFile = (key: string, file: File) => {
     if (file.size > 10 * 1024 * 1024) { alert("File must be under 10MB"); return; }
-    const doc: UploadedDoc = {
-      name: key,
-      fileName: file.name,
-      size: file.size > 1024 * 1024 ? `${(file.size / 1024 / 1024).toFixed(1)} MB` : `${Math.round(file.size / 1024)} KB`,
-      uploadedAt: new Date().toISOString(),
-      status: "pending",
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const doc: UploadedDoc = {
+        name: key,
+        fileName: file.name,
+        size: file.size > 1024 * 1024 ? `${(file.size / 1024 / 1024).toFixed(1)} MB` : `${Math.round(file.size / 1024)} KB`,
+        uploadedAt: new Date().toISOString(),
+        status: "pending",
+        url: reader.result as string,
+      };
+      setUploads(prev => ({ ...prev, [key]: doc }));
+      setErrors(prev => prev.filter(e => e !== key));
     };
-    setUploads(prev => ({ ...prev, [key]: doc }));
-    setErrors(prev => prev.filter(e => e !== key));
+    reader.readAsDataURL(file);
   };
 
   const removeUpload = (key: string) => {

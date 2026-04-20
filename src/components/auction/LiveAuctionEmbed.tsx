@@ -6,7 +6,7 @@ import { useApp } from "@/context/AppContext";
 import { Listing } from "@/types";
 import { formatTime } from "@/utils/format";
 
-export default function LiveAuctionEmbed({ listing: initialListing, userRole = "client" }: { listing?: Listing, userRole?: "client" | "vendor" }) {
+export default function LiveAuctionEmbed({ listing: initialListing, userRole = "client" }: { listing?: Listing, userRole?: "client" | "vendor" | "admin" }) {
   const { 
     listing, 
     auctionBids, 
@@ -247,7 +247,31 @@ export default function LiveAuctionEmbed({ listing: initialListing, userRole = "
           </div>
 
           {/* Role-Specific Control Panel */}
-          {userRole === "client" ? (
+          {userRole === "admin" ? (
+            <div className="bg-white border border-slate-200 rounded-xl border-t-4 border-t-purple-500 shadow-sm p-5 flex-1">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-[#1A1A2E] font-bold text-sm flex items-center gap-2">
+                  <span className="material-symbols-outlined text-purple-600">visibility</span>
+                  Observation Mode
+                </p>
+                <span className="bg-purple-50 text-purple-600 text-[10px] font-bold px-2 py-1 rounded border border-purple-100 uppercase tracking-widest">Read-Only</span>
+              </div>
+              <div className="p-3 bg-purple-50 rounded-xl border border-purple-200 flex items-start gap-2 mb-4">
+                <span className="material-symbols-outlined text-purple-500 text-base shrink-0 mt-0.5">info</span>
+                <p className="text-purple-800 text-xs leading-relaxed">Admin view only. Bidding and auction controls are disabled.</p>
+              </div>
+              <div className="grid grid-cols-2 gap-3 text-center">
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                  <p className="text-[10px] uppercase font-black text-slate-400 tracking-widest">Total Bids</p>
+                  <p className="text-xl font-headline font-bold text-slate-900">{auctionBids.length}</p>
+                </div>
+                <div className="bg-emerald-50 p-3 rounded-xl border border-emerald-100">
+                  <p className="text-[10px] uppercase font-black text-emerald-600 tracking-widest">Current High</p>
+                  <p className="text-sm font-headline font-bold text-emerald-700">₹{currentHigh.toLocaleString()}</p>
+                </div>
+              </div>
+            </div>
+          ) : userRole === "client" ? (
             <div className="bg-white border border-slate-200 rounded-xl border-t-4 border-t-[#DC3545] shadow-sm p-5 flex-1">
               <div className="flex items-center justify-between mb-5">
                 <p className="text-[#1A1A2E] font-bold text-sm flex items-center gap-2">

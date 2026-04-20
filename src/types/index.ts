@@ -6,6 +6,7 @@ export interface UploadedDoc {
   size: string;
   uploadedAt: string;
   status: 'pending' | 'verified' | 'rejected';
+  url?: string;
 }
 
 export interface BankDetails {
@@ -67,7 +68,9 @@ export interface Listing {
   adminStatus?: 'pending' | 'accepted' | 'rejected';
   assignedVendorId?: string;
   assignedVendorName?: string;
-  auctionPhase?: 'draft' | 'sealed_bid' | 'open_configuration' | 'live' | 'completed';
+  auctionPhase?: 'draft' | 'invitation_window' | 'sealed_bid' | 'open_configuration' | 'live' | 'completed';
+  invitedVendorIds?: string[];
+  vendorResponses?: { vendorId: string; status: 'interested' | 'declined'; respondedAt?: string }[];
   price?: number;
   userId: string;
   userName?: string;
@@ -77,8 +80,11 @@ export interface Listing {
   images?: string[];
   documents?: { name: string; url: string; type: string }[];
   closingDocuments?: { name: string; url: string; type: string; timestamp: string }[];
+  sealedBidStartDate?: string;
+  sealedBidEndDate?: string;
   auctionStartDate?: string;
   auctionEndDate?: string;
+  invitationDeadline?: string;
   basePrice?: number;
   highestEmdAmount?: number;
   bidIncrement?: number; // Maps to Tick Size
@@ -98,7 +104,7 @@ export interface Bid {
   vendorId: string;
   vendorName: string;
   amount: number;
-  type?: 'sealed' | 'open';
+  type: 'sealed' | 'open';
   status: 'pending' | 'accepted' | 'rejected' | 'withdrawn';
   statusReason?: string;
   emdPaid?: boolean;

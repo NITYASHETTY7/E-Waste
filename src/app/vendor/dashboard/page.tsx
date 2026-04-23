@@ -113,24 +113,24 @@ export default function VendorDashboard() {
         <div className="lg:col-span-4 space-y-6">
           <InteractiveDonutChart title="Win/Loss Ratio" percentage={winRate} color="#0B5ED7" label1="Won" label2="Pending/Lost" />
 
-          <div className="bg-blue-600 p-8 rounded-3xl text-white relative overflow-hidden group">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full -mr-16 -mt-16 blur-[80px] opacity-20" />
-            <h3 className="text-xl font-bold mb-4 relative z-10">Available Now</h3>
-            <p className="text-blue-100 text-sm mb-6 relative z-10">There are {activeListings.length} active lots waiting for your bid.</p>
+          <div className="bg-gradient-to-br from-slate-900 to-slate-800 dark:from-slate-800 dark:to-slate-950 p-8 rounded-3xl text-white relative overflow-hidden group shadow-xl">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500 rounded-full -mr-16 -mt-16 blur-[80px] opacity-40" />
+            <h3 className="text-xl font-bold mb-4 relative z-10 text-white">Available Now</h3>
+            <p className="text-slate-300 text-sm mb-6 relative z-10">There are <span className="text-white font-bold">{activeListings.length}</span> active lots waiting for your bid.</p>
             
             <div className="space-y-3 relative z-10">
               {activeListings.slice(0, 3).map((l) => (
-                <Link key={l.id} href={`/vendor/marketplace/${l.id}`} className="flex items-center justify-between p-3 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 hover:bg-white/20 transition-all">
+                <Link key={l.id} href={`/vendor/marketplace/${l.id}`} className="flex items-center justify-between p-3 bg-white/5 backdrop-blur-md rounded-2xl border border-white/10 hover:bg-white/10 transition-all group/item">
                   <div className="min-w-0">
-                    <p className="text-xs font-bold truncate">{l.title}</p>
-                    <p className="text-[10px] text-blue-200 uppercase font-black">{l.weight} KG · {l.location.split(' ')[0]}</p>
+                    <p className="text-xs font-bold text-white truncate group-hover/item:text-blue-400 transition-colors">{l.title}</p>
+                    <p className="text-[10px] text-slate-400 uppercase font-black tracking-wider mt-0.5">{l.weight} KG · {l.location.split(' ')[0]}</p>
                   </div>
-                  <span className="material-symbols-outlined text-sm">chevron_right</span>
+                  <span className="material-symbols-outlined text-sm text-slate-400 group-hover/item:text-blue-400 transition-colors">chevron_right</span>
                 </Link>
               ))}
             </div>
             
-            <Link href="/vendor/marketplace" className="mt-6 block text-center text-xs font-black uppercase tracking-widest text-white hover:underline underline-offset-4">
+            <Link href="/vendor/marketplace" className="mt-6 block text-center text-xs font-black uppercase tracking-widest text-slate-300 hover:text-white transition-colors hover:underline underline-offset-4">
               View All Marketplace
             </Link>
           </div>

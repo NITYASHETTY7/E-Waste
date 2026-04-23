@@ -141,8 +141,8 @@ export default function Sidebar() {
 
         {/* Logo */}
         <div className={`py-5 mb-2 border-b border-slate-100 dark:border-slate-900/50 flex items-center ${isSidebarCollapsed ? 'justify-center px-2' : 'px-6 gap-3'}`}>
-          <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center p-1.5 shadow-lg shadow-primary/20 shrink-0">
-            <img src="/logo%203.png" alt="Logo" className="w-full h-full object-contain invert brightness-0" />
+          <div className="w-9 h-9 rounded-xl bg-white flex items-center justify-center p-1 shadow-md border border-slate-200 dark:border-slate-700 shrink-0">
+            <img src="/logo%203.png" alt="Logo" className="w-full h-full object-contain" />
           </div>
           {!isSidebarCollapsed && (
             <div>

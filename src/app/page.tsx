@@ -36,26 +36,31 @@ function LandingPageContent() {
 
   return (
     <div className="bg-[#F5F7FA] min-h-screen flex flex-col relative text-[#1A1A2E]">
-      {/* 1. NAVBAR */}
-      <nav className={`fixed top-0 left-0 w-full z-50 transition-all duration-500 flex items-center ${isScrolled ? 'opacity-0 pointer-events-none' : 'bg-transparent shadow-[0_4px_20px_rgba(0,0,0,0.25)] py-2'}`}>
-        <div className="max-w-7xl mx-auto px-6 md:px-10 py-1.5 md:py-2 flex items-center justify-between w-full">
+      {/* 1. NAVBAR — floating pill */}
+      <div className={`fixed top-0 left-0 w-full z-50 flex justify-center pt-4 px-4 transition-all duration-500 ${isScrolled ? 'pt-2' : 'pt-4'}`}>
+        <nav className={`w-full max-w-5xl flex items-center justify-between px-5 py-2.5 rounded-2xl transition-all duration-500 bg-white/95 backdrop-blur-xl border border-slate-200/80 ${
+          isScrolled ? 'shadow-2xl' : 'shadow-[0_8px_32px_rgba(0,0,0,0.4)]'
+        }`}>
           {/* Logo */}
-          <div className="flex-shrink-0 flex items-center gap-3 cursor-pointer" onClick={() => router.push('/')}>
-            <img src="/logo%203.png" alt="We Connect" className="h-[32px] md:h-[40px] object-contain" />
-            <span className={`text-xl font-black tracking-tighter hidden sm:block transition-colors duration-300 ${isScrolled ? 'text-slate-900' : 'text-white'}`}>WE CONNECT</span>
+          <div className="flex-shrink-0 flex items-center gap-2 cursor-pointer" onClick={() => router.push('/')}>
+            <img
+              src="/logo%202.png"
+              alt="We Connect"
+              className="h-[36px] object-contain transition-all duration-300"
+            />
           </div>
 
           {/* Desktop Links */}
           <div className="hidden lg:flex items-center gap-8 relative">
-            <button suppressHydrationWarning onClick={() => window.scrollTo(0, 0)} className={`font-bold transition-colors duration-300 ${isScrolled ? 'text-[#4A5568] hover:text-[#1E8E3E]' : 'text-white hover:text-emerald-400'}`}>Home</button>
-            <button suppressHydrationWarning onClick={() => scrollTo('about')} className={`font-bold transition-colors duration-300 ${isScrolled ? 'text-[#4A5568] hover:text-[#1E8E3E]' : 'text-white hover:text-emerald-400'}`}>About</button>
+            <button suppressHydrationWarning onClick={() => window.scrollTo(0, 0)} className="font-bold transition-colors duration-300 text-sm text-[#4A5568] hover:text-[#1E8E3E]">Home</button>
+            <button suppressHydrationWarning onClick={() => scrollTo('about')} className="font-bold transition-colors duration-300 text-sm text-[#4A5568] hover:text-[#1E8E3E]">About</button>
 
             <div className="relative">
               <button
                 suppressHydrationWarning
                 onClick={() => setLoginDropdownOpen(!loginDropdownOpen)}
                 onBlur={() => setTimeout(() => setLoginDropdownOpen(false), 200)}
-                className={`font-bold transition-colors duration-300 flex items-center gap-1 ${isScrolled ? 'text-[#4A5568] hover:text-[#1E8E3E]' : 'text-white hover:text-emerald-400'}`}
+                className="font-bold transition-colors duration-300 flex items-center gap-1 text-sm text-[#4A5568] hover:text-[#1E8E3E]"
               >
                 Login <span className="material-symbols-outlined text-[18px]">expand_more</span>
               </button>
@@ -78,17 +83,25 @@ function LandingPageContent() {
                 </div>
               )}
             </div>
+
+            <button
+              suppressHydrationWarning
+              onClick={() => router.push('/get-started')}
+              className="px-5 py-2 rounded-xl bg-emerald-600 text-white font-black text-xs uppercase tracking-[0.15em] hover:bg-emerald-500 transition-all shadow-lg shadow-emerald-900/30"
+            >
+              Get Started
+            </button>
           </div>
 
           {/* Mobile Toggle */}
-          <button suppressHydrationWarning className={`p-2 transition-colors duration-300 ${isScrolled ? 'text-[#1A1A2E]' : 'text-white'}`} onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+          <button suppressHydrationWarning className="p-2 transition-colors duration-300 lg:hidden text-[#1A1A2E]" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
             <span className="material-symbols-outlined text-[28px]">{mobileMenuOpen ? 'close' : 'menu'}</span>
           </button>
-        </div>
+        </nav>
 
         {/* Mobile Menu Dropdown */}
         {mobileMenuOpen && (
-          <div className="lg:hidden absolute top-full left-0 w-full bg-white shadow-xl py-4 px-6 flex flex-col gap-4 animate-fade-in border-t border-[#E2E8F0]">
+          <div className="absolute top-full left-4 right-4 mt-2 bg-white/95 backdrop-blur-xl shadow-2xl rounded-2xl py-4 px-6 flex flex-col gap-4 animate-fade-in border border-slate-200/80 lg:hidden">
             <button suppressHydrationWarning onClick={() => { window.scrollTo(0, 0); setMobileMenuOpen(false); }} className="text-left text-base font-bold text-[#1A1A2E] py-3 border-b border-[#E2E8F0]">Home</button>
             <button suppressHydrationWarning onClick={() => scrollTo('about')} className="text-left text-base font-bold text-[#1A1A2E] py-3 border-b border-[#E2E8F0]">About</button>
             <div className="flex flex-col gap-3 mt-2">
@@ -99,7 +112,7 @@ function LandingPageContent() {
             </div>
           </div>
         )}
-      </nav>
+      </div>
 
       {/* 2. MAIN LAYOUT - Hero Section */}
       <main id="home" className="flex flex-col w-full relative overflow-hidden" style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e3a8a 50%, #1e40af 100%)', minHeight: '100vh' }}>
@@ -391,11 +404,10 @@ function LandingPageContent() {
         </div>
       </section>
 
-      {/* 9. FOOTER */}
       <footer className="py-12 px-6 md:px-10 bg-[#1A1A2E] text-[rgba(255,255,255,0.8)] border-t-[3px] border-t-[#1E8E3E]">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => window.scrollTo(0, 0)}>
-            <img src="/logo%203.png" alt="We Connect" className="w-[120px] h-auto object-contain" />
+          <div className="flex items-center gap-2 cursor-pointer bg-white px-4 py-2 rounded-xl" onClick={() => window.scrollTo(0, 0)}>
+            <img src="/logo%202.png" alt="We Connect" className="h-[36px] object-contain" />
           </div>
           <p className="text-[12px] uppercase tracking-widest font-medium">
             © 2026 We Connect Vendors LLP. All Rights Reserved.

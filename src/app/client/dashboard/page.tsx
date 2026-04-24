@@ -103,9 +103,7 @@ export default function ClientDashboard() {
             weeklyData={getWeeklyRevenue()}
           />
           
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden h-full">
-            <ActivityTable title="Recent Bids Received" items={tableItems} />
-          </div>
+          <ActivityTable title="Recent Bids Received" items={tableItems} />
         </div>
 
         {/* Right Column: Quick Stats & Actions */}

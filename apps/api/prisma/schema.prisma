@@ -1,0 +1,392 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────────────────────
+// ENUMS
+// ─────────────────────────────────────────────
+
+enum UserRole {
+  ADMIN
+  CLIENT
+  VENDOR
+  USER
+}
+
+enum CompanyStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  BLOCKED
+}
+
+enum CompanyType {
+  CLIENT
+  VENDOR
+}
+
+enum RequirementStatus {
+  UPLOADED
+  PROCESSING
+  CLIENT_REVIEW
+  FINALIZED
+}
+
+enum AuditStatus {
+  INVITED
+  ACCEPTED
+  REJECTED
+  SCHEDULED
+  COMPLETED
+}
+
+enum AuctionStatus {
+  DRAFT
+  UPCOMING
+  SEALED_PHASE
+  OPEN_PHASE
+  PENDING_SELECTION
+  COMPLETED
+  CANCELLED
+}
+
+enum BidPhase {
+  SEALED
+  OPEN
+}
+
+enum PaymentStatus {
+  PENDING
+  SUBMITTED
+  CONFIRMED
+  FAILED
+}
+
+enum PickupStatus {
+  PENDING
+  SCHEDULED
+  DOCUMENTS_UPLOADED
+  COMPLETED
+}
+
+enum DocumentType {
+  GST_CERTIFICATE
+  PAN_CARD
+  PCB_AUTHORIZATION
+  EPR_AUTHORIZATION
+  POLLUTION_CERTIFICATE
+  TRADE_LICENSE
+  PRICE_SHEET
+  FINAL_QUOTE
+  LETTERHEAD_QUOTATION
+  PAYMENT_PROOF
+  FORM_6
+  WEIGHT_SLIP_EMPTY
+  WEIGHT_SLIP_LOADED
+  RECYCLING_CERTIFICATE
+  DISPOSAL_CERTIFICATE
+  AUDIT_GEO_PHOTO
+}
+
+// ─────────────────────────────────────────────
+// USER
+// ─────────────────────────────────────────────
+
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  name         String
+  phone        String?
+  role         UserRole  @default(USER)
+
+  companyId    String?
+  company      Company?  @relation(fields: [companyId], references: [id])
+
+  bids         Bid[]
+  auditReports AuditReport[]
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@index([email])
+}
+
+// ─────────────────────────────────────────────
+// COMPANY
+// ─────────────────────────────────────────────
+
+model Company {
+  id          String        @id @default(cuid())
+  name        String
+  type        CompanyType
+  status      CompanyStatus @default(PENDING)
+
+  gstNumber   String?
+  panNumber   String?
+  address     String?
+  city        String?
+  state       String?
+  pincode     String?
+
+  rating      Float?        @default(0)
+  ratingCount Int           @default(0)
+
+  users            User[]
+  kycDocuments     KycDocument[]
+  requirements     Requirement[]      @relation("ClientRequirements")
+  auditInvitations AuditInvitation[]  @relation("VendorAuditInvitations")
+  auctions         Auction[]          @relation("ClientAuctions")
+  wonAuctions      Auction[]          @relation("WinnerAuctions")
+
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+}
+
+// ─────────────────────────────────────────────
+// KYC DOCUMENTS (Company-level)
+// ─────────────────────────────────────────────
+
+model KycDocument {
+  id        String       @id @default(cuid())
+  type      DocumentType
+  s3Key     String
+  s3Bucket  String
+  fileName  String
+  mimeType  String?
+
+  companyId String
+  company   Company      @relation(fields: [companyId], references: [id])
+
+  uploadedAt DateTime    @default(now())
+}
+
+// ─────────────────────────────────────────────
+// REQUIREMENT
+// ─────────────────────────────────────────────
+
+model Requirement {
+  id             String            @id @default(cuid())
+  title          String
+  description    String?
+  status         RequirementStatus @default(UPLOADED)
+
+  rawS3Key       String?
+  processedS3Key String?
+
+  targetPrice    Float?
+  totalWeight    Float?
+  category       String?
+
+  clientId       String
+  client         Company           @relation("ClientRequirements", fields: [clientId], references: [id])
+
+  auditInvitations AuditInvitation[]
+  auction          Auction?
+
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+}
+
+// ─────────────────────────────────────────────
+// AUDIT
+// ─────────────────────────────────────────────
+
+model AuditInvitation {
+  id            String      @id @default(cuid())
+  status        AuditStatus @default(INVITED)
+
+  requirementId String
+  requirement   Requirement @relation(fields: [requirementId], references: [id])
+
+  vendorId      String
+  vendor        Company     @relation("VendorAuditInvitations", fields: [vendorId], references: [id])
+
+  siteAddress   String?
+  spocName      String?
+  spocPhone     String?
+  scheduledAt   DateTime?
+
+  report        AuditReport?
+
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@unique([requirementId, vendorId])
+}
+
+model AuditReport {
+  id               String          @id @default(cuid())
+  invitationId     String          @unique
+  invitation       AuditInvitation @relation(fields: [invitationId], references: [id])
+
+  productMatch     Boolean?
+  remarks          String?
+  completedAt      DateTime?
+
+  vendorUserId     String?
+  vendorUser       User?           @relation(fields: [vendorUserId], references: [id])
+
+  photos           AuditPhoto[]
+
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+}
+
+model AuditPhoto {
+  id            String      @id @default(cuid())
+  s3Key         String
+  s3Bucket      String
+  fileName      String
+  mimeType      String?
+
+  auditReportId String
+  auditReport   AuditReport @relation(fields: [auditReportId], references: [id])
+
+  uploadedAt    DateTime    @default(now())
+}
+
+// ─────────────────────────────────────────────
+// AUCTION
+// ─────────────────────────────────────────────
+
+model Auction {
+  id               String        @id @default(cuid())
+  title            String
+  category         String
+  description      String?
+  status           AuctionStatus @default(DRAFT)
+
+  basePrice        Float
+  targetPrice      Float?
+  tickSize         Float         @default(1000)
+  maxTicks         Int           @default(24)
+  extensionMinutes Int           @default(3)
+
+  sealedPhaseStart DateTime?
+  sealedPhaseEnd   DateTime?
+  openPhaseStart   DateTime?
+  openPhaseEnd     DateTime?
+  extensionCount   Int           @default(0)
+
+  clientId         String
+  client           Company       @relation("ClientAuctions", fields: [clientId], references: [id])
+
+  winnerId         String?
+  winner           Company?      @relation("WinnerAuctions", fields: [winnerId], references: [id])
+
+  requirementId    String?       @unique
+  requirement      Requirement?  @relation(fields: [requirementId], references: [id])
+
+  bids             Bid[]
+  auctionDocs      AuctionDocument[]
+  pickup           Pickup?
+
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+}
+
+model AuctionDocument {
+  id        String       @id @default(cuid())
+  type      DocumentType
+  s3Key     String
+  s3Bucket  String
+  fileName  String
+  mimeType  String?
+
+  auctionId String
+  auction   Auction      @relation(fields: [auctionId], references: [id])
+
+  uploadedAt DateTime    @default(now())
+}
+
+// ─────────────────────────────────────────────
+// BIDS
+// ─────────────────────────────────────────────
+
+model Bid {
+  id        String    @id @default(cuid())
+  amount    Float
+  phase     BidPhase
+  remarks   String?
+  rank      Int?
+
+  auctionId String
+  auction   Auction   @relation(fields: [auctionId], references: [id])
+
+  vendorId  String
+  vendor    User      @relation(fields: [vendorId], references: [id])
+
+  priceSheetS3Key    String?
+  priceSheetS3Bucket String?
+  priceSheetFileName String?
+
+  createdAt DateTime  @default(now())
+
+  @@index([auctionId, amount])
+}
+
+// ─────────────────────────────────────────────
+// PAYMENT
+// ─────────────────────────────────────────────
+
+model Payment {
+  id               String        @id @default(cuid())
+  status           PaymentStatus @default(PENDING)
+
+  clientAmount     Float
+  commissionAmount Float
+  totalAmount      Float
+
+  utrNumber        String?
+  proofS3Key       String?
+  proofS3Bucket    String?
+
+  auctionId        String        @unique
+  pickup           Pickup?
+
+  adminNotes       String?
+
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+}
+
+// ─────────────────────────────────────────────
+// PICKUP & COMPLIANCE
+// ─────────────────────────────────────────────
+
+model Pickup {
+  id            String        @id @default(cuid())
+  status        PickupStatus  @default(PENDING)
+  scheduledDate DateTime?
+
+  auctionId     String        @unique
+  auction       Auction       @relation(fields: [auctionId], references: [id])
+
+  paymentId     String?       @unique
+  payment       Payment?      @relation(fields: [paymentId], references: [id])
+
+  pickupDocs    PickupDocument[]
+  adminNotes    String?
+
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model PickupDocument {
+  id        String       @id @default(cuid())
+  type      DocumentType
+  s3Key     String
+  s3Bucket  String
+  fileName  String
+  mimeType  String?
+
+  pickupId  String
+  pickup    Pickup       @relation(fields: [pickupId], references: [id])
+
+  uploadedAt DateTime    @default(now())
+}

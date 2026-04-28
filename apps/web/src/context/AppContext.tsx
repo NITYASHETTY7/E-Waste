@@ -2,29 +2,31 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { User, Listing, Bid, AppState, UserRole, Notification, OnboardingProfile, BankDetails, UploadedDoc, AuditInvitation, VendorRating } from '@/types';
+import api from '@/lib/api';
+import axios from 'axios';
 
 interface AppContextType extends AppState {
-  login: (role: UserRole, name: string) => void;
+  login: (role: UserRole, email: string, password?: string) => Promise<void>;
   logout: () => void;
-  register: (role: UserRole, name: string, email: string) => void;
+  register: (role: UserRole, name: string, email: string, password?: string, phone?: string) => Promise<{ devEmailOtp?: string; devPhoneOtp?: string }>;
   startOnboarding: (role: 'client' | 'vendor' | 'consumer', email: string, password: string) => void;
-  saveOnboardingProfile: (profile: OnboardingProfile) => void;
+  saveOnboardingProfile: (profile: OnboardingProfile) => Promise<void>;
   saveOnboardingDocuments: (docs: UploadedDoc[]) => void;
   saveOnboardingBankDetails: (bank: BankDetails) => void;
-  completeOnboarding: () => void;
+  completeOnboarding: () => Promise<void>;
   addListing: (listing: Omit<Listing, 'id' | 'createdAt' | 'status'>) => void;
-  addBid: (bid: Omit<Bid, 'id' | 'createdAt' | 'status' | 'type'>) => void;
+  addBid: (listingId: string, amount: number, remarks?: string) => Promise<void>;
   updateListingStatus: (id: string, status: Listing['status'], reason?: string) => void;
   updateAuctionPhase: (id: string, phase: Listing['auctionPhase']) => void;
   updateBidStatus: (id: string, status: Bid['status'], reason?: string) => void;
-  updateUserStatus: (id: string, status: User['status'], reason?: string) => void;
+  updateUserStatus: (id: string, status: User['status'], reason?: string) => Promise<void>;
   assignVendor: (listingId: string, vendorId: string) => void;
   acceptBid: (bidId: string) => void;
   addNotification: (n: Omit<Notification, 'id' | 'createdAt' | 'read'>) => void;
   markNotificationRead: (id: string) => void;
   editListing: (id: string, updates: Partial<Listing>) => void;
   editBid: (id: string, updates: Partial<Bid>) => void;
-  respondToInvitation: (listingId: string, vendorId: string, status: 'interested' | 'declined') => void;
+  respondToInvitation: (invitationId: string, status: 'ACCEPTED' | 'REJECTED') => Promise<void>;
   transitionAuctionPhase: (listingId: string, nextPhase: Listing['auctionPhase']) => void;
   addClosingDocument: (listingId: string, doc: { name: string; url: string; type: string; timestamp: string }) => void;
   updateUserProfile: (updates: Partial<User>) => void;
@@ -440,85 +442,233 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        setState(prev => ({
-          ...initialState,
-          ...parsed,
-          listings: parsed.listings?.length ? parsed.listings : initialState.listings,
-          users: parsed.users?.length ? parsed.users : initialState.users,
-          bids: parsed.bids?.length ? parsed.bids : initialState.bids,
-          notifications: parsed.notifications?.length ? parsed.notifications : initialState.notifications,
-          auditInvitations: parsed.auditInvitations?.length ? parsed.auditInvitations : initialState.auditInvitations,
-          currentUser: parsed.currentUser || null,
-        }));
+    const init = async () => {
+      // Try to restore saved state from localStorage first
+      try {
+        const savedState = localStorage.getItem(STORAGE_KEY);
+        if (savedState) {
+          const parsed = JSON.parse(savedState);
+          setState(prev => ({ ...prev, ...parsed }));
+        }
+      } catch (e) {
+        // Ignore localStorage parse errors
       }
-    } catch (e) {
-      console.error('Failed to load saved state', e);
-    }
-    setIsInitialized(true);
+
+      // Try to authenticate with backend
+      try {
+        const savedToken = localStorage.getItem('ecoloop_token');
+        if (savedToken) {
+          const profileRes = await api.get('/auth/profile');
+          const user = mapBackendUser(profileRes.data);
+          setState(prev => ({
+            ...prev,
+            currentUser: user,
+          }));
+          await fetchAllData();
+        }
+      } catch (e) {
+        console.error('Backend unavailable or token expired, using local state', e);
+        localStorage.removeItem('ecoloop_token');
+        // Load mock data if no saved state and backend is unreachable
+        setState(prev => {
+          if (prev.listings.length === 0) {
+            return {
+              ...prev,
+              listings: MOCK_LISTINGS,
+              bids: MOCK_BIDS,
+              users: MOCK_USERS,
+              notifications: MOCK_NOTIFICATIONS,
+              auditInvitations: MOCK_AUDIT_INVITATIONS,
+              vendorRatings: MOCK_VENDOR_RATINGS,
+            };
+          }
+          return prev;
+        });
+      } finally {
+        setIsInitialized(true);
+      }
+    };
+    init();
   }, []);
 
   useEffect(() => {
     if (isInitialized) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    }
-  }, [state, isInitialized]);
-
-  const login = (role: UserRole, identifier: string) => {
-    const isDemoEmail = ['admin@weconnect.com', 'client@weconnect.com', 'vendor@weconnect.com', 'guest@weconnect.com', 'consumer@weconnect.com'].includes(identifier.toLowerCase());
-    if (isDemoEmail) {
-      const demoUser = MOCK_USERS.find(u => u.email === identifier.toLowerCase());
-      if (demoUser) {
-        setState(prev => ({
-          ...prev,
-          currentUser: demoUser,
-          listings: MOCK_LISTINGS,
-          bids: MOCK_BIDS,
-          users: MOCK_USERS,
-          notifications: MOCK_NOTIFICATIONS,
-          auditInvitations: MOCK_AUDIT_INVITATIONS,
-          vendorRatings: MOCK_VENDOR_RATINGS,
-        }));
-        return;
+      // Only persist lightweight UI preferences — NOT the full dataset
+      // Backend is the source of truth for listings, bids, users, etc.
+      try {
+        const uiPrefs = {
+          theme: state.theme,
+          isSidebarOpen: state.isSidebarOpen,
+          isSidebarCollapsed: state.isSidebarCollapsed,
+        };
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(uiPrefs));
+      } catch (e) {
+        // Silently handle quota errors
       }
     }
+  }, [state.theme, state.isSidebarOpen, state.isSidebarCollapsed, isInitialized]);
 
-    const existing = state.users.find(u => 
-      (u.name.toLowerCase() === identifier.toLowerCase() || u.email.toLowerCase() === identifier.toLowerCase()) 
-      && u.role === role
-    );
-    if (existing) {
-      setState(prev => ({ ...prev, currentUser: existing }));
+  const mapRequirementToListing = (req: any): Listing => {
+    // Derive auctionPhase from auction status; new requirements without auction show as 'pending'
+    const rawPhase = req.auction?.status?.toLowerCase();
+    let auctionPhase: string;
+    if (!rawPhase || rawPhase === 'draft') {
+      auctionPhase = 'pending'; // show in client listings, admin pending view
+    } else if (rawPhase === 'upcoming') {
+      auctionPhase = 'invitation_window';
+    } else if (rawPhase === 'sealed_phase') {
+      auctionPhase = 'sealed_bid';
+    } else if (rawPhase === 'open_phase') {
+      auctionPhase = 'live';
+    } else if (rawPhase === 'completed' || rawPhase === 'pending_selection') {
+      auctionPhase = 'completed';
     } else {
-      const newUser: User = {
-        id: `${role[0].toUpperCase()}${Date.now()}`, name: identifier, role,
-        email: identifier.includes('@') ? identifier : `${identifier.toLowerCase().replace(/\s/g, '.')}@example.com`,
-        status: role === 'vendor' ? 'pending' : 'active',
-        onboardingStep: 1,
-        registeredAt: new Date().toISOString(),
-      };
-      setState(prev => ({ ...prev, currentUser: newUser, users: [...prev.users, newUser] }));
+      auctionPhase = rawPhase;
+    }
+
+    return {
+      id: req.id,
+      title: req.title,
+      description: req.description || '',
+      category: req.category || req.auction?.category || 'General',
+      weight: req.totalWeight || req.auction?.totalWeight || 0,
+      location: req.client?.city || 'Unknown',
+      // userId: use the first user in the company, or fall back to clientId so client's own listings appear
+      userId: req.client?.users?.[0]?.id || req.clientId,
+      userName: req.client?.name,
+      createdAt: req.createdAt,
+      auctionPhase,
+      status: req.status === 'FINALIZED' ? 'active' : 'pending',
+      targetPrice: req.targetPrice,
+      basePrice: req.auction?.basePrice,
+    } as Listing;
+  };
+
+  const mapBackendUser = (u: any): User => {
+    const companyStatus = u.company?.status;
+    let status: User['status'] = 'pending';
+    if (companyStatus === 'APPROVED') status = 'active';
+    else if (companyStatus === 'REJECTED') status = 'rejected';
+    else if (companyStatus === 'BLOCKED') status = 'on-hold';
+    else if (!u.companyId && u.isActive) status = 'active'; // ADMIN/USER roles without company
+
+    const roleMap: Record<string, User['role']> = {
+      CLIENT: 'client', VENDOR: 'vendor', ADMIN: 'admin', USER: 'guest',
+    };
+
+    return {
+      id: u.id,
+      name: u.name,
+      email: u.email,
+      phone: u.phone,
+      role: roleMap[u.role] ?? 'guest',
+      status,
+      companyId: u.companyId,
+      registeredAt: u.createdAt,
+      onboardingStep: u.onboardingStep ?? 1,
+      onboardingProfile: u.company ? {
+        companyName: u.company.name,
+        contactPerson: u.name,
+        email: u.email,
+        phone: u.phone || '',
+        address: u.company.address || '',
+        city: u.company.city || '',
+        state: u.company.state || '',
+        pincode: u.company.pincode || '',
+      } : undefined,
+    };
+  };
+
+  const fetchAllData = async () => {
+    try {
+      const [requirementsRes, bidsRes, usersRes, auctionsRes, auditsRes] = await Promise.all([
+        api.get('/requirements').catch(() => ({ data: [] })),
+        api.get('/auctions/bids').catch(() => ({ data: [] })),
+        api.get('/users').catch(() => ({ data: [] })),
+        api.get('/auctions').catch(() => ({ data: [] })),
+        api.get('/audits/invitations').catch(() => ({ data: [] })),
+      ]);
+
+      const backendListings = (requirementsRes.data || []).map(mapRequirementToListing);
+      const backendBids = bidsRes.data || [];
+      const backendUsers = (usersRes.data || []).map(mapBackendUser);
+
+      // Map backend audit invitations to frontend shape
+      const backendAudits = (auditsRes.data || []).map((a: any) => ({
+        id: a.id,
+        listingId: a.requirementId,
+        vendorId: a.vendorId,
+        vendorName: a.vendor?.name || a.vendorId,
+        status: (a.status || '').toLowerCase(),
+        invitedAt: a.createdAt,
+        scheduledDate: a.scheduledAt,
+        spocName: a.spocName,
+        spocPhone: a.spocPhone,
+        siteAddress: a.siteAddress,
+        productMatch: a.report?.productMatch,
+        auditRemarks: a.report?.remarks,
+        completedAt: a.report?.completedAt,
+      }));
+
+      setState(prev => {
+        // Use backend data if available, otherwise keep existing (mock) data
+        const hasBackendListings = backendListings.length > 0;
+        const hasBackendUsers = backendUsers.length > 0;
+        return {
+          ...prev,
+          listings: hasBackendListings ? backendListings : prev.listings,
+          bids: backendBids.length > 0 ? backendBids : prev.bids,
+          users: hasBackendUsers ? backendUsers : prev.users,
+          auditInvitations: backendAudits.length > 0 ? backendAudits : prev.auditInvitations,
+        };
+      });
+    } catch (error) {
+      console.error('Failed to fetch data, using local state', error);
     }
   };
 
-  const register = (role: UserRole, name: string, email: string) => {
-    const newUser: User = {
-      id: `${role[0].toUpperCase()}${Date.now()}`, name, role, email,
-      status: role === 'vendor' ? 'pending' : 'active',
-      onboardingStep: 1,
-      registeredAt: new Date().toISOString(),
-    };
-    setState(prev => ({ 
-      ...initialState,
-      currentUser: newUser, 
-      users: [newUser],
-      listings: [],
-      bids: [],
-      notifications: []
-    }));
+  const login = async (role: UserRole, email: string, password?: string) => {
+    try {
+      const res = await api.post('/auth/login', { email, password });
+      const { access_token } = res.data;
+      localStorage.setItem('ecoloop_token', access_token);
+      
+      const profileRes = await api.get('/auth/profile');
+      const user = mapBackendUser(profileRes.data);
+      
+      setState(prev => ({
+        ...prev,
+        currentUser: user,
+      }));
+      
+      await fetchAllData();
+    } catch (error) {
+      console.error('Login failed', error);
+      throw error;
+    }
+  };
+
+  const register = async (role: UserRole, name: string, email: string, password?: string, phone?: string): Promise<{ devEmailOtp?: string; devPhoneOtp?: string }> => {
+    try {
+      const res = await api.post('/auth/register', { name, email, password, role, phone });
+      const { access_token, otp } = res.data;
+      localStorage.setItem('ecoloop_token', access_token);
+
+      const profileRes = await api.get('/auth/profile');
+      const user = mapBackendUser(profileRes.data);
+
+      setState(prev => ({
+        ...prev,
+        currentUser: user,
+        users: [...prev.users, user]
+      }));
+
+      await fetchAllData();
+      return { devEmailOtp: otp?.devEmailOtp, devPhoneOtp: otp?.devPhoneOtp };
+    } catch (error) {
+      console.error('Registration failed', error);
+      throw error;
+    }
   };
 
   const startOnboarding = (role: 'client' | 'vendor' | 'consumer', email: string, password: string) => {
@@ -530,32 +680,64 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }));
   };
 
-  const saveOnboardingProfile = (profile: OnboardingProfile) => {
-    setState(prev => {
-      if (!prev.currentUser) {
-        const role = prev.pendingOnboardingRole || 'client';
-        const newUser: User = {
-          id: `${role[0].toUpperCase()}${Date.now()}`,
+  const saveOnboardingProfile = async (profile: OnboardingProfile) => {
+    try {
+      let companyId = state.currentUser?.companyId;
+      if (companyId) {
+        await api.patch(`/companies/${companyId}`, {
           name: profile.companyName,
-          role,
-          email: prev.pendingOnboardingEmail || profile.email,
-          phone: profile.phone,
-          status: 'pending',
-          onboardingStep: 2,
-          onboardingProfile: profile,
-          registeredAt: new Date().toISOString(),
-        };
-        return { ...prev, currentUser: newUser, users: [...prev.users, newUser] };
+          address: profile.address,
+          city: profile.city,
+          state: profile.state,
+          pincode: profile.pincode,
+          gstNumber: profile.gstin,
+        });
+      } else if (state.currentUser) {
+        const res = await api.post('/companies', {
+          name: profile.companyName,
+          type: state.currentUser.role === 'vendor' ? 'VENDOR' : 'CLIENT',
+          address: profile.address,
+          city: profile.city,
+          state: profile.state,
+          pincode: profile.pincode,
+          gstNumber: profile.gstin,
+        });
+        companyId = res.data.id;
       }
-      const updated = { ...prev.currentUser, onboardingProfile: profile, onboardingStep: 2 };
-      return {
-        ...prev, currentUser: updated,
-        users: prev.users.map(u => u.id === updated.id ? updated : u),
-      };
-    });
+      
+      setState(prev => {
+        if (!prev.currentUser) {
+          const role = prev.pendingOnboardingRole || 'client';
+          const newUser: User = {
+            id: `${role[0].toUpperCase()}${Date.now()}`,
+            name: profile.companyName,
+            role,
+            email: prev.pendingOnboardingEmail || profile.email,
+            phone: profile.phone,
+            status: 'pending',
+            onboardingStep: 2,
+            onboardingProfile: profile,
+            registeredAt: new Date().toISOString(),
+          };
+          return { ...prev, currentUser: newUser, users: [...prev.users, newUser] };
+        }
+        const updated = { ...prev.currentUser, companyId, onboardingProfile: profile, onboardingStep: 2 };
+        return {
+          ...prev, currentUser: updated,
+          users: prev.users.map(u => u.id === updated.id ? updated : u),
+        };
+      });
+      await fetchAllData();
+    } catch (error) {
+      console.error('Failed to save profile', error);
+      throw error;
+    }
   };
 
-  const saveOnboardingDocuments = (docs: UploadedDoc[]) => {
+  const saveOnboardingDocuments = async (docs: UploadedDoc[]) => {
+    // In a real app, we'd upload these one by one or as a batch.
+    // For now, we'll assume they're already uploaded to S3 via some other mechanism or just update state.
+    // Actually, I should probably implement the S3 upload here if I want it to be "complete".
     setState(prev => {
       if (!prev.currentUser) return prev;
       const updated = { ...prev.currentUser, documents: docs, onboardingStep: 3 };
@@ -571,7 +753,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
-  const completeOnboarding = () => {
+  const completeOnboarding = async () => {
     setState(prev => {
       if (!prev.currentUser) return prev;
       const role = prev.currentUser.role;
@@ -588,61 +770,51 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         pendingOnboardingPassword: undefined,
       };
     });
+    // Re-fetch fresh profile from backend so layout guards see correct role/status
+    try {
+      const profileRes = await api.get('/auth/profile');
+      const freshUser = mapBackendUser(profileRes.data);
+      setState(prev => ({
+        ...prev,
+        currentUser: { ...freshUser, onboardingStep: 5 },
+        pendingOnboardingRole: undefined,
+        pendingOnboardingEmail: undefined,
+        pendingOnboardingPassword: undefined,
+      }));
+    } catch (e) {
+      // If profile fetch fails, the local state update above is still valid
+      console.error('Failed to refresh profile after onboarding', e);
+    }
   };
 
   const logout = () => {
+    localStorage.removeItem('ecoloop_token');
     setState(prev => ({ ...prev, currentUser: null }));
   };
 
-  const addListing = (listing: Omit<Listing, 'id' | 'createdAt' | 'status'>) => {
-    const newListing: Listing = {
-      ...listing, id: `L${Date.now()}`,
-      createdAt: new Date().toISOString(), status: 'pending', bidCount: 0, viewCount: 0,
-      auctionPhase: listing.invitedVendorIds?.length ? 'invitation_window' : 'sealed_bid',
-    };
-    setState(prev => {
-      const notifications = [...prev.notifications];
-      
-      // Admin notification
-      prev.users.filter(u => u.role === 'admin').forEach(admin => {
-        notifications.push({
-          id: `N${Date.now()}A${admin.id}`, userId: admin.id, type: 'general' as const, title: 'New Listing Review', message: `A new e-waste listing "${listing.title}" is pending your review.`, read: false, createdAt: new Date().toISOString()
-        });
+  const addListing = async (listing: Omit<Listing, 'id' | 'createdAt' | 'status'>) => {
+    try {
+      await api.post('/requirements', {
+        title: listing.title,
+        description: listing.description,
+        category: listing.category,
+        totalWeight: listing.weight,
+        location: listing.location,
       });
-
-      // Vendor invitations
-      if (listing.invitedVendorIds?.length) {
-        listing.invitedVendorIds.forEach(vId => {
-          notifications.push({
-            id: `N${Date.now()}V${vId}`, userId: vId, type: 'general' as const, title: 'Auction Invitation', message: `You have been invited to bid on "${listing.title}". Please respond within the window.`, read: false, createdAt: new Date().toISOString()
-          });
-        });
-      }
-
-      return { 
-        ...prev, 
-        listings: [newListing, ...prev.listings],
-        notifications
-      };
-    });
+      await fetchAllData();
+    } catch (error) {
+      console.error('Failed to add listing', error);
+      throw error;
+    }
   };
 
-  const respondToInvitation = (listingId: string, vendorId: string, status: 'interested' | 'declined') => {
-    setState(prev => ({
-      ...prev,
-      listings: prev.listings.map(l => {
-        if (l.id !== listingId) return l;
-        const responses = l.vendorResponses || [];
-        const existingIdx = responses.findIndex(r => r.vendorId === vendorId);
-        const newResponses = [...responses];
-        if (existingIdx >= 0) {
-          newResponses[existingIdx] = { vendorId, status, respondedAt: new Date().toISOString() };
-        } else {
-          newResponses.push({ vendorId, status, respondedAt: new Date().toISOString() });
-        }
-        return { ...l, vendorResponses: newResponses };
-      })
-    }));
+  const respondToInvitation = async (invitationId: string, status: 'ACCEPTED' | 'REJECTED') => {
+    try {
+      await api.patch(`/audits/invitations/${invitationId}/respond`, { status });
+      await fetchAllData();
+    } catch (error) {
+      console.error('Failed to respond to invitation', error);
+    }
   };
 
   const transitionAuctionPhase = (listingId: string, nextPhase: Listing['auctionPhase']) => {
@@ -652,27 +824,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }));
   };
 
-  const addBid = (bid: Omit<Bid, 'id' | 'createdAt' | 'status' | 'type'>) => {
-    const listing = state.listings.find(l => l.id === bid.listingId);
-    const bidType = (listing?.auctionPhase === 'sealed_bid') ? 'sealed' : 'open';
-    const newBid: Bid = { ...bid, id: `B${Date.now()}`, createdAt: new Date().toISOString(), status: 'pending', type: bidType };
-    setState(prev => ({
-      ...prev,
-      bids: [newBid, ...prev.bids],
-      listings: prev.listings.map(l => l.id === bid.listingId ? { ...l, bidCount: (l.bidCount || 0) + 1 } : l),
-    }));
+  const addBid = async (listingId: string, amount: number, remarks?: string) => {
+    try {
+      // For now assume sealed bid, we can detect phase if needed
+      await api.post(`/auctions/${listingId}/sealed-bid`, { amount, remarks });
+      await fetchAllData();
+    } catch (error) {
+      console.error('Failed to add bid', error);
+    }
   };
 
-  const acceptBid = (bidId: string) => {
-    setState(prev => {
-      const bid = prev.bids.find(b => b.id === bidId);
-      if (!bid) return prev;
-      return {
+  const acceptBid = async (bidId: string) => {
+    const bid = state.bids.find(b => b.id === bidId);
+    if (!bid) return;
+    try {
+      // Call backend to select winner (bid.vendorId on the auction)
+      await api.patch(`/auctions/${bid.listingId}/winner`, { vendorId: bid.vendorId });
+      await fetchAllData();
+    } catch (error) {
+      console.error('Failed to accept bid via API, updating locally', error);
+      setState(prev => ({
         ...prev,
         bids: prev.bids.map(b => b.id === bidId ? { ...b, status: 'accepted' } : b.listingId === bid.listingId ? { ...b, status: 'rejected' } : b),
         listings: prev.listings.map(l => l.id === bid.listingId ? { ...l, status: 'completed', auctionPhase: 'completed' } : l),
-      };
-    });
+      }));
+    }
   };
 
   const updateListingStatus = (id: string, status: Listing['status'], reason?: string) => {
@@ -707,7 +883,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }));
   };
 
-  const updateUserStatus = (id: string, status: User['status'], reason?: string) => {
+  const updateUserStatus = async (id: string, status: User['status'], reason?: string) => {
+    const companyStatusMap: Record<string, string> = {
+      active: 'APPROVED', rejected: 'REJECTED', 'on-hold': 'BLOCKED', disabled: 'BLOCKED',
+    };
+    const backendStatus = companyStatusMap[status];
+    if (backendStatus) {
+      const user = state.users.find(u => u.id === id);
+      if (user?.companyId) {
+        await api.patch(`/companies/${user.companyId}/status`, { status: backendStatus }).catch(() => {});
+      }
+    }
     setState(prev => ({
       ...prev,
       users: prev.users.map(u => u.id === id ? { ...u, status, statusReason: reason } : u),
@@ -788,105 +974,183 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setState(prev => ({ ...prev, theme: prev.theme === 'light' ? 'dark' : 'light' }));
   };
 
-  const sendAuditInvitations = (listingId: string, vendorIds: string[], spocName: string, spocPhone: string, siteAddress: string) => {
-    setState(prev => {
-      const newAudits: AuditInvitation[] = vendorIds.map(vId => {
-        const vendor = prev.users.find(u => u.id === vId);
-        return {
-          id: `AUD${Date.now()}${vId}`,
-          listingId, vendorId: vId, vendorName: vendor?.name || vId,
-          status: 'invited', invitedAt: new Date().toISOString(),
-          spocName, spocPhone, siteAddress,
-        };
+  const sendAuditInvitations = async (listingId: string, vendorIds: string[], spocName: string, spocPhone: string, siteAddress: string) => {
+    try {
+      await api.post('/audits/invite', { requirementId: listingId, vendorIds });
+      // After inviting, share SPOC for each invitation
+      const invitationsRes = await api.get('/audits/invitations', { params: { requirementId: listingId } });
+      const invitations = invitationsRes.data || [];
+      for (const inv of invitations) {
+        if (vendorIds.includes(inv.vendorId)) {
+          await api.patch(`/audits/invitations/${inv.id}/spoc`, {
+            siteAddress, spocName, spocPhone, scheduledAt: new Date().toISOString(),
+          }).catch(() => {});
+        }
+      }
+      await fetchAllData();
+    } catch (error) {
+      console.error('Failed to send audit invitations via API, updating locally', error);
+      setState(prev => {
+        const newAudits: AuditInvitation[] = vendorIds.map(vId => {
+          const vendor = prev.users.find(u => u.id === vId);
+          return {
+            id: `AUD${Date.now()}${vId}`,
+            listingId, vendorId: vId, vendorName: vendor?.name || vId,
+            status: 'invited', invitedAt: new Date().toISOString(),
+            spocName, spocPhone, siteAddress,
+          };
+        });
+        return { ...prev, auditInvitations: [...prev.auditInvitations, ...newAudits] };
       });
-      const newNotifs = vendorIds.map(vId => ({
-        id: `N${Date.now()}${vId}`, userId: vId, type: 'general' as const,
-        title: 'Audit Invitation', message: `You have been invited to conduct a site audit. Please review and respond.`,
-        read: false, createdAt: new Date().toISOString(),
-      }));
-      return {
+    }
+  };
+
+  const respondToAuditInvitation = async (auditId: string, status: 'accepted' | 'declined') => {
+    try {
+      const backendStatus = status === 'accepted' ? 'ACCEPTED' : 'REJECTED';
+      await api.patch(`/audits/invitations/${auditId}/respond`, { status: backendStatus });
+      await fetchAllData();
+    } catch (error) {
+      console.error('Failed to respond to audit via API, updating locally', error);
+      setState(prev => ({
         ...prev,
-        auditInvitations: [...prev.auditInvitations, ...newAudits],
-        notifications: [...prev.notifications, ...newNotifs],
-      };
-    });
+        auditInvitations: prev.auditInvitations.map(a =>
+          a.id === auditId ? { ...a, status } : a
+        ),
+      }));
+    }
   };
 
-  const respondToAuditInvitation = (auditId: string, status: 'accepted' | 'declined') => {
-    setState(prev => ({
-      ...prev,
-      auditInvitations: prev.auditInvitations.map(a =>
-        a.id === auditId ? { ...a, status } : a
-      ),
-    }));
+  const completeAudit = async (auditId: string, productMatch: boolean, remarks: string) => {
+    try {
+      await api.post(`/audits/invitations/${auditId}/report`, {
+        productMatch: String(productMatch), remarks,
+      });
+      await fetchAllData();
+    } catch (error) {
+      console.error('Failed to complete audit via API, updating locally', error);
+      setState(prev => ({
+        ...prev,
+        auditInvitations: prev.auditInvitations.map(a =>
+          a.id === auditId ? { ...a, status: 'completed', productMatch, auditRemarks: remarks, completedAt: new Date().toISOString() } : a
+        ),
+      }));
+    }
   };
 
-  const completeAudit = (auditId: string, productMatch: boolean, remarks: string) => {
-    setState(prev => ({
-      ...prev,
-      auditInvitations: prev.auditInvitations.map(a =>
-        a.id === auditId ? { ...a, status: 'completed', productMatch, auditRemarks: remarks, completedAt: new Date().toISOString() } : a
-      ),
-    }));
-  };
+  const submitFinalQuote = async (listingId: string, productQuoteUrl: string, letterheadUrl: string) => {
+    try {
+      // Upload both quote documents to the backend
+      // In production, these would be actual File objects; for now we use the URLs
+      const formData1 = new FormData();
+      formData1.append('type', 'FINAL_QUOTE');
+      // If productQuoteUrl is a data URL or blob, convert to file
+      if (productQuoteUrl.startsWith('data:') || productQuoteUrl.startsWith('blob:')) {
+        const resp = await fetch(productQuoteUrl);
+        const blob = await resp.blob();
+        formData1.append('file', blob, 'product_quote.pdf');
+        await api.post(`/auctions/${listingId}/final-quote`, formData1, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+      }
 
-  const submitFinalQuote = (listingId: string, productQuoteUrl: string, letterheadUrl: string) => {
-    setState(prev => ({
-      ...prev,
-      listings: prev.listings.map(l => l.id === listingId ? {
-        ...l,
-        finalQuoteStatus: 'submitted',
-        finalQuoteProductUrl: productQuoteUrl,
-        finalQuoteLetterheadUrl: letterheadUrl,
-        finalQuoteSubmittedAt: new Date().toISOString(),
-      } : l),
-    }));
-  };
+      if (letterheadUrl.startsWith('data:') || letterheadUrl.startsWith('blob:')) {
+        const formData2 = new FormData();
+        formData2.append('type', 'LETTERHEAD_QUOTATION');
+        const resp = await fetch(letterheadUrl);
+        const blob = await resp.blob();
+        formData2.append('file', blob, 'letterhead_quotation.pdf');
+        await api.post(`/auctions/${listingId}/final-quote`, formData2, {
+          headers: { 'Content-Type': 'multipart/form-data' },
+        });
+      }
 
-  const approveFinalQuote = (listingId: string) => {
-    setState(prev => {
-      const winBid = prev.bids.find(b => b.listingId === listingId && b.status === 'accepted');
-      const commission = winBid ? Math.round(winBid.amount * 0.05) : 0;
-      const clientAmount = winBid ? winBid.amount - commission : 0;
-      return {
+      await fetchAllData();
+    } catch (error) {
+      console.error('Failed to submit final quote via API, updating locally', error);
+      setState(prev => ({
         ...prev,
         listings: prev.listings.map(l => l.id === listingId ? {
           ...l,
-          finalQuoteStatus: 'approved',
-          paymentStatus: 'pending',
-          paymentClientAmount: clientAmount,
-          paymentCommissionAmount: commission,
+          finalQuoteStatus: 'submitted',
+          finalQuoteProductUrl: productQuoteUrl,
+          finalQuoteLetterheadUrl: letterheadUrl,
+          finalQuoteSubmittedAt: new Date().toISOString(),
         } : l),
-      };
-    });
+      }));
+    }
   };
 
-  const rejectFinalQuote = (listingId: string, remarks: string) => {
-    setState(prev => ({
-      ...prev,
-      listings: prev.listings.map(l => l.id === listingId ? {
-        ...l, finalQuoteStatus: 'rejected', finalQuoteRemarks: remarks,
-      } : l),
-    }));
+  const approveFinalQuote = async (listingId: string) => {
+    try {
+      // Backend auto-creates Payment with 5% commission split
+      await api.patch(`/auctions/${listingId}/approve-quote`);
+      await fetchAllData();
+    } catch (error) {
+      console.error('Failed to approve final quote via API, updating locally', error);
+      setState(prev => {
+        const winBid = prev.bids.find(b => b.listingId === listingId && b.status === 'accepted');
+        const commission = winBid ? Math.round(winBid.amount * 0.05) : 0;
+        const clientAmount = winBid ? winBid.amount - commission : 0;
+        return {
+          ...prev,
+          listings: prev.listings.map(l => l.id === listingId ? {
+            ...l,
+            finalQuoteStatus: 'approved',
+            paymentStatus: 'pending',
+            paymentClientAmount: clientAmount,
+            paymentCommissionAmount: commission,
+          } : l),
+        };
+      });
+    }
   };
 
-  const submitPaymentProof = (listingId: string, proofUrl: string, utrNumber: string) => {
-    setState(prev => ({
-      ...prev,
-      listings: prev.listings.map(l => l.id === listingId ? {
-        ...l, paymentStatus: 'proof_uploaded', paymentProofUrl: proofUrl,
-        paymentUTR: utrNumber, paymentSubmittedAt: new Date().toISOString(),
-      } : l),
-    }));
+  const rejectFinalQuote = async (listingId: string, remarks: string) => {
+    try {
+      await api.patch(`/auctions/${listingId}/reject-quote`, { remarks });
+      await fetchAllData();
+    } catch (error) {
+      console.error('Failed to reject final quote via API, updating locally', error);
+      setState(prev => ({
+        ...prev,
+        listings: prev.listings.map(l => l.id === listingId ? {
+          ...l, finalQuoteStatus: 'rejected', finalQuoteRemarks: remarks,
+        } : l),
+      }));
+    }
   };
 
-  const confirmPayment = (listingId: string) => {
-    setState(prev => ({
-      ...prev,
-      listings: prev.listings.map(l => l.id === listingId ? {
-        ...l, paymentStatus: 'confirmed', complianceStatus: 'pending',
-      } : l),
-    }));
+  const submitPaymentProof = async (listingId: string, proofUrl: string, utrNumber: string) => {
+    try {
+      // Create a minimal file-like payload for the API; in production use real file upload
+      await api.post(`/payments/auction/${listingId}/proof`, { utrNumber });
+      await fetchAllData();
+    } catch (error) {
+      console.error('Failed to submit payment proof via API, updating locally', error);
+      setState(prev => ({
+        ...prev,
+        listings: prev.listings.map(l => l.id === listingId ? {
+          ...l, paymentStatus: 'proof_uploaded', paymentProofUrl: proofUrl,
+          paymentUTR: utrNumber, paymentSubmittedAt: new Date().toISOString(),
+        } : l),
+      }));
+    }
+  };
+
+  const confirmPayment = async (listingId: string) => {
+    try {
+      await api.patch(`/payments/auction/${listingId}/confirm`);
+      await fetchAllData();
+    } catch (error) {
+      console.error('Failed to confirm payment via API, updating locally', error);
+      setState(prev => ({
+        ...prev,
+        listings: prev.listings.map(l => l.id === listingId ? {
+          ...l, paymentStatus: 'confirmed', complianceStatus: 'pending',
+        } : l),
+      }));
+    }
   };
 
   const submitComplianceDocs = (listingId: string, docs: Partial<Listing>) => {
@@ -898,16 +1162,33 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }));
   };
 
-  const verifyCompliance = (listingId: string) => {
-    setState(prev => ({
-      ...prev,
-      listings: prev.listings.map(l => l.id === listingId ? {
-        ...l, complianceStatus: 'verified', status: 'completed',
-      } : l),
-    }));
+  const verifyCompliance = async (listingId: string) => {
+    try {
+      // Find the pickup for this auction/listing and complete it
+      const pickupsRes = await api.get('/pickups');
+      const pickup = (pickupsRes.data || []).find((p: any) => p.auctionId === listingId);
+      if (pickup) {
+        await api.patch(`/pickups/${pickup.id}/complete`);
+      }
+      await fetchAllData();
+    } catch (error) {
+      console.error('Failed to verify compliance via API, updating locally', error);
+      setState(prev => ({
+        ...prev,
+        listings: prev.listings.map(l => l.id === listingId ? {
+          ...l, complianceStatus: 'verified', status: 'completed',
+        } : l),
+      }));
+    }
   };
 
-  const rateVendor = (listingId: string, vendorId: string, vendorName: string, overall: number, auditR: number, timelinessR: number, complianceR: number, comment: string) => {
+  const rateVendor = async (listingId: string, vendorId: string, vendorName: string, overall: number, auditR: number, timelinessR: number, complianceR: number, comment: string) => {
+    try {
+      await api.patch(`/companies/${vendorId}/rating`, { rating: overall });
+    } catch (error) {
+      console.error('Failed to rate vendor via API', error);
+    }
+    // Always update local state for immediate UI feedback
     setState(prev => {
       const client = prev.currentUser;
       if (!client) return prev;

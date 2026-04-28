@@ -10,6 +10,14 @@ export class AuctionsService {
     private s3: S3Service,
   ) {}
 
+  async findAllBids(auctionId?: string) {
+    return this.prisma.bid.findMany({
+      where: auctionId ? { auctionId } : {},
+      include: { vendor: { select: { id: true, name: true } } },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
   async create(data: {
     title: string;
     category: string;
@@ -145,6 +153,42 @@ export class AuctionsService {
         mimeType: file.mimetype,
         auctionId,
       },
+    });
+  }
+
+  async approveQuote(auctionId: string) {
+    const auction = await this.prisma.auction.findUnique({
+      where: { id: auctionId },
+      include: { bids: { orderBy: { amount: 'desc' }, take: 1 } },
+    });
+    if (!auction) throw new NotFoundException('Auction not found');
+
+    // Calculate commission (5%) and client amount
+    const winningBid = auction.bids[0];
+    const totalAmount = winningBid?.amount || auction.basePrice;
+    const commissionAmount = Math.round(totalAmount * 0.05);
+    const clientAmount = totalAmount - commissionAmount;
+
+    // Update auction
+    await this.prisma.auction.update({
+      where: { id: auctionId },
+      data: { quoteApproved: true },
+    });
+
+    // Upsert payment record — safe to call multiple times
+    const payment = await this.prisma.payment.upsert({
+      where: { auctionId },
+      create: { auctionId, clientAmount, commissionAmount, totalAmount },
+      update: { clientAmount, commissionAmount, totalAmount },
+    });
+
+    return { auction: { ...auction, quoteApproved: true }, payment };
+  }
+
+  async rejectQuote(auctionId: string, remarks: string) {
+    return this.prisma.auction.update({
+      where: { id: auctionId },
+      data: { quoteApproved: false, quoteRemarks: remarks },
     });
   }
 

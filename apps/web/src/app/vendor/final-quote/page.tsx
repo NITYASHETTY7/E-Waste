@@ -56,9 +56,9 @@ export default function VendorFinalQuote() {
       </div>
 
       {wonListings.length === 0 ? (
-        <div className="card p-20 text-center border-2 border-dashed border-slate-200">
+        <div className="card p-20 text-center border-2 border-dashed border-slate-200 dark:border-slate-700">
           <span className="material-symbols-outlined text-6xl text-slate-300 mb-4 block">upload_file</span>
-          <h3 className="text-xl font-bold text-slate-900">No Completed Auctions</h3>
+          <h3 className="text-xl font-bold text-slate-900 dark:text-white">No Completed Auctions</h3>
           <p className="text-slate-500 mt-2">Final quote submissions appear here once you win an auction.</p>
         </div>
       ) : (
@@ -76,7 +76,7 @@ export default function VendorFinalQuote() {
                         <span className="text-xs font-black text-slate-400">{listing.id}</span>
                         <span className={`text-[9px] px-2.5 py-0.5 rounded-full font-black uppercase ${meta.color}`}>{meta.label}</span>
                       </div>
-                      <h3 className="font-bold text-slate-900">{listing.title}</h3>
+                      <h3 className="font-bold text-slate-900 dark:text-white">{listing.title}</h3>
                       <p className="text-xs text-slate-500 mt-0.5">{listing.location} · {listing.weight} KG</p>
 
                       <div className="mt-3 grid grid-cols-3 gap-3">
@@ -84,13 +84,13 @@ export default function VendorFinalQuote() {
                           <p className="text-[9px] font-black text-slate-400 uppercase">Winning Bid</p>
                           <p className="text-lg font-black text-primary">₹{winBid?.amount.toLocaleString()}</p>
                         </div>
-                        <div className="bg-slate-50 rounded-xl p-3">
+                        <div className="bg-slate-50 rounded-xl p-3 dark:bg-slate-950">
                           <p className="text-[9px] font-black text-slate-400 uppercase">Commission (5%)</p>
-                          <p className="text-lg font-black text-slate-700">₹{Math.round((winBid?.amount || 0) * 0.05).toLocaleString()}</p>
+                          <p className="text-lg font-black text-slate-700 dark:text-slate-300">₹{Math.round((winBid?.amount || 0) * 0.05).toLocaleString()}</p>
                         </div>
-                        <div className="bg-slate-50 rounded-xl p-3">
+                        <div className="bg-slate-50 rounded-xl p-3 dark:bg-slate-950">
                           <p className="text-[9px] font-black text-slate-400 uppercase">Net to Client</p>
-                          <p className="text-lg font-black text-slate-700">₹{Math.round((winBid?.amount || 0) * 0.95).toLocaleString()}</p>
+                          <p className="text-lg font-black text-slate-700 dark:text-slate-300">₹{Math.round((winBid?.amount || 0) * 0.95).toLocaleString()}</p>
                         </div>
                       </div>
 
@@ -102,8 +102,8 @@ export default function VendorFinalQuote() {
                       )}
 
                       {(listing.finalQuoteStatus === "submitted" || listing.finalQuoteStatus === "approved") && (
-                        <div className="mt-3 p-3 bg-slate-50 rounded-xl">
-                          <p className="text-xs font-bold text-slate-600 mb-2">Uploaded Documents</p>
+                        <div className="mt-3 p-3 bg-slate-50 rounded-xl dark:bg-slate-950">
+                          <p className="text-xs font-bold text-slate-600 mb-2 dark:text-slate-400">Uploaded Documents</p>
                           <div className="flex gap-3">
                             {listing.finalQuoteProductUrl && (
                               <a href={listing.finalQuoteProductUrl} download className="flex items-center gap-1 text-xs text-primary hover:underline">
@@ -142,7 +142,7 @@ export default function VendorFinalQuote() {
       {uploadModal.open && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-lg p-6 space-y-5">
-            <h3 className="text-xl font-headline font-extrabold text-slate-900">Upload Final Quote</h3>
+            <h3 className="text-xl font-headline font-extrabold text-slate-900 dark:text-white">Upload Final Quote</h3>
 
             <div className="space-y-4">
               <div>
@@ -184,7 +184,7 @@ export default function VendorFinalQuote() {
 
             <div className="flex justify-end gap-3">
               <button onClick={() => setUploadModal({ open: false, listingId: null })}
-                className="px-5 py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 hover:bg-slate-50">Cancel</button>
+                className="px-5 py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:border-slate-700">Cancel</button>
               <button
                 onClick={handleUpload}
                 disabled={!productQuoteFile || !letterheadFile || uploading}

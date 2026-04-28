@@ -24,9 +24,9 @@ export default function ClientSealedBids() {
       </div>
 
       {sealedBidListings.length === 0 ? (
-        <div className="card p-20 text-center border-2 border-dashed border-slate-200">
+        <div className="card p-20 text-center border-2 border-dashed border-slate-200 dark:border-slate-700">
           <span className="material-symbols-outlined text-6xl text-slate-300 mb-4 block">lock</span>
-          <h3 className="text-xl font-bold text-slate-900">No Sealed Bid Listings</h3>
+          <h3 className="text-xl font-bold text-slate-900 dark:text-white">No Sealed Bid Listings</h3>
           <p className="text-slate-500 mt-2">Sealed bid submissions appear here once vendors respond to your listing.</p>
           <Link href="/client/post" className="inline-flex items-center gap-2 mt-6 px-6 py-3 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary/90">
             <span className="material-symbols-outlined text-sm">add</span>Post New Listing
@@ -42,8 +42,8 @@ export default function ClientSealedBids() {
               : 0;
 
             return (
-              <div key={listing.id} className="card p-0 overflow-hidden border border-slate-100">
-                <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex items-start justify-between gap-4">
+              <div key={listing.id} className="card p-0 overflow-hidden border border-slate-100 dark:border-slate-800">
+                <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex items-start justify-between gap-4 dark:border-slate-800">
                   <div>
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-xs font-black text-slate-400">{listing.id}</span>
@@ -51,14 +51,14 @@ export default function ClientSealedBids() {
                         {listing.auctionPhase === "sealed_bid" ? "Bids Open" : "Configuring Auction"}
                       </span>
                     </div>
-                    <h3 className="font-bold text-slate-900">{listing.title}</h3>
+                    <h3 className="font-bold text-slate-900 dark:text-white">{listing.title}</h3>
                     <p className="text-xs text-slate-500 mt-0.5">{listing.location} · {listing.weight} KG · Base: ₹{listing.basePrice?.toLocaleString()}</p>
                   </div>
 
                   <div className="grid grid-cols-3 gap-4 shrink-0 text-right">
                     <div>
                       <p className="text-[9px] font-black text-slate-400 uppercase">Total Bids</p>
-                      <p className="text-xl font-black text-slate-900">{listingBids.length}</p>
+                      <p className="text-xl font-black text-slate-900 dark:text-white">{listingBids.length}</p>
                     </div>
                     <div>
                       <p className="text-[9px] font-black text-slate-400 uppercase">Highest Bid</p>
@@ -66,7 +66,7 @@ export default function ClientSealedBids() {
                     </div>
                     <div>
                       <p className="text-[9px] font-black text-slate-400 uppercase">Avg Bid</p>
-                      <p className="text-xl font-black text-slate-900">{avgBid ? `₹${avgBid.toLocaleString()}` : "—"}</p>
+                      <p className="text-xl font-black text-slate-900 dark:text-white">{avgBid ? `₹${avgBid.toLocaleString()}` : "—"}</p>
                     </div>
                   </div>
                 </div>
@@ -80,7 +80,7 @@ export default function ClientSealedBids() {
                   <div>
                     {/* Bid comparison table */}
                     <div className="divide-y divide-slate-100">
-                      <div className="px-5 py-3 grid grid-cols-4 gap-4 bg-slate-50 text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                      <div className="px-5 py-3 grid grid-cols-4 gap-4 bg-slate-50 text-[9px] font-black text-slate-400 uppercase tracking-widest dark:bg-slate-950">
                         <span>Rank</span>
                         <span>Vendor</span>
                         <span className="text-right">Bid Amount</span>
@@ -98,7 +98,7 @@ export default function ClientSealedBids() {
                               {idx === 0 && <span className="text-[9px] font-black text-primary uppercase">Top</span>}
                             </div>
                             <div>
-                              <p className="font-bold text-sm text-slate-900">{bid.vendorName}</p>
+                              <p className="font-bold text-sm text-slate-900 dark:text-white">{bid.vendorName}</p>
                               <p className="text-xs text-slate-400">{new Date(bid.createdAt).toLocaleDateString("en-IN")}</p>
                             </div>
                             <p className={`text-right font-black ${idx === 0 ? "text-primary text-lg" : "text-slate-900"}`}>₹{bid.amount.toLocaleString()}</p>

@@ -1,6 +1,6 @@
 import {
   Controller, Get, Post, Patch, Body, Param, Query,
-  UseGuards, UploadedFile, UseInterceptors
+  UseGuards, UploadedFile, UseInterceptors, Request
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CompaniesService } from './companies.service';
@@ -13,8 +13,8 @@ export class CompaniesController {
   constructor(private companiesService: CompaniesService) {}
 
   @Post()
-  create(@Body() body: any) {
-    return this.companiesService.create(body);
+  create(@Request() req: any, @Body() body: any) {
+    return this.companiesService.create(body, req.user?.userId);
   }
 
   @Get()

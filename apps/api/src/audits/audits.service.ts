@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { S3Service } from '../s3/s3.service';
+import { NotificationService } from '../notifications/notification.service';
 import { AuditStatus } from '@prisma/client';
 
 @Injectable()
@@ -8,9 +9,14 @@ export class AuditsService {
   constructor(
     private prisma: PrismaService,
     private s3: S3Service,
+    private notifications: NotificationService,
   ) {}
 
   async inviteVendors(requirementId: string, vendorIds: string[]) {
+    const requirement = await this.prisma.requirement.findUnique({
+      where: { id: requirementId },
+    });
+
     const invitations = await Promise.all(
       vendorIds.map((vendorId) =>
         this.prisma.auditInvitation.upsert({
@@ -20,6 +26,24 @@ export class AuditsService {
         }),
       ),
     );
+
+    // Send email notifications to all invited vendors
+    const vendors = await this.prisma.company.findMany({
+      where: { id: { in: vendorIds } },
+      include: { users: { select: { email: true, name: true }, take: 1 } },
+    });
+
+    for (const vendor of vendors) {
+      const user = vendor.users[0];
+      if (user?.email) {
+        await this.notifications.notifyAuditInvitation(
+          user.email,
+          user.name || vendor.name,
+          requirement?.title || 'E-Waste Requirement',
+        );
+      }
+    }
+
     return invitations;
   }
 

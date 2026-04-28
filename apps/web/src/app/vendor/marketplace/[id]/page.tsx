@@ -10,9 +10,10 @@ export default function VendorAuctionDetail() {
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
-  const { listings, bids, users, currentUser, addBid, addNotification, respondToInvitation } = useApp();
+  const { listings, bids, users, currentUser, addBid, addNotification, respondToInvitation, auditInvitations } = useApp();
 
   const listing = listings.find(l => l.id === id);
+  const auditInvitation = auditInvitations.find(ai => ai.listingId === id && ai.vendorId === currentUser?.id);
 
   // States
   const [preReqsCleared, setPreReqsCleared] = useState(false);
@@ -35,8 +36,9 @@ export default function VendorAuctionDetail() {
   const hasSubmittedSealed = myBids.some(b => b.type === 'sealed');
 
   const handleInvitation = async (status: 'interested' | 'declined') => {
-    if (!currentUser) return;
-    await respondToInvitation(listing.id, currentUser.id, status);
+    if (!currentUser || !auditInvitation) return;
+    const apiStatus = status === 'interested' ? 'ACCEPTED' : 'REJECTED';
+    await respondToInvitation(auditInvitation.id, apiStatus);
     setAlertMsg({
       type: status === 'interested' ? "success" : "info",
       msg: status === 'interested' ? "Invitation accepted! Please complete verification." : "Invitation declined."
@@ -58,12 +60,7 @@ export default function VendorAuctionDetail() {
       return;
     }
 
-    addBid({
-      listingId: listing.id,
-      vendorId: currentUser?.id || "",
-      vendorName: currentUser?.name || "",
-      amount,
-    });
+    addBid(listing.id, amount);
 
     setAlertMsg({ type: "success", msg: isSealedPhase ? "Sealed bid submitted successfully!" : "Bid placed successfully!" });
     setCustomBid("");
@@ -87,14 +84,14 @@ export default function VendorAuctionDetail() {
   return (
     <div className="max-w-6xl mx-auto pb-20 animate-fade-in space-y-8">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-100 shadow-sm dark:bg-slate-900 dark:border-slate-800">
         <div className="flex items-center gap-4">
-          <button onClick={() => router.push("/vendor/marketplace")} className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center hover:bg-slate-100 transition-colors shrink-0">
+          <button onClick={() => router.push("/vendor/marketplace")} className="w-10 h-10 rounded-xl bg-slate-50 flex items-center justify-center hover:bg-slate-100 transition-colors shrink-0 dark:bg-slate-950">
             <span className="material-symbols-outlined text-sm">arrow_back</span>
           </button>
           <div>
             <div className="flex items-center gap-3">
-              <h2 className="text-3xl font-headline font-extrabold tracking-tight text-slate-900">{listing.title}</h2>
+              <h2 className="text-3xl font-headline font-extrabold tracking-tight text-slate-900 dark:text-white">{listing.title}</h2>
               {listing.auctionPhase === 'live' && (
                 <span className="flex items-center gap-1.5 px-3 py-1 bg-red-50 text-red-600 border border-red-200 rounded-lg text-[10px] font-black uppercase animate-pulse">
                   <span className="w-2 h-2 rounded-full bg-red-600" />
@@ -113,9 +110,9 @@ export default function VendorAuctionDetail() {
         <div className="flex items-center gap-4">
            <div className="text-right">
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Weight Block</p>
-              <p className="font-headline font-bold text-slate-900">{listing.weight} KG</p>
+              <p className="font-headline font-bold text-slate-900 dark:text-white">{listing.weight} KG</p>
            </div>
-           <div className="w-px h-10 bg-slate-100" />
+           <div className="w-px h-10 bg-slate-100 dark:bg-slate-800" />
            <div className="text-right">
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Current L1 High</p>
               <p className="font-headline font-bold text-[color:var(--color-primary)] text-xl">₹{topBid?.amount.toLocaleString() || listing.basePrice?.toLocaleString()}</p>
@@ -137,8 +134,8 @@ export default function VendorAuctionDetail() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
            {/* Detailed Information */}
-           <div className="card p-8 bg-white">
-              <h3 className="text-lg font-headline font-bold text-slate-900 mb-6 flex items-center gap-2">
+           <div className="card p-8 bg-white dark:bg-slate-900">
+              <h3 className="text-lg font-headline font-bold text-slate-900 mb-6 flex items-center gap-2 dark:text-white">
                  <span className="material-symbols-outlined text-[color:var(--color-primary)]">description</span>
                  Material & Lot Specifications
               </h3>
@@ -153,13 +150,13 @@ export default function VendorAuctionDetail() {
                  ].map(item => (
                     <div key={item.label} className="border-b border-slate-50 pb-4">
                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">{item.label}</p>
-                       <p className="font-bold text-slate-800">{item.value}</p>
+                       <p className="font-bold text-slate-800 dark:text-slate-200">{item.value}</p>
                     </div>
                  ))}
               </div>
               <div className="mt-8 pt-8 border-t border-slate-50">
                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Technical Description</p>
-                 <p className="text-sm text-slate-600 leading-relaxed bg-slate-50 p-4 rounded-xl italic border-l-4 border-slate-200">{listing.description}</p>
+                 <p className="text-sm text-slate-600 leading-relaxed bg-slate-50 p-4 rounded-xl italic border-l-4 border-slate-200 dark:bg-slate-950 dark:text-slate-400 dark:border-slate-700">{listing.description}</p>
               </div>
            </div>
 
@@ -171,7 +168,7 @@ export default function VendorAuctionDetail() {
               </h3>
               
               {listingBids.length === 0 ? (
-                 <div className="card p-12 text-center bg-slate-50 border border-slate-100">
+                 <div className="card p-12 text-center bg-slate-50 border border-slate-100 dark:bg-slate-950 dark:border-slate-800">
                     <span className="material-symbols-outlined text-4xl text-slate-300 mb-2">history_toggle_off</span>
                     <p className="text-slate-400 font-bold">No bids recorded yet.</p>
                  </div>
@@ -179,20 +176,20 @@ export default function VendorAuctionDetail() {
                  <div className="card p-0 overflow-hidden shadow-sm">
                     <div className="overflow-x-auto">
                        <table className="w-full text-left text-sm whitespace-nowrap">
-                          <thead className="bg-slate-50 text-slate-500 text-[10px] uppercase font-black tracking-widest border-b border-slate-100">
+                          <thead className="bg-slate-50 text-slate-500 text-[10px] uppercase font-black tracking-widest border-b border-slate-100 dark:bg-slate-950 dark:border-slate-800">
                              <tr>
                                 <th className="px-6 py-4">Participant Entity</th>
                                 <th className="px-6 py-4 text-right">Authorized Bid</th>
                                 <th className="px-6 py-4 text-right">Timestamp</th>
                              </tr>
                           </thead>
-                          <tbody className="divide-y divide-slate-50 bg-white">
+                          <tbody className="divide-y divide-slate-50 bg-white dark:bg-slate-900">
                              {listingBids.map((bid, index) => {
                                 const isHighest = topBid?.id === bid.id;
                                 return (
                                    <tr key={bid.id} className={`hover:bg-slate-50 transition-colors ${isHighest ? 'bg-blue-50/30' : ''}`}>
                                       <td className="px-6 py-5">
-                                         <p className="font-black text-slate-800 flex items-center gap-2">
+                                         <p className="font-black text-slate-800 flex items-center gap-2 dark:text-slate-200">
                                             {bid.vendorName}
                                             {bid.vendorId === currentUser?.id && <span className="bg-black text-white text-[8px] px-1.5 py-0.5 rounded uppercase tracking-wider">You</span>}
                                          </p>
@@ -233,7 +230,7 @@ export default function VendorAuctionDetail() {
                       Would you like to accept this invitation before the deadline?
                     </p>
                     <div className="grid grid-cols-2 gap-3">
-                      <button onClick={() => handleInvitation('interested')} className="btn-primary py-4 rounded-xl text-[10px] font-black uppercase tracking-widest bg-emerald-500 hover:bg-emerald-600 border-none text-slate-900">
+                      <button onClick={() => handleInvitation('interested')} className="btn-primary py-4 rounded-xl text-[10px] font-black uppercase tracking-widest bg-emerald-500 hover:bg-emerald-600 border-none text-slate-900 dark:text-white">
                         Yes, I'm In
                       </button>
                       <button onClick={() => handleInvitation('declined')} className="btn-primary py-4 rounded-xl text-[10px] font-black uppercase tracking-widest bg-white/10 hover:bg-white/20 border-white/10 text-white">
@@ -287,7 +284,7 @@ export default function VendorAuctionDetail() {
                        } else {
                           setAlertMsg({ type: "error", msg: "All mandatory documents must be uploaded." });
                        }
-                    }} className="btn-primary w-full py-4 rounded-xl text-xs font-black uppercase tracking-widest bg-emerald-500 hover:bg-emerald-600 border-none text-slate-900">
+                    }} className="btn-primary w-full py-4 rounded-xl text-xs font-black uppercase tracking-widest bg-emerald-500 hover:bg-emerald-600 border-none text-slate-900 dark:text-white">
                        Validate & Proceed
                     </button>
                  </div>
@@ -318,7 +315,7 @@ export default function VendorAuctionDetail() {
                                onChange={e => setCustomBid(e.target.value)}
                             />
                          </div>
-                         <button onClick={handlePlaceBid} className="btn-primary w-full py-5 rounded-xl text-sm font-black uppercase tracking-widest bg-emerald-500 hover:bg-emerald-600 border-none text-slate-900 shadow-xl shadow-emerald-900/20">
+                         <button onClick={handlePlaceBid} className="btn-primary w-full py-5 rounded-xl text-sm font-black uppercase tracking-widest bg-emerald-500 hover:bg-emerald-600 border-none text-slate-900 shadow-xl shadow-emerald-900/20 dark:text-white">
                             {isSealedPhase ? "Submit Sealed Offer" : "Confirm Open Bid"}
                          </button>
                          {listing.auctionPhase === 'live' && (
@@ -335,7 +332,7 @@ export default function VendorAuctionDetail() {
            </div>
 
            {listing.images && listing.images.length > 0 && (
-              <div className="card p-2 bg-white overflow-hidden group">
+              <div className="card p-2 bg-white overflow-hidden group dark:bg-slate-900">
                  <img src={listing.images[0]} alt="Lot" className="w-full h-48 object-cover rounded-xl group-hover:scale-105 transition-transform duration-500" />
               </div>
            )}

@@ -7,7 +7,16 @@
       "Bash(xargs wc *)",
       "Bash(grep -r \"^[[:space:]]*//.*import\\\\|^[[:space:]]*//.*export\\\\|^[[:space:]]*//.*function\\\\|^[[:space:]]*//.*const\" src --include=\"*.tsx\" --include=\"*.ts\")",
       "Bash([ -f \"$dir/page.tsx\" ])",
-      "Bash([ ! -f \"$dir/layout.tsx\" ])"
+      "Bash([ ! -f \"$dir/layout.tsx\" ])",
+      "Bash(npx prisma *)",
+      "Bash(curl -s http://localhost:4000/health)",
+      "Bash(touch apps/api/src/app.service.ts)",
+      "Bash(curl -s http://localhost:4000)",
+      "Bash(xargs grep *)",
+      "Bash(node -e ' *)",
+      "Bash(timeout 20 cat \"C:\\\\Users\\\\parzival\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\E--engineering-4th-year-mirai-int-e-waste-agregator-ecoloop-app\\\\d3418e73-c817-4027-a66f-5337fc2bad19\\\\tasks\\\\b8hyvc0ce.output\")",
+      "Bash(grep -E \"\\(controller|service|module\\)$\")",
+      "Bash(curl *)"
     ]
   }
 }

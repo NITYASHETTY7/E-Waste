@@ -44,9 +44,9 @@ export default function ClientFinalQuote() {
       </div>
 
       {quoteListings.length === 0 ? (
-        <div className="card p-20 text-center border-2 border-dashed border-slate-200">
+        <div className="card p-20 text-center border-2 border-dashed border-slate-200 dark:border-slate-700">
           <span className="material-symbols-outlined text-6xl text-slate-300 mb-4 block">description</span>
-          <h3 className="text-xl font-bold text-slate-900">No Final Quotes Yet</h3>
+          <h3 className="text-xl font-bold text-slate-900 dark:text-white">No Final Quotes Yet</h3>
           <p className="text-slate-500 mt-2">Final quotes appear here after an auction is completed and the vendor submits their itemised quotation.</p>
         </div>
       ) : (
@@ -75,7 +75,7 @@ export default function ClientFinalQuote() {
                         {meta.label}
                       </span>
                     </div>
-                    <h3 className="font-bold text-slate-900">{listing.title}</h3>
+                    <h3 className="font-bold text-slate-900 dark:text-white">{listing.title}</h3>
                     <p className="text-xs text-slate-500 mt-0.5">{listing.location} · {listing.weight} KG · {listing.category}</p>
                   </div>
                   {listing.finalQuoteSubmittedAt && (
@@ -93,9 +93,9 @@ export default function ClientFinalQuote() {
                       <p className="text-xl font-black text-primary">₹{winBid?.amount.toLocaleString() || "—"}</p>
                       <p className="text-xs text-slate-500 mt-0.5">{winBid?.vendorName}</p>
                     </div>
-                    <div className="bg-slate-50 rounded-xl p-3 text-center">
+                    <div className="bg-slate-50 rounded-xl p-3 text-center dark:bg-slate-950">
                       <p className="text-[9px] font-black text-slate-400 uppercase">WeConnect Fee (5%)</p>
-                      <p className="text-xl font-black text-slate-700">₹{commission.toLocaleString()}</p>
+                      <p className="text-xl font-black text-slate-700 dark:text-slate-300">₹{commission.toLocaleString()}</p>
                     </div>
                     <div className="bg-emerald-50 rounded-xl p-3 text-center">
                       <p className="text-[9px] font-black text-slate-400 uppercase">You Receive</p>
@@ -116,7 +116,7 @@ export default function ClientFinalQuote() {
                         )}
                         {listing.finalQuoteLetterheadUrl && (
                           <a href={listing.finalQuoteLetterheadUrl} download
-                            className="flex-1 flex items-center justify-center gap-2 p-3 bg-slate-50 rounded-xl border border-slate-100 text-sm font-bold text-slate-700 hover:bg-slate-100 transition-colors">
+                            className="flex-1 flex items-center justify-center gap-2 p-3 bg-slate-50 rounded-xl border border-slate-100 text-sm font-bold text-slate-700 hover:bg-slate-100 transition-colors dark:bg-slate-950 dark:text-slate-300 dark:border-slate-800">
                             <span className="material-symbols-outlined text-sm">download</span>
                             Letterhead Quotation
                           </a>
@@ -180,7 +180,7 @@ export default function ClientFinalQuote() {
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => { setRejectModal({ open: false, listingId: null }); setRejectRemarks(""); }}
-                className="px-5 py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 hover:bg-slate-50"
+                className="px-5 py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:border-slate-700"
               >Cancel</button>
               <button
                 onClick={handleReject}

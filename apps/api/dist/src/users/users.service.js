@@ -17,6 +17,14 @@ let UsersService = class UsersService {
     constructor(prisma) {
         this.prisma = prisma;
     }
+    async findAll(role) {
+        const users = await this.prisma.user.findMany({
+            where: role ? { role } : {},
+            include: { company: true },
+            orderBy: { createdAt: 'desc' },
+        });
+        return users.map(({ passwordHash, ...safe }) => safe);
+    }
     async findByEmail(email) {
         return this.prisma.user.findUnique({
             where: { email },
@@ -43,6 +51,7 @@ let UsersService = class UsersService {
                 name: data.name,
                 passwordHash: data.passwordHash,
                 role: data.role || 'USER',
+                phone: data.phone,
             },
         });
     }

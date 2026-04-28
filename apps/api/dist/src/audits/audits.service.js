@@ -13,20 +13,36 @@ exports.AuditsService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
 const s3_service_1 = require("../s3/s3.service");
+const notification_service_1 = require("../notifications/notification.service");
 const client_1 = require("@prisma/client");
 let AuditsService = class AuditsService {
     prisma;
     s3;
-    constructor(prisma, s3) {
+    notifications;
+    constructor(prisma, s3, notifications) {
         this.prisma = prisma;
         this.s3 = s3;
+        this.notifications = notifications;
     }
     async inviteVendors(requirementId, vendorIds) {
+        const requirement = await this.prisma.requirement.findUnique({
+            where: { id: requirementId },
+        });
         const invitations = await Promise.all(vendorIds.map((vendorId) => this.prisma.auditInvitation.upsert({
             where: { requirementId_vendorId: { requirementId, vendorId } },
             create: { requirementId, vendorId },
             update: { status: client_1.AuditStatus.INVITED },
         })));
+        const vendors = await this.prisma.company.findMany({
+            where: { id: { in: vendorIds } },
+            include: { users: { select: { email: true, name: true }, take: 1 } },
+        });
+        for (const vendor of vendors) {
+            const user = vendor.users[0];
+            if (user?.email) {
+                await this.notifications.notifyAuditInvitation(user.email, user.name || vendor.name, requirement?.title || 'E-Waste Requirement');
+            }
+        }
         return invitations;
     }
     async findAllInvitations(vendorId, requirementId) {
@@ -114,6 +130,7 @@ exports.AuditsService = AuditsService;
 exports.AuditsService = AuditsService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
-        s3_service_1.S3Service])
+        s3_service_1.S3Service,
+        notification_service_1.NotificationService])
 ], AuditsService);
 //# sourceMappingURL=audits.service.js.map

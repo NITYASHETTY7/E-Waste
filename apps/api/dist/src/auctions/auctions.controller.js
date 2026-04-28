@@ -29,6 +29,9 @@ let AuctionsController = class AuctionsController {
     findAll(status, clientId) {
         return this.svc.findAll(status, clientId);
     }
+    findAllBids(auctionId) {
+        return this.svc.findAllBids(auctionId);
+    }
     findOne(id) {
         return this.svc.findOne(id);
     }
@@ -39,13 +42,22 @@ let AuctionsController = class AuctionsController {
         return this.svc.updateStatus(id, status);
     }
     sealedBid(id, body, req, file) {
-        return this.svc.submitSealedBid(id, req.user.userId, parseFloat(body.amount), file, body.remarks);
+        const amount = parseFloat(body.amount);
+        if (isNaN(amount))
+            throw new common_1.BadRequestException('amount is required and must be a number');
+        return this.svc.submitSealedBid(id, req.user.userId, amount, file, body.remarks);
     }
     selectWinner(id, vendorId) {
         return this.svc.selectWinner(id, vendorId);
     }
     uploadFinalQuote(id, file, type) {
         return this.svc.uploadFinalQuote(id, file, type);
+    }
+    approveQuote(id) {
+        return this.svc.approveQuote(id);
+    }
+    rejectQuote(id, remarks) {
+        return this.svc.rejectQuote(id, remarks);
     }
 };
 exports.AuctionsController = AuctionsController;
@@ -65,6 +77,13 @@ __decorate([
     __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", void 0)
 ], AuctionsController.prototype, "findAll", null);
+__decorate([
+    (0, common_1.Get)('bids'),
+    __param(0, (0, common_1.Query)('auctionId')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], AuctionsController.prototype, "findAllBids", null);
 __decorate([
     (0, common_1.Get)(':id'),
     __param(0, (0, common_1.Param)('id')),
@@ -117,6 +136,21 @@ __decorate([
     __metadata("design:paramtypes", [String, Object, String]),
     __metadata("design:returntype", void 0)
 ], AuctionsController.prototype, "uploadFinalQuote", null);
+__decorate([
+    (0, common_1.Patch)(':id/approve-quote'),
+    __param(0, (0, common_1.Param)('id')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String]),
+    __metadata("design:returntype", void 0)
+], AuctionsController.prototype, "approveQuote", null);
+__decorate([
+    (0, common_1.Patch)(':id/reject-quote'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Body)('remarks')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", void 0)
+], AuctionsController.prototype, "rejectQuote", null);
 exports.AuctionsController = AuctionsController = __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Controller)('auctions'),

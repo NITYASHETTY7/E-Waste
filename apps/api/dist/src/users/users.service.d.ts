@@ -3,10 +3,43 @@ import { UserRole } from '@prisma/client';
 export declare class UsersService {
     private prisma;
     constructor(prisma: PrismaService);
+    findAll(role?: UserRole): Promise<{
+        company: {
+            id: string;
+            name: string;
+            createdAt: Date;
+            updatedAt: Date;
+            type: import("@prisma/client").$Enums.CompanyType;
+            status: import("@prisma/client").$Enums.CompanyStatus;
+            gstNumber: string | null;
+            panNumber: string | null;
+            address: string | null;
+            city: string | null;
+            state: string | null;
+            pincode: string | null;
+            rating: number | null;
+            ratingCount: number;
+        } | null;
+        id: string;
+        email: string;
+        name: string;
+        phone: string | null;
+        role: import("@prisma/client").$Enums.UserRole;
+        companyId: string | null;
+        createdAt: Date;
+        updatedAt: Date;
+        emailVerified: boolean;
+        isActive: boolean;
+        otpAttempts: number;
+        otpCode: string | null;
+        otpExpiresAt: Date | null;
+        otpType: string | null;
+        phoneVerified: boolean;
+    }[]>;
     findByEmail(email: string): Promise<({
         company: {
-            name: string;
             id: string;
+            name: string;
             createdAt: Date;
             updatedAt: Date;
             type: import("@prisma/client").$Enums.CompanyType;
@@ -21,15 +54,22 @@ export declare class UsersService {
             ratingCount: number;
         } | null;
     } & {
-        name: string;
         id: string;
         email: string;
         passwordHash: string;
+        name: string;
         phone: string | null;
         role: import("@prisma/client").$Enums.UserRole;
         companyId: string | null;
         createdAt: Date;
         updatedAt: Date;
+        emailVerified: boolean;
+        isActive: boolean;
+        otpAttempts: number;
+        otpCode: string | null;
+        otpExpiresAt: Date | null;
+        otpType: string | null;
+        phoneVerified: boolean;
     }) | null>;
     findById(id: string): Promise<any>;
     create(data: {
@@ -37,37 +77,59 @@ export declare class UsersService {
         name: string;
         passwordHash: string;
         role?: string;
+        phone?: string;
     }): Promise<{
-        name: string;
         id: string;
         email: string;
         passwordHash: string;
+        name: string;
         phone: string | null;
         role: import("@prisma/client").$Enums.UserRole;
         companyId: string | null;
         createdAt: Date;
         updatedAt: Date;
+        emailVerified: boolean;
+        isActive: boolean;
+        otpAttempts: number;
+        otpCode: string | null;
+        otpExpiresAt: Date | null;
+        otpType: string | null;
+        phoneVerified: boolean;
     }>;
     linkToCompany(userId: string, companyId: string): Promise<{
-        name: string;
         id: string;
         email: string;
         passwordHash: string;
+        name: string;
         phone: string | null;
         role: import("@prisma/client").$Enums.UserRole;
         companyId: string | null;
         createdAt: Date;
         updatedAt: Date;
+        emailVerified: boolean;
+        isActive: boolean;
+        otpAttempts: number;
+        otpCode: string | null;
+        otpExpiresAt: Date | null;
+        otpType: string | null;
+        phoneVerified: boolean;
     }>;
     updateRole(userId: string, role: UserRole): Promise<{
-        name: string;
         id: string;
         email: string;
         passwordHash: string;
+        name: string;
         phone: string | null;
         role: import("@prisma/client").$Enums.UserRole;
         companyId: string | null;
         createdAt: Date;
         updatedAt: Date;
+        emailVerified: boolean;
+        isActive: boolean;
+        otpAttempts: number;
+        otpCode: string | null;
+        otpExpiresAt: Date | null;
+        otpType: string | null;
+        phoneVerified: boolean;
     }>;
 }

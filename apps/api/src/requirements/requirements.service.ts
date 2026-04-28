@@ -15,6 +15,9 @@ export class RequirementsService {
     title: string;
     description?: string;
     clientId: string;
+    category?: string;
+    totalWeight?: number;
+    location?: string;
     file?: Express.Multer.File;
   }) {
     let rawS3Key: string | undefined;
@@ -30,14 +33,21 @@ export class RequirementsService {
         description: data.description,
         clientId: data.clientId,
         rawS3Key,
+        category: data.category,
+        totalWeight: data.totalWeight ? Number(data.totalWeight) : undefined,
       },
+      include: { client: true },
     });
   }
 
   async findAll(clientId?: string) {
     return this.prisma.requirement.findMany({
       where: clientId ? { clientId } : {},
-      include: { client: true, auditInvitations: true, auction: true },
+      include: {
+        client: { include: { users: { select: { id: true }, take: 1 } } },
+        auditInvitations: true,
+        auction: true,
+      },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -67,10 +77,13 @@ export class RequirementsService {
 
   // Client approves the processed list with target price
   async clientApprove(id: string, data: { targetPrice: number; totalWeight?: number; category?: string }) {
+    const { targetPrice, totalWeight, category } = data;
     return this.prisma.requirement.update({
       where: { id },
       data: {
-        ...data,
+        targetPrice: Number(targetPrice),
+        ...(totalWeight !== undefined && { totalWeight: Number(totalWeight) }),
+        ...(category !== undefined && { category }),
         status: RequirementStatus.FINALIZED,
       },
     });

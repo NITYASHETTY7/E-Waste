@@ -60,7 +60,7 @@ export default function ConsumerPickup() {
           <div className="w-20 h-20 rounded-full bg-emerald-100 flex items-center justify-center mx-auto mb-6">
             <span className="material-symbols-outlined text-4xl text-emerald-600">check_circle</span>
           </div>
-          <h2 className="text-2xl font-headline font-extrabold text-slate-900">Pickup Scheduled!</h2>
+          <h2 className="text-2xl font-headline font-extrabold text-slate-900 dark:text-white">Pickup Scheduled!</h2>
           <p className="text-slate-500 text-sm">Your items will be collected by a verified WeConnect partner on {formData.preferredDate}. You'll receive a confirmation SMS shortly.</p>
           <div className="pt-6">
             <button onClick={() => router.push("/")} className="btn-primary w-full py-3 rounded-xl font-bold">Return Home</button>
@@ -73,7 +73,7 @@ export default function ConsumerPickup() {
   return (
     <div className="min-h-screen bg-[color:var(--color-surface)] pb-20">
       {/* Simple Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-10">
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-10 dark:bg-slate-900 dark:border-slate-700">
         <div className="max-w-3xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => router.push("/")}>
             <img 
@@ -89,7 +89,7 @@ export default function ConsumerPickup() {
 
       <main className="max-w-3xl mx-auto px-4 pt-10">
         <div className="mb-10 text-center">
-          <h1 className="text-4xl font-headline font-extrabold text-slate-900 tracking-tight mb-2">Schedule a Pickup</h1>
+          <h1 className="text-4xl font-headline font-extrabold text-slate-900 tracking-tight mb-2 dark:text-white">Schedule a Pickup</h1>
           <p className="text-slate-500">Recycle your household e-waste responsibly and earn green rewards.</p>
         </div>
 
@@ -108,11 +108,11 @@ export default function ConsumerPickup() {
            ))}
         </div>
 
-        <div className="card p-6 md:p-8 shadow-xl border-slate-100 bg-white">
+        <div className="card p-6 md:p-8 shadow-xl border-slate-100 bg-white dark:bg-slate-900 dark:border-slate-800">
           <form onSubmit={handleSubmit}>
             {step === 1 && (
               <div className="space-y-6 animate-fade-in">
-                <h3 className="font-headline font-bold text-xl text-slate-900 mb-4">What do you want to recycle?</h3>
+                <h3 className="font-headline font-bold text-xl text-slate-900 mb-4 dark:text-white">What do you want to recycle?</h3>
                 <div className="grid grid-cols-2 gap-3">
                   {CATEGORIES.map(cat => (
                     <button type="button" key={cat.id} onClick={() => handleToggleCategory(cat.id)}
@@ -145,7 +145,7 @@ export default function ConsumerPickup() {
 
             {step === 2 && (
               <div className="space-y-5 animate-fade-in">
-                 <h3 className="font-headline font-bold text-xl text-slate-900 mb-4">Location Details</h3>
+                 <h3 className="font-headline font-bold text-xl text-slate-900 mb-4 dark:text-white">Location Details</h3>
                  <div>
                    <label className="label">Full Name</label>
                    <input required type="text" className="input-base" placeholder="John Doe" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
@@ -167,7 +167,7 @@ export default function ConsumerPickup() {
 
             {step === 3 && (
               <div className="space-y-5 animate-fade-in">
-                 <h3 className="font-headline font-bold text-xl text-slate-900 mb-4">Schedule Details</h3>
+                 <h3 className="font-headline font-bold text-xl text-slate-900 mb-4 dark:text-white">Schedule Details</h3>
                  <div>
                    <label className="label">Preferred Date</label>
                    <input required type="date" className="input-base" value={formData.preferredDate} onChange={e => setFormData({...formData, preferredDate: e.target.value})} />
@@ -194,7 +194,7 @@ export default function ConsumerPickup() {
               </div>
             )}
 
-            <div className="flex gap-4 mt-8 pt-6 border-t border-slate-100">
+            <div className="flex gap-4 mt-8 pt-6 border-t border-slate-100 dark:border-slate-800">
               {step > 1 && (
                 <button type="button" onClick={() => setStep(step - 1)} className="btn-outline px-6 py-3.5 rounded-xl font-bold flex-1 max-w-[140px]">
                   Back

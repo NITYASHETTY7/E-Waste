@@ -77,14 +77,14 @@ export default function LiveAuctionEmbed({ listing: initialListing, userRole = "
   };
 
   return (
-    <div className="bg-slate-50 min-h-screen font-sans">
+    <div className="bg-slate-50 min-h-screen font-sans dark:bg-slate-950">
       {/* Mini Navbar */}
-      <div className="flex flex-wrap items-center justify-start gap-3 p-4 border-b-2 border-[#1E8E3E] bg-white sticky top-0 z-30 shadow-sm">
-        <div className="bg-slate-100 text-[#1A1A2E] px-3 py-1.5 rounded-md flex items-center gap-2 text-xs font-bold border border-slate-200">
+      <div className="flex flex-wrap items-center justify-start gap-3 p-4 border-b-2 border-[#1E8E3E] bg-white sticky top-0 z-30 shadow-sm dark:bg-slate-900">
+        <div className="bg-slate-100 text-[#1A1A2E] px-3 py-1.5 rounded-md flex items-center gap-2 text-xs font-bold border border-slate-200 dark:bg-slate-800 dark:border-slate-700">
           <span className={`w-2.5 h-2.5 rounded-full ${isActive ? "bg-red-500 animate-pulse" : "bg-slate-400"}`} />
           {isActive ? "LIVE" : "AUCTION ENDED"}: {title}
         </div>
-        <div className="bg-slate-100 text-[#1A1A2E] px-3 py-1.5 rounded-md text-xs font-bold border border-slate-200">
+        <div className="bg-slate-100 text-[#1A1A2E] px-3 py-1.5 rounded-md text-xs font-bold border border-slate-200 dark:bg-slate-800 dark:border-slate-700">
           <span className="text-slate-500 text-[10px] uppercase tracking-widest mr-2">BASE PRICE</span>
           ₹{basePrice.toLocaleString()}
         </div>
@@ -92,7 +92,7 @@ export default function LiveAuctionEmbed({ listing: initialListing, userRole = "
           <span className="text-emerald-600 text-[10px] uppercase tracking-widest mr-2">CURRENT HIGH</span>
           ₹{currentHigh.toLocaleString()}
         </div>
-        <div className="bg-slate-100 text-[#1A1A2E] px-3 py-1.5 rounded-md text-xs font-bold border border-slate-200">
+        <div className="bg-slate-100 text-[#1A1A2E] px-3 py-1.5 rounded-md text-xs font-bold border border-slate-200 dark:bg-slate-800 dark:border-slate-700">
           <span className="text-slate-500 text-[10px] uppercase tracking-widest mr-2">TICK SIZE</span>
           ₹{tickSize.toLocaleString()}
         </div>
@@ -109,15 +109,15 @@ export default function LiveAuctionEmbed({ listing: initialListing, userRole = "
         <div className="flex flex-col gap-6">
           
           {/* Bid Progression Graph Card */}
-          <div className="bg-white border border-slate-200 rounded-xl border-t-4 border-t-[#1E8E3E] shadow-sm overflow-hidden">
-            <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+          <div className="bg-white border border-slate-200 rounded-xl border-t-4 border-t-[#1E8E3E] shadow-sm overflow-hidden dark:bg-slate-900 dark:border-slate-700">
+            <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50 dark:border-slate-800">
               <div>
                 <p className="text-[#64748B] text-[10px] font-black uppercase tracking-widest">Real-Time Bid Progression</p>
                 <p className="text-[#1A1A2E] text-xs font-bold mt-0.5">{auctionBids.length} bids placed</p>
               </div>
               <div className="flex items-center gap-3 flex-wrap">
                 {competitors.slice(0,5).map(c => (
-                  <div key={c.id} className="flex items-center gap-1.5 px-2 py-1 border border-slate-200 rounded-md bg-white shadow-sm">
+                  <div key={c.id} className="flex items-center gap-1.5 px-2 py-1 border border-slate-200 rounded-md bg-white shadow-sm dark:bg-slate-900 dark:border-slate-700">
                     <span className="w-2.5 h-2.5 rounded-full" style={{background: c.color}}></span>
                     <span className="text-[9px] text-[#1A1A2E] font-bold">{c.name}</span>
                   </div>
@@ -126,7 +126,7 @@ export default function LiveAuctionEmbed({ listing: initialListing, userRole = "
             </div>
             <div className="p-5 h-[240px] w-full">
               {auctionBids.length > 0 ? (
-                <svg viewBox="0 0 500 200" className="w-full h-full bg-white">
+                <svg viewBox="0 0 500 200" className="w-full h-full bg-white dark:bg-slate-900">
                   {/* Y Axis Grid Lines */}
                   {[0, 1, 2, 3, 4].map(i => {
                     const y = 20 + i * 40;
@@ -177,8 +177,8 @@ export default function LiveAuctionEmbed({ listing: initialListing, userRole = "
           </div>
 
           {/* Bid Ledger Card */}
-          <div className="bg-white border border-slate-200 rounded-xl border-t-4 border-t-[#0B5ED7] shadow-sm overflow-hidden flex-1">
-            <div className="p-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+          <div className="bg-white border border-slate-200 rounded-xl border-t-4 border-t-[#0B5ED7] shadow-sm overflow-hidden flex-1 dark:bg-slate-900 dark:border-slate-700">
+            <div className="p-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between dark:bg-slate-950 dark:border-slate-800">
               <p className="text-[#64748B] text-[10px] font-black uppercase tracking-widest">Live Bid Ledger</p>
               <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shadow-sm ${isActive ? "text-[#0B5ED7] bg-[#EFF6FF] border-blue-200" : "text-slate-500 bg-slate-100 border-slate-200"}`}>
                 {isActive ? "Live Updates" : "Final Standings"}
@@ -213,7 +213,7 @@ export default function LiveAuctionEmbed({ listing: initialListing, userRole = "
         <div className="flex flex-col gap-6">
           
           {/* Lot Details Card */}
-          <div className="bg-white border border-slate-200 rounded-xl border-t-4 border-t-[#0B5ED7] shadow-sm p-5">
+          <div className="bg-white border border-slate-200 rounded-xl border-t-4 border-t-[#0B5ED7] shadow-sm p-5 dark:bg-slate-900 dark:border-slate-700">
             <div className="grid grid-cols-2 gap-y-5 gap-x-4">
               <div>
                 <p className="text-[#94A3B8] text-[9px] font-black uppercase tracking-widest mb-1">CATEGORY</p>
@@ -248,7 +248,7 @@ export default function LiveAuctionEmbed({ listing: initialListing, userRole = "
 
           {/* Role-Specific Control Panel */}
           {userRole === "admin" ? (
-            <div className="bg-white border border-slate-200 rounded-xl border-t-4 border-t-purple-500 shadow-sm p-5 flex-1">
+            <div className="bg-white border border-slate-200 rounded-xl border-t-4 border-t-purple-500 shadow-sm p-5 flex-1 dark:bg-slate-900 dark:border-slate-700">
               <div className="flex items-center justify-between mb-4">
                 <p className="text-[#1A1A2E] font-bold text-sm flex items-center gap-2">
                   <span className="material-symbols-outlined text-purple-600">visibility</span>
@@ -261,9 +261,9 @@ export default function LiveAuctionEmbed({ listing: initialListing, userRole = "
                 <p className="text-purple-800 text-xs leading-relaxed">Admin view only. Bidding and auction controls are disabled.</p>
               </div>
               <div className="grid grid-cols-2 gap-3 text-center">
-                <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 dark:bg-slate-950 dark:border-slate-800">
                   <p className="text-[10px] uppercase font-black text-slate-400 tracking-widest">Total Bids</p>
-                  <p className="text-xl font-headline font-bold text-slate-900">{auctionBids.length}</p>
+                  <p className="text-xl font-headline font-bold text-slate-900 dark:text-white">{auctionBids.length}</p>
                 </div>
                 <div className="bg-emerald-50 p-3 rounded-xl border border-emerald-100">
                   <p className="text-[10px] uppercase font-black text-emerald-600 tracking-widest">Current High</p>
@@ -272,7 +272,7 @@ export default function LiveAuctionEmbed({ listing: initialListing, userRole = "
               </div>
             </div>
           ) : userRole === "client" ? (
-            <div className="bg-white border border-slate-200 rounded-xl border-t-4 border-t-[#DC3545] shadow-sm p-5 flex-1">
+            <div className="bg-white border border-slate-200 rounded-xl border-t-4 border-t-[#DC3545] shadow-sm p-5 flex-1 dark:bg-slate-900 dark:border-slate-700">
               <div className="flex items-center justify-between mb-5">
                 <p className="text-[#1A1A2E] font-bold text-sm flex items-center gap-2">
                   <span className="material-symbols-outlined text-[#DC3545]">settings</span>
@@ -297,7 +297,7 @@ export default function LiveAuctionEmbed({ listing: initialListing, userRole = "
               </div>
             </div>
           ) : (
-            <div className="bg-white border border-slate-200 rounded-xl border-t-4 border-t-[#1E8E3E] shadow-sm p-5 flex-1 flex flex-col">
+            <div className="bg-white border border-slate-200 rounded-xl border-t-4 border-t-[#1E8E3E] shadow-sm p-5 flex-1 flex flex-col dark:bg-slate-900 dark:border-slate-700">
               <div className="flex items-center justify-between mb-5">
                 <p className="text-[#1A1A2E] font-bold text-sm flex items-center gap-2">
                   <span className="material-symbols-outlined text-[#1E8E3E]">gavel</span>
@@ -326,7 +326,7 @@ export default function LiveAuctionEmbed({ listing: initialListing, userRole = "
                       disabled={!isActive}
                       onChange={(e) => setVendorBid(e.target.value)}
                       placeholder={(currentHigh + tickSize).toString()}
-                      className="w-full pl-8 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-mono text-sm font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all disabled:opacity-50"
+                      className="w-full pl-8 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl font-mono text-sm font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-all disabled:opacity-50 dark:bg-slate-950 dark:border-slate-700"
                     />
                   </div>
                 </div>
@@ -337,14 +337,14 @@ export default function LiveAuctionEmbed({ listing: initialListing, userRole = "
                   <button 
                     onClick={() => handleQuickBid(tickSize)}
                     disabled={!isActive}
-                    className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg font-bold text-xs bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors shadow-sm disabled:opacity-50"
+                    className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg font-bold text-xs bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors shadow-sm disabled:opacity-50 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-700"
                   >
                     +₹{tickSize.toLocaleString()}
                   </button>
                   <button 
                     onClick={() => handleQuickBid(tickSize * 2)}
                     disabled={!isActive}
-                    className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg font-bold text-xs bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors shadow-sm disabled:opacity-50"
+                    className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-lg font-bold text-xs bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 transition-colors shadow-sm disabled:opacity-50 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-700"
                   >
                     +₹{(tickSize * 2).toLocaleString()}
                   </button>

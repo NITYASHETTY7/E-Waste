@@ -11,12 +11,14 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.LoginDto = exports.RegisterDto = void 0;
 const class_validator_1 = require("class-validator");
+const class_transformer_1 = require("class-transformer");
 const client_1 = require("@prisma/client");
 class RegisterDto {
     name;
     email;
     password;
     role;
+    phone;
 }
 exports.RegisterDto = RegisterDto;
 __decorate([
@@ -35,8 +37,14 @@ __decorate([
 __decorate([
     (0, class_validator_1.IsEnum)(client_1.UserRole),
     (0, class_validator_1.IsOptional)(),
+    (0, class_transformer_1.Transform)(({ value }) => (typeof value === 'string' ? value.toUpperCase() : value)),
     __metadata("design:type", String)
 ], RegisterDto.prototype, "role", void 0);
+__decorate([
+    (0, class_validator_1.IsString)(),
+    (0, class_validator_1.IsOptional)(),
+    __metadata("design:type", String)
+], RegisterDto.prototype, "phone", void 0);
 class LoginDto {
     email;
     password;

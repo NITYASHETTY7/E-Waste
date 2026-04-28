@@ -22,7 +22,11 @@ let PickupsService = class PickupsService {
         this.s3 = s3;
     }
     async create(auctionId, paymentId) {
-        return this.prisma.pickup.create({ data: { auctionId, paymentId } });
+        return this.prisma.pickup.upsert({
+            where: { auctionId },
+            create: { auctionId, paymentId },
+            update: { ...(paymentId && { paymentId }) },
+        });
     }
     async findAll(status) {
         return this.prisma.pickup.findMany({

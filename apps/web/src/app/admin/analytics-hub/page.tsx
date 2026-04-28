@@ -62,8 +62,8 @@ export default function AdminAnalyticsHub() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Revenue by month */}
-        <div className="card p-5 border border-slate-100">
-          <h3 className="font-headline font-bold text-slate-900 mb-4">Monthly Revenue (Accepted Bids)</h3>
+        <div className="card p-5 border border-slate-100 dark:border-slate-800">
+          <h3 className="font-headline font-bold text-slate-900 mb-4 dark:text-white">Monthly Revenue (Accepted Bids)</h3>
           {monthlyData.length === 0 ? (
             <div className="h-40 flex items-center justify-center text-slate-400 text-sm">No data yet</div>
           ) : (
@@ -71,7 +71,7 @@ export default function AdminAnalyticsHub() {
               {monthlyData.map(([month, val]) => (
                 <div key={month} className="flex items-center gap-3">
                   <span className="text-xs font-bold text-slate-500 w-16 shrink-0">{month}</span>
-                  <div className="flex-1 bg-slate-100 rounded-full h-5 overflow-hidden">
+                  <div className="flex-1 bg-slate-100 rounded-full h-5 overflow-hidden dark:bg-slate-800">
                     <div className="h-full bg-primary rounded-full transition-all flex items-center justify-end pr-2"
                       style={{ width: `${Math.max((val / maxMonth) * 100, 5)}%` }}>
                       <span className="text-[9px] font-black text-white">₹{(val / 1000).toFixed(0)}K</span>
@@ -84,13 +84,13 @@ export default function AdminAnalyticsHub() {
         </div>
 
         {/* Category breakdown */}
-        <div className="card p-5 border border-slate-100">
-          <h3 className="font-headline font-bold text-slate-900 mb-4">Top E-Waste Categories</h3>
+        <div className="card p-5 border border-slate-100 dark:border-slate-800">
+          <h3 className="font-headline font-bold text-slate-900 mb-4 dark:text-white">Top E-Waste Categories</h3>
           <div className="space-y-2">
             {sortedCategories.slice(0, 8).map(([cat, count]) => (
               <div key={cat} className="flex items-center gap-3">
                 <span className="text-xs font-bold text-slate-500 w-32 truncate shrink-0">{cat}</span>
-                <div className="flex-1 bg-slate-100 rounded-full h-5 overflow-hidden">
+                <div className="flex-1 bg-slate-100 rounded-full h-5 overflow-hidden dark:bg-slate-800">
                   <div className="h-full bg-blue-500 rounded-full flex items-center justify-end pr-2"
                     style={{ width: `${(count / maxCat) * 100}%` }}>
                     <span className="text-[9px] font-black text-white">{count}</span>
@@ -110,7 +110,7 @@ export default function AdminAnalyticsHub() {
           { label: "Active Clients", value: totalClients, icon: "business", color: "text-purple-600 bg-purple-50" },
           { label: "Pending Approvals", value: pendingApprovals, icon: "pending", color: "text-amber-600 bg-amber-50" },
         ].map(s => (
-          <div key={s.label} className="card p-5 border border-slate-100">
+          <div key={s.label} className="card p-5 border border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-3">
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${s.color}`}>
                 <span className="material-symbols-outlined text-lg">{s.icon}</span>

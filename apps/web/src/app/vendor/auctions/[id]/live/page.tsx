@@ -45,7 +45,7 @@ function BidChart({
   );
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-full bg-slate-50">
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-full bg-slate-50 dark:bg-slate-950">
       {/* Grid lines */}
       {yTickValues.map((v, i) => (
         <g key={i}>
@@ -176,9 +176,9 @@ export default function LiveAuctionScreen() {
   const fmtINR = (n: number) => `₹${n.toLocaleString("en-IN")}`;
 
   return (
-    <div className="min-h-screen font-sans bg-slate-50">
+    <div className="min-h-screen font-sans bg-slate-50 dark:bg-slate-950">
       {/* Top Header */}
-      <div className="sticky top-0 z-30 shadow-sm bg-white border-b-2 border-b-[#1E8E3E]">
+      <div className="sticky top-0 z-30 shadow-sm bg-white border-b-2 border-b-[#1E8E3E] dark:bg-slate-900">
         <div className="max-w-[1400px] mx-auto px-4 py-3 flex items-center gap-3">
           <div className="flex items-center gap-2 mr-4 min-w-0 bg-[#E8F5E9] px-2 py-1 rounded-md">
             <span className={`w-2.5 h-2.5 rounded-full ${isActive ? "bg-[#1E8E3E] animate-pulse" : "bg-slate-400"} shrink-0`} />
@@ -195,7 +195,7 @@ export default function LiveAuctionScreen() {
             <StatPill label="Current Lot" value={fmtINR(currentHighest)} color="#1E8E3E" pulse={isActive} />
             <StatPill label="Tick Size" value={fmtINR(increment)} color="#FFC107" />
 
-            <div className="flex items-center gap-1 bg-white border border-slate-300 rounded-lg px-2 py-1.5 shadow-sm">
+            <div className="flex items-center gap-1 bg-white border border-slate-300 rounded-lg px-2 py-1.5 shadow-sm dark:bg-slate-900 dark:border-slate-600">
               <span className="text-[#1E8E3E] text-xs font-black">₹</span>
               <input
                 type="number"
@@ -239,7 +239,7 @@ export default function LiveAuctionScreen() {
             </span>
           </div>
 
-          <button onClick={() => router.back()} className="shrink-0 text-[#DC3545] bg-[#F5F7FA] px-3 py-1.5 rounded-lg hover:bg-red-50 transition text-xs font-bold uppercase tracking-widest border border-slate-200">
+          <button onClick={() => router.back()} className="shrink-0 text-[#DC3545] bg-[#F5F7FA] px-3 py-1.5 rounded-lg hover:bg-red-50 transition text-xs font-bold uppercase tracking-widest border border-slate-200 dark:bg-slate-950 dark:border-slate-700">
             ✕ Exit
           </button>
         </div>
@@ -253,15 +253,15 @@ export default function LiveAuctionScreen() {
 
       <div className="max-w-[1400px] mx-auto p-4 grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-4">
         <div className="flex flex-col gap-4">
-          <div className="rounded-2xl border bg-white border-t-4 border-t-[#1E8E3E] shadow-sm overflow-hidden border-slate-200">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200">
+          <div className="rounded-2xl border bg-white border-t-4 border-t-[#1E8E3E] shadow-sm overflow-hidden border-slate-200 dark:bg-slate-900 dark:border-slate-700">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200 dark:border-slate-700">
               <div>
                 <p className="text-[10px] font-black uppercase tracking-widest text-[#64748B]">Real-Time Bid Progression</p>
                 <p className="text-[#1A1A2E] font-bold text-sm mt-0.5">{auctionBids.length} bids placed</p>
               </div>
               <div className="flex items-center gap-3 flex-wrap">
                 {vendorLines.slice(0, 5).map((v) => (
-                  <div key={v.id} className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-md border border-slate-200">
+                  <div key={v.id} className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-md border border-slate-200 dark:bg-slate-950 dark:border-slate-700">
                     <span className="inline-block w-3 h-3 rounded-full" style={{ background: v.color }} />
                     <span className="text-[10px] text-[#1A1A2E] font-bold">{v.name}</span>
                   </div>
@@ -273,8 +273,8 @@ export default function LiveAuctionScreen() {
             </div>
           </div>
 
-          <div className="rounded-2xl border bg-white border-t-4 border-t-[#0B5ED7] shadow-sm overflow-hidden border-slate-200">
-            <div className="px-5 py-3 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+          <div className="rounded-2xl border bg-white border-t-4 border-t-[#0B5ED7] shadow-sm overflow-hidden border-slate-200 dark:bg-slate-900 dark:border-slate-700">
+            <div className="px-5 py-3 border-b border-slate-200 flex items-center justify-between bg-slate-50 dark:bg-slate-950 dark:border-slate-700">
               <p className="text-[10px] font-black uppercase tracking-widest text-[#64748B]">Bid Ledger</p>
               <span className="text-[10px] font-bold text-[#0B5ED7] bg-[#EFF6FF] px-2 py-0.5 rounded-full border border-blue-200">{auctionBids.length} events</span>
             </div>
@@ -294,7 +294,7 @@ export default function LiveAuctionScreen() {
         </div>
 
         <div className="flex flex-col gap-4">
-          <div className="rounded-2xl border bg-white border-t-4 border-t-[#0B5ED7] shadow-sm p-4 space-y-3 border-slate-200">
+          <div className="rounded-2xl border bg-white border-t-4 border-t-[#0B5ED7] shadow-sm p-4 space-y-3 border-slate-200 dark:bg-slate-900 dark:border-slate-700">
             <p className="text-[10px] font-black uppercase tracking-widest text-[#64748B]">Lot Details</p>
             <div className="grid grid-cols-2 gap-3">
               {[
@@ -316,7 +316,7 @@ export default function LiveAuctionScreen() {
             <div className="rounded-2xl bg-gradient-to-br from-[#E8F5E9] to-[#D1FAE5] border border-[#1E8E3E] p-5 text-center shadow-sm">
               <span className="material-symbols-outlined text-[#1E8E3E] text-4xl">emoji_events</span>
               <p className="text-[#1A1A2E] font-black text-lg mt-2">Auction Won!</p>
-              <p className="text-slate-600 text-xs mt-1">Winning bid: <span className="text-[#1E8E3E] font-bold">{fmtINR(currentHighest)}</span></p>
+              <p className="text-slate-600 text-xs mt-1 dark:text-slate-400">Winning bid: <span className="text-[#1E8E3E] font-bold">{fmtINR(currentHighest)}</span></p>
               <p className="text-slate-500 text-[10px] mt-2">Wait for compliance verification.</p>
             </div>
           )}
@@ -328,7 +328,7 @@ export default function LiveAuctionScreen() {
 
 function StatPill({ label, value, color, pulse }: { label: string; value: string; color: string; pulse?: boolean }) {
   return (
-    <div className="flex flex-col items-center px-3 py-1.5 rounded-lg bg-white border border-slate-200 min-w-[90px] shadow-sm">
+    <div className="flex flex-col items-center px-3 py-1.5 rounded-lg bg-white border border-slate-200 min-w-[90px] shadow-sm dark:bg-slate-900 dark:border-slate-700">
       <span className="text-[8px] font-black uppercase tracking-widest text-slate-500">{label}</span>
       <span className={`font-mono font-black text-sm tabular-nums ${pulse ? "animate-pulse" : ""}`} style={{ color }}>{value}</span>
     </div>

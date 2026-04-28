@@ -62,7 +62,7 @@ export default function AdminContracts() {
           { label: "Quote Submitted", value: stats.submitted, icon: "upload_file", color: "text-purple-600 bg-purple-50" },
           { label: "Deal Closed", value: stats.approved, icon: "handshake", color: "text-primary bg-primary/10" },
         ].map(s => (
-          <div key={s.label} className="card p-5 border border-slate-100">
+          <div key={s.label} className="card p-5 border border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-3">
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${s.color}`}>
                 <span className="material-symbols-outlined text-lg">{s.icon}</span>
@@ -77,9 +77,9 @@ export default function AdminContracts() {
       </div>
 
       {contractListings.length === 0 ? (
-        <div className="card p-16 text-center border-2 border-dashed border-slate-200">
+        <div className="card p-16 text-center border-2 border-dashed border-slate-200 dark:border-slate-700">
           <span className="material-symbols-outlined text-5xl text-slate-300 block mb-3">description</span>
-          <p className="font-bold text-slate-600">No completed auctions yet</p>
+          <p className="font-bold text-slate-600 dark:text-slate-400">No completed auctions yet</p>
           <p className="text-sm text-slate-400 mt-1">Deals will appear here once auctions are completed.</p>
         </div>
       ) : (
@@ -90,20 +90,20 @@ export default function AdminContracts() {
             const clientInfo = users.find(u => u.id === listing.userId);
 
             return (
-              <div key={listing.id} className="card p-0 overflow-hidden border border-slate-100">
+              <div key={listing.id} className="card p-0 overflow-hidden border border-slate-100 dark:border-slate-800">
                 <div className="p-5 flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
                       <span className="text-xs font-black text-slate-400">{listing.id}</span>
                       <span className={`text-[9px] px-2.5 py-0.5 rounded-full font-black uppercase ${meta.color}`}>{meta.label}</span>
                     </div>
-                    <h3 className="font-bold text-slate-900">{listing.title}</h3>
+                    <h3 className="font-bold text-slate-900 dark:text-white">{listing.title}</h3>
                     <p className="text-xs text-slate-500 mt-0.5">{listing.location} · Client: {clientInfo?.name || listing.userName}</p>
 
                     <div className="mt-3 grid grid-cols-3 gap-4">
                       <div>
                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Winning Vendor</p>
-                        <p className="text-sm font-bold text-slate-900">{winBid?.vendorName || "—"}</p>
+                        <p className="text-sm font-bold text-slate-900 dark:text-white">{winBid?.vendorName || "—"}</p>
                       </div>
                       <div>
                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Winning Bid</p>
@@ -111,7 +111,7 @@ export default function AdminContracts() {
                       </div>
                       <div>
                         <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Commission (5%)</p>
-                        <p className="text-sm font-bold text-slate-900">{winBid ? `₹${Math.round(winBid.amount * 0.05).toLocaleString()}` : "—"}</p>
+                        <p className="text-sm font-bold text-slate-900 dark:text-white">{winBid ? `₹${Math.round(winBid.amount * 0.05).toLocaleString()}` : "—"}</p>
                       </div>
                     </div>
 
@@ -160,7 +160,7 @@ export default function AdminContracts() {
                       <span className="px-4 py-2 rounded-xl bg-emerald-100 text-emerald-700 text-xs font-black uppercase text-center">Deal Closed</span>
                     )}
                     {(!listing.finalQuoteStatus || listing.finalQuoteStatus === "pending") && (
-                      <span className="px-4 py-2 rounded-xl bg-slate-100 text-slate-500 text-xs font-black uppercase text-center">Awaiting Vendor</span>
+                      <span className="px-4 py-2 rounded-xl bg-slate-100 text-slate-500 text-xs font-black uppercase text-center dark:bg-slate-800">Awaiting Vendor</span>
                     )}
                   </div>
                 </div>
@@ -174,14 +174,14 @@ export default function AdminContracts() {
       {rejectModal.open && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-4">
-            <h3 className="text-xl font-headline font-extrabold text-slate-900">Reject Final Quote</h3>
+            <h3 className="text-xl font-headline font-extrabold text-slate-900 dark:text-white">Reject Final Quote</h3>
             <div>
               <label className="label">Rejection Remarks</label>
               <textarea className="input-base min-h-[80px] resize-none" placeholder="Provide reason for rejection..."
                 value={rejectRemarks} onChange={e => setRejectRemarks(e.target.value)} />
             </div>
             <div className="flex justify-end gap-3">
-              <button onClick={() => setRejectModal({ open: false, listingId: null })} className="px-5 py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 hover:bg-slate-50">Cancel</button>
+              <button onClick={() => setRejectModal({ open: false, listingId: null })} className="px-5 py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:border-slate-700">Cancel</button>
               <button onClick={handleReject} className="px-5 py-2.5 rounded-xl bg-red-600 text-white text-sm font-bold hover:bg-red-700">Reject Quote</button>
             </div>
           </div>

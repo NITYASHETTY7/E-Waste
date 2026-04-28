@@ -17,8 +17,8 @@ export declare class DashboardController {
         completedAuctions: number;
         recentAuctions: ({
             winner: {
-                name: string;
                 id: string;
+                name: string;
                 createdAt: Date;
                 updatedAt: Date;
                 type: import("@prisma/client").$Enums.CompanyType;
@@ -42,6 +42,7 @@ export declare class DashboardController {
             targetPrice: number | null;
             category: string;
             clientId: string;
+            requirementId: string | null;
             basePrice: number;
             tickSize: number;
             maxTicks: number;
@@ -51,8 +52,9 @@ export declare class DashboardController {
             openPhaseStart: Date | null;
             openPhaseEnd: Date | null;
             extensionCount: number;
+            quoteApproved: boolean | null;
+            quoteRemarks: string | null;
             winnerId: string | null;
-            requirementId: string | null;
         })[];
     }>;
     vendorStats(companyId: string): Promise<{
@@ -61,8 +63,8 @@ export declare class DashboardController {
         pendingPickups: number;
         recentWins: ({
             client: {
-                name: string;
                 id: string;
+                name: string;
                 createdAt: Date;
                 updatedAt: Date;
                 type: import("@prisma/client").$Enums.CompanyType;
@@ -86,6 +88,7 @@ export declare class DashboardController {
             targetPrice: number | null;
             category: string;
             clientId: string;
+            requirementId: string | null;
             basePrice: number;
             tickSize: number;
             maxTicks: number;
@@ -95,8 +98,9 @@ export declare class DashboardController {
             openPhaseStart: Date | null;
             openPhaseEnd: Date | null;
             extensionCount: number;
+            quoteApproved: boolean | null;
+            quoteRemarks: string | null;
             winnerId: string | null;
-            requirementId: string | null;
         })[];
     }>;
 }

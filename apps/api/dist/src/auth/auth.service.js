@@ -47,12 +47,18 @@ const common_1 = require("@nestjs/common");
 const users_service_1 = require("../users/users.service");
 const jwt_1 = require("@nestjs/jwt");
 const bcrypt = __importStar(require("bcryptjs"));
+const otp_service_1 = require("./otp.service");
+const prisma_service_1 = require("../prisma/prisma.service");
 let AuthService = class AuthService {
     usersService;
     jwtService;
-    constructor(usersService, jwtService) {
+    otpService;
+    prisma;
+    constructor(usersService, jwtService, otpService, prisma) {
         this.usersService = usersService;
         this.jwtService = jwtService;
+        this.otpService = otpService;
+        this.prisma = prisma;
     }
     async register(dto) {
         const hash = await bcrypt.hash(dto.password, 10);
@@ -61,18 +67,65 @@ let AuthService = class AuthService {
             name: dto.name,
             passwordHash: hash,
             role: dto.role || 'USER',
+            phone: dto.phone,
         });
-        return this.buildResponse(user);
+        const role = (dto.role || 'USER').toUpperCase();
+        if (role === 'CLIENT' || role === 'VENDOR') {
+            const company = await this.prisma.company.create({
+                data: {
+                    name: dto.name,
+                    type: role,
+                    status: 'PENDING',
+                },
+            });
+            await this.prisma.user.update({
+                where: { id: user.id },
+                data: { companyId: company.id },
+            });
+        }
+        const otpResult = await this.otpService.sendOtp(dto.email, dto.phone).catch(() => ({ emailSent: false, phoneSent: false }));
+        const freshUser = await this.prisma.user.findUnique({ where: { id: user.id }, include: { company: true } });
+        return { ...this.buildResponse(freshUser ?? user), otp: otpResult };
     }
     async login(dto) {
         const user = await this.usersService.findByEmail(dto.email);
-        if (!user || !(await bcrypt.compare(dto.password, user.passwordHash))) {
+        if (!user || !dto.password) {
+            throw new common_1.UnauthorizedException('Invalid credentials');
+        }
+        const passwordMatch = await bcrypt.compare(dto.password, user.passwordHash);
+        if (!passwordMatch) {
             throw new common_1.UnauthorizedException('Invalid credentials');
         }
         return this.buildResponse(user);
     }
     async getProfile(userId) {
         return this.usersService.findById(userId);
+    }
+    async markVerified(email, type) {
+        const user = await this.usersService.findByEmail(email);
+        if (!user)
+            return;
+        const updateData = type === 'email' ? { emailVerified: true } : { phoneVerified: true };
+        await this.prisma.user.update({ where: { id: user.id }, data: updateData });
+        const fresh = await this.prisma.user.findUnique({ where: { id: user.id } });
+        if (fresh?.emailVerified && fresh?.phoneVerified) {
+            await this.prisma.user.update({ where: { id: user.id }, data: { isActive: true } });
+        }
+    }
+    async forgotPassword(email) {
+        const user = await this.usersService.findByEmail(email);
+        if (!user)
+            throw new common_1.NotFoundException('No account found with that email address.');
+        const result = await this.otpService.sendOtp(email);
+        return { sent: result.emailSent || true, devOtp: result.devEmailOtp };
+    }
+    async resetPassword(email, otp, newPassword) {
+        const verify = await this.otpService.verifyOtp(email, otp, 'email');
+        if (!verify.verified)
+            throw new common_1.BadRequestException(verify.message);
+        const hash = await (await import('bcryptjs')).hash(newPassword, 10);
+        await this.prisma.user.update({ where: { email }, data: { passwordHash: hash } });
+        return { success: true };
     }
     buildResponse(user) {
         const { passwordHash, ...safeUser } = user;
@@ -87,6 +140,8 @@ exports.AuthService = AuthService;
 exports.AuthService = AuthService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [users_service_1.UsersService,
-        jwt_1.JwtService])
+        jwt_1.JwtService,
+        otp_service_1.OtpService,
+        prisma_service_1.PrismaService])
 ], AuthService);
 //# sourceMappingURL=auth.service.js.map

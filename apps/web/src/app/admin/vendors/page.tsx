@@ -112,7 +112,7 @@ export default function AdminVendors() {
                         {vendor.documents.length} docs
                       </span>
                     ) : (
-                      <span className="text-[10px] font-bold px-2 py-0.5 bg-slate-100 text-slate-500 rounded-full">None</span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 bg-slate-100 text-slate-500 rounded-full dark:bg-slate-800">None</span>
                     )}
                   </div>
                 </td>
@@ -124,7 +124,7 @@ export default function AdminVendors() {
                 <td>
                   <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
                     <button onClick={() => setSelectedVendor(vendor.id)}
-                      className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200 transition-all" title="View Details">
+                      className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200 transition-all dark:bg-slate-800 dark:text-slate-400" title="View Details">
                       <span className="material-symbols-outlined text-lg">visibility</span>
                     </button>
                     {vendor.status === "pending" && (
@@ -147,16 +147,16 @@ export default function AdminVendors() {
       {/* Vendor Detail Panel */}
       {modalVendor && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in" onClick={() => setSelectedVendor(null)}>
-          <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[92vh] flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
+          <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[92vh] flex flex-col shadow-2xl dark:bg-slate-900" onClick={e => e.stopPropagation()}>
 
             {/* Sticky Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 shrink-0 dark:border-slate-800">
               <div className="flex items-center gap-3">
                 <div className="w-11 h-11 rounded-xl bg-[color:var(--color-primary-container)] flex items-center justify-center font-headline font-black text-xl text-[color:var(--color-primary)]">
                   {modalVendor.name[0]}
                 </div>
                 <div>
-                  <h3 className="text-lg font-headline font-extrabold text-slate-900 leading-tight">{modalVendor.name}</h3>
+                  <h3 className="text-lg font-headline font-extrabold text-slate-900 leading-tight dark:text-white">{modalVendor.name}</h3>
                   <div className="flex items-center gap-2 mt-0.5">
                     <span className={`pill text-[9px] ${modalVendor.status === "active" ? "pill-success" : modalVendor.status === "pending" ? "pill-warning" : "pill-error"}`}>
                       {modalVendor.status}
@@ -166,7 +166,7 @@ export default function AdminVendors() {
                   </div>
                 </div>
               </div>
-              <button onClick={() => setSelectedVendor(null)} className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors">
+              <button onClick={() => setSelectedVendor(null)} className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-colors dark:bg-slate-800">
                 <span className="material-symbols-outlined text-lg">close</span>
               </button>
             </div>
@@ -209,9 +209,9 @@ export default function AdminVendors() {
                     ["Phone", modalVendor.phone],
                     ["Contact Person", modalVendor.onboardingProfile?.contactPerson],
                   ].map(([label, val]) => (
-                    <div key={label} className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                    <div key={label} className="bg-slate-50 p-3 rounded-xl border border-slate-100 dark:bg-slate-950 dark:border-slate-800">
                       <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-0.5">{label}</p>
-                      <p className="text-sm font-bold text-slate-800">{val || <span className="text-slate-300 font-normal italic">Not provided</span>}</p>
+                      <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{val || <span className="text-slate-300 font-normal italic">Not provided</span>}</p>
                     </div>
                   ))}
                 </div>
@@ -235,14 +235,14 @@ export default function AdminVendors() {
                         ["Pincode", modalVendor.onboardingProfile.pincode],
                         ["Address", modalVendor.onboardingProfile.address],
                       ].map(([label, val]) => (
-                        <div key={label} className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                        <div key={label} className="bg-slate-50 p-3 rounded-xl border border-slate-100 dark:bg-slate-950 dark:border-slate-800">
                           <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-0.5">{label}</p>
-                          <p className="text-sm font-bold text-slate-800">{val || <span className="text-slate-300 font-normal italic">—</span>}</p>
+                          <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{val || <span className="text-slate-300 font-normal italic">—</span>}</p>
                         </div>
                       ))}
                     </div>
                     {modalVendor.onboardingProfile.materialSpecializations && modalVendor.onboardingProfile.materialSpecializations.length > 0 && (
-                      <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                      <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 dark:bg-slate-950 dark:border-slate-800">
                         <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-2">Material Specializations</p>
                         <div className="flex gap-2 flex-wrap">
                           {modalVendor.onboardingProfile.materialSpecializations.map(s => (
@@ -253,7 +253,7 @@ export default function AdminVendors() {
                     )}
                   </div>
                 ) : (
-                  <div className="p-4 bg-slate-50 rounded-xl border border-dashed border-slate-200 text-center">
+                  <div className="p-4 bg-slate-50 rounded-xl border border-dashed border-slate-200 text-center dark:bg-slate-950 dark:border-slate-700">
                     <span className="material-symbols-outlined text-slate-300 text-2xl">domain_disabled</span>
                     <p className="text-xs text-slate-400 font-bold mt-1">Company profile not submitted</p>
                   </div>
@@ -274,9 +274,9 @@ export default function AdminVendors() {
                       ["IFSC Code", modalVendor.bankDetails.ifscCode],
                       ["Account Type", modalVendor.bankDetails.accountType],
                     ].map(([label, val]) => (
-                      <div key={label} className="bg-slate-50 p-3 rounded-xl border border-slate-100">
+                      <div key={label} className="bg-slate-50 p-3 rounded-xl border border-slate-100 dark:bg-slate-950 dark:border-slate-800">
                         <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-0.5">{label}</p>
-                        <p className="text-sm font-bold text-slate-800 font-mono">{val || "—"}</p>
+                        <p className="text-sm font-bold text-slate-800 font-mono dark:text-slate-200">{val || "—"}</p>
                       </div>
                     ))}
                   </div>
@@ -300,12 +300,12 @@ export default function AdminVendors() {
                 {modalVendor.documents && modalVendor.documents.length > 0 ? (
                   <div className="space-y-2">
                     {modalVendor.documents.map((doc, i) => (
-                      <div key={i} className="flex items-center gap-4 p-3.5 bg-slate-50 border border-slate-100 rounded-xl hover:border-slate-200 transition-colors">
+                      <div key={i} className="flex items-center gap-4 p-3.5 bg-slate-50 border border-slate-100 rounded-xl hover:border-slate-200 transition-colors dark:bg-slate-950 dark:border-slate-800">
                         <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${doc.name === 'EMD Proof' ? 'bg-amber-100 text-amber-600' : 'bg-blue-100 text-blue-600'}`}>
                           <span className="material-symbols-outlined text-lg">{doc.name === 'EMD Proof' ? 'payments' : 'description'}</span>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-bold text-slate-800 truncate">{doc.fileName}</p>
+                          <p className="text-sm font-bold text-slate-800 truncate dark:text-slate-200">{doc.fileName}</p>
                           <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{doc.name} · {doc.size} · {formatDate(doc.uploadedAt)}</p>
                         </div>
                         <div className="flex items-center gap-2 shrink-0">
@@ -317,7 +317,7 @@ export default function AdminVendors() {
                               <span className="material-symbols-outlined text-sm">download</span>
                             </a>
                           ) : (
-                            <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center" title="No file attached">
+                            <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center dark:bg-slate-800" title="No file attached">
                               <span className="material-symbols-outlined text-sm text-slate-300">visibility_off</span>
                             </div>
                           )}
@@ -346,7 +346,7 @@ export default function AdminVendors() {
             </div>
 
             {/* Sticky Decision Footer */}
-            <div className="border-t border-slate-100 px-6 py-4 bg-white rounded-b-2xl shrink-0">
+            <div className="border-t border-slate-100 px-6 py-4 bg-white rounded-b-2xl shrink-0 dark:bg-slate-900 dark:border-slate-800">
               {modalVendor.status === "pending" ? (
                 <div className="space-y-3">
                   <div className="flex items-center gap-2">

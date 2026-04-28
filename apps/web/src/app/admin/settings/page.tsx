@@ -20,7 +20,7 @@ export default function AdminSettings() {
       </div>
 
       {/* Tabbed Navigation */}
-      <div className="flex items-center gap-8 border-b border-slate-100 mb-8 overflow-x-auto">
+      <div className="flex items-center gap-8 border-b border-slate-100 mb-8 overflow-x-auto dark:border-slate-800">
         {["General", "Bidding Parameters", "Notifications", "Role Management"].map((tab) => (
           <button
             key={tab}
@@ -50,7 +50,7 @@ export default function AdminSettings() {
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
-                <tr className="bg-slate-50 border-b border-slate-100">
+                <tr className="bg-slate-50 border-b border-slate-100 dark:bg-slate-950 dark:border-slate-800">
                   <th className="px-8 py-5 text-[10px] uppercase font-black text-slate-400 tracking-widest">Role Name</th>
                   {["View Listings", "Edit Listings", "Approve Vendors", "View Reports", "Manage Users"].map((p) => (
                     <th key={p} className="px-4 py-5 text-[10px] uppercase font-black text-slate-400 tracking-widest text-center">{p}</th>
@@ -79,7 +79,7 @@ export default function AdminSettings() {
                           type="checkbox"
                           checked={p}
                           readOnly
-                          className="w-5 h-5 rounded border-slate-200 text-[color:var(--color-primary)] focus:ring-[color:var(--color-primary)] opacity-60 cursor-not-allowed"
+                          className="w-5 h-5 rounded border-slate-200 text-[color:var(--color-primary)] focus:ring-[color:var(--color-primary)] opacity-60 cursor-not-allowed dark:border-slate-700"
                         />
                       </td>
                     ))}
@@ -89,7 +89,7 @@ export default function AdminSettings() {
             </table>
           </div>
 
-          <div className="p-6 bg-slate-50 flex items-start gap-4 border-t border-slate-100">
+          <div className="p-6 bg-slate-50 flex items-start gap-4 border-t border-slate-100 dark:bg-slate-950 dark:border-slate-800">
             <span className="material-symbols-outlined text-[color:var(--color-primary)] text-lg">info</span>
             <div>
               <p className="text-xs font-bold text-[color:var(--color-on-surface)]">About Custom Roles</p>
@@ -104,11 +104,11 @@ export default function AdminSettings() {
         <div className="col-span-12 lg:col-span-4 card p-6">
           <h4 className="font-headline font-bold text-[color:var(--color-on-surface)] mb-4">Security Overview</h4>
           <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50">
+            <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-slate-950">
               <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">2FA Required</span>
               <span className="px-3 py-1 rounded-full bg-[color:var(--color-primary-container)] text-white text-[10px] font-black uppercase tracking-tighter">Active</span>
             </div>
-            <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50">
+            <div className="flex items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-slate-950">
               <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">Session Timeout</span>
               <span className="text-sm font-bold text-[color:var(--color-on-surface)]">15 Minutes</span>
             </div>

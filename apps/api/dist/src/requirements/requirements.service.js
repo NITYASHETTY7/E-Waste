@@ -33,13 +33,20 @@ let RequirementsService = class RequirementsService {
                 description: data.description,
                 clientId: data.clientId,
                 rawS3Key,
+                category: data.category,
+                totalWeight: data.totalWeight ? Number(data.totalWeight) : undefined,
             },
+            include: { client: true },
         });
     }
     async findAll(clientId) {
         return this.prisma.requirement.findMany({
             where: clientId ? { clientId } : {},
-            include: { client: true, auditInvitations: true, auction: true },
+            include: {
+                client: { include: { users: { select: { id: true }, take: 1 } } },
+                auditInvitations: true,
+                auction: true,
+            },
             orderBy: { createdAt: 'desc' },
         });
     }
@@ -65,10 +72,13 @@ let RequirementsService = class RequirementsService {
         });
     }
     async clientApprove(id, data) {
+        const { targetPrice, totalWeight, category } = data;
         return this.prisma.requirement.update({
             where: { id },
             data: {
-                ...data,
+                targetPrice: Number(targetPrice),
+                ...(totalWeight !== undefined && { totalWeight: Number(totalWeight) }),
+                ...(category !== undefined && { category }),
                 status: client_1.RequirementStatus.FINALIZED,
             },
         });

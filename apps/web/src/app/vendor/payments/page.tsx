@@ -64,9 +64,9 @@ export default function VendorPayments() {
       </div>
 
       {paymentListings.length === 0 ? (
-        <div className="card p-20 text-center border-2 border-dashed border-slate-200">
+        <div className="card p-20 text-center border-2 border-dashed border-slate-200 dark:border-slate-700">
           <span className="material-symbols-outlined text-6xl text-slate-300 mb-4 block">payments</span>
-          <h3 className="text-xl font-bold text-slate-900">No Pending Payments</h3>
+          <h3 className="text-xl font-bold text-slate-900 dark:text-white">No Pending Payments</h3>
           <p className="text-slate-500 mt-2">Payment details appear here once a client approves your final quote.</p>
         </div>
       ) : (
@@ -80,13 +80,13 @@ export default function VendorPayments() {
 
             return (
               <div key={listing.id} className={`card p-0 overflow-hidden border-2 ${listing.paymentStatus === "confirmed" ? "border-emerald-200" : "border-slate-100"}`}>
-                <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex items-start justify-between gap-4">
+                <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex items-start justify-between gap-4 dark:border-slate-800">
                   <div>
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-xs font-black text-slate-400">{listing.id}</span>
                       <span className={`text-[9px] px-2.5 py-0.5 rounded-full font-black uppercase ${meta.color}`}>{meta.label}</span>
                     </div>
-                    <h3 className="font-bold text-slate-900">{listing.title}</h3>
+                    <h3 className="font-bold text-slate-900 dark:text-white">{listing.title}</h3>
                     <p className="text-xs text-slate-500 mt-0.5">{listing.location} · {listing.weight} KG</p>
                   </div>
                   {!listing.paymentStatus || listing.paymentStatus === "pending" ? (
@@ -113,8 +113,8 @@ export default function VendorPayments() {
                         { label: "WeConnect Commission (5%)", value: commission, color: "text-red-600", prefix: "−" },
                         { label: "Amount to Client", value: clientAmount, color: "text-slate-900", bold: true },
                       ].map(row => (
-                        <div key={row.label} className="flex justify-between items-center py-1.5 border-b border-slate-100 last:border-0">
-                          <span className="text-sm text-slate-600">{row.label}</span>
+                        <div key={row.label} className="flex justify-between items-center py-1.5 border-b border-slate-100 last:border-0 dark:border-slate-800">
+                          <span className="text-sm text-slate-600 dark:text-slate-400">{row.label}</span>
                           <span className={`font-black ${row.color}`}>{row.prefix || ""}₹{row.value.toLocaleString()}</span>
                         </div>
                       ))}
@@ -130,10 +130,10 @@ export default function VendorPayments() {
                         <p className="text-[9px] font-black text-primary uppercase mb-2">Client Account (Main Amount)</p>
                         {clientBank ? (
                           <div className="space-y-1 text-xs">
-                            <p><span className="font-bold text-slate-600">Name:</span> {clientBank.accountHolderName}</p>
-                            <p><span className="font-bold text-slate-600">Bank:</span> {clientBank.bankName}</p>
-                            <p><span className="font-bold text-slate-600">A/C:</span> {clientBank.accountNumber}</p>
-                            <p><span className="font-bold text-slate-600">IFSC:</span> {clientBank.ifscCode}</p>
+                            <p><span className="font-bold text-slate-600 dark:text-slate-400">Name:</span> {clientBank.accountHolderName}</p>
+                            <p><span className="font-bold text-slate-600 dark:text-slate-400">Bank:</span> {clientBank.bankName}</p>
+                            <p><span className="font-bold text-slate-600 dark:text-slate-400">A/C:</span> {clientBank.accountNumber}</p>
+                            <p><span className="font-bold text-slate-600 dark:text-slate-400">IFSC:</span> {clientBank.ifscCode}</p>
                           </div>
                         ) : (
                           <p className="text-xs text-slate-400">Bank details not on file — contact admin</p>
@@ -147,10 +147,10 @@ export default function VendorPayments() {
                       <div className="p-3 bg-blue-50 rounded-xl border border-blue-100">
                         <p className="text-[9px] font-black text-blue-700 uppercase mb-2">WeConnect (Commission)</p>
                         <div className="space-y-1 text-xs">
-                          <p><span className="font-bold text-slate-600">Name:</span> {WECONNECT_BANK.name}</p>
-                          <p><span className="font-bold text-slate-600">Bank:</span> {WECONNECT_BANK.bank}</p>
-                          <p><span className="font-bold text-slate-600">A/C:</span> {WECONNECT_BANK.account}</p>
-                          <p><span className="font-bold text-slate-600">IFSC:</span> {WECONNECT_BANK.ifsc}</p>
+                          <p><span className="font-bold text-slate-600 dark:text-slate-400">Name:</span> {WECONNECT_BANK.name}</p>
+                          <p><span className="font-bold text-slate-600 dark:text-slate-400">Bank:</span> {WECONNECT_BANK.bank}</p>
+                          <p><span className="font-bold text-slate-600 dark:text-slate-400">A/C:</span> {WECONNECT_BANK.account}</p>
+                          <p><span className="font-bold text-slate-600 dark:text-slate-400">IFSC:</span> {WECONNECT_BANK.ifsc}</p>
                         </div>
                         <div className="mt-2 pt-2 border-t border-blue-100">
                           <p className="text-xs font-black text-blue-700">Amount: ₹{commission.toLocaleString()}</p>
@@ -186,7 +186,7 @@ export default function VendorPayments() {
       {proofModal.open && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-5">
-            <h3 className="text-xl font-headline font-extrabold text-slate-900">Upload Payment Proof</h3>
+            <h3 className="text-xl font-headline font-extrabold text-slate-900 dark:text-white">Upload Payment Proof</h3>
 
             <div>
               <label className="label">UTR / Transaction Reference Number</label>
@@ -212,7 +212,7 @@ export default function VendorPayments() {
 
             <div className="flex justify-end gap-3">
               <button onClick={() => setProofModal({ open: false, listingId: null })}
-                className="px-5 py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 hover:bg-slate-50">Cancel</button>
+                className="px-5 py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:border-slate-700">Cancel</button>
               <button onClick={handleUpload} disabled={!proofFile || !utr || uploading}
                 className="px-5 py-2.5 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary/90 disabled:opacity-50">
                 {uploading ? "Uploading..." : "Submit Proof"}

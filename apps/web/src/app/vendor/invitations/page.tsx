@@ -22,9 +22,9 @@ export default function VendorInvitations() {
       </div>
 
       {invitationListings.length === 0 ? (
-        <div className="card p-20 text-center bg-white/50 border-dashed border-2 border-slate-200">
+        <div className="card p-20 text-center bg-white/50 border-dashed border-2 border-slate-200 dark:border-slate-700">
            <span className="material-symbols-outlined text-6xl text-slate-300 mb-4 block">mail</span>
-           <h3 className="text-xl font-bold text-slate-900">No Pending Invitations</h3>
+           <h3 className="text-xl font-bold text-slate-900 dark:text-white">No Pending Invitations</h3>
            <p className="text-slate-500 mt-2">You don't have any new invitations at the moment. Keep an eye on your inbox!</p>
            <Link href="/vendor/marketplace" className="btn-primary inline-flex items-center gap-2 mt-6 px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest bg-slate-900 text-white">
               <span className="material-symbols-outlined text-sm text-amber-400">explore</span>
@@ -42,7 +42,7 @@ export default function VendorInvitations() {
                            <span className="px-2 py-0.5 bg-blue-600 text-white rounded text-[8px] font-black uppercase tracking-widest">New Invitation</span>
                            <span className="text-[10px] text-blue-600 font-bold uppercase tracking-widest">{listing.category}</span>
                         </div>
-                        <h3 className="text-xl font-headline font-extrabold text-slate-900 line-clamp-1">{listing.title}</h3>
+                        <h3 className="text-xl font-headline font-extrabold text-slate-900 line-clamp-1 dark:text-white">{listing.title}</h3>
                         <p className="text-xs text-slate-500 mt-1 flex items-center gap-1">
                           <span className="material-symbols-outlined text-sm">location_on</span>
                           {listing.location}
@@ -57,7 +57,7 @@ export default function VendorInvitations() {
                      <div className="grid grid-cols-2 gap-4">
                         <div>
                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Available Qty</p>
-                           <p className="text-sm font-bold text-slate-900">{listing.weight} KG</p>
+                           <p className="text-sm font-bold text-slate-900 dark:text-white">{listing.weight} KG</p>
                         </div>
                         <div>
                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Est. Value</p>

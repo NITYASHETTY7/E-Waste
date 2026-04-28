@@ -35,7 +35,7 @@ function LandingPageContent() {
   if (!mounted) return null;
 
   return (
-    <div className="bg-[#F5F7FA] min-h-screen flex flex-col relative text-[#1A1A2E]">
+    <div className="bg-[#F5F7FA] min-h-screen flex flex-col relative text-[#1A1A2E] dark:bg-slate-950">
       {/* 1. NAVBAR — floating pill */}
       <div className={`fixed top-0 left-0 w-full z-50 flex justify-center pt-4 px-4 transition-all duration-500 ${isScrolled ? 'pt-2' : 'pt-4'}`}>
         <nav className={`w-full max-w-5xl flex items-center justify-between px-5 py-2.5 rounded-2xl transition-all duration-500 bg-white/95 backdrop-blur-xl border border-slate-200/80 ${
@@ -66,7 +66,7 @@ function LandingPageContent() {
               </button>
 
               {loginDropdownOpen && (
-                <div className="absolute top-full right-0 mt-3 w-56 bg-white border border-[#E2E8F0] shadow-[0_10px_40px_rgba(0,0,0,0.12)] rounded-xl flex flex-col overflow-hidden z-50 animate-fade-in">
+                <div className="absolute top-full right-0 mt-3 w-56 bg-white border border-[#E2E8F0] shadow-[0_10px_40px_rgba(0,0,0,0.12)] rounded-xl flex flex-col overflow-hidden z-50 animate-fade-in dark:bg-slate-900">
                   <button suppressHydrationWarning onMouseDown={() => router.push('/client-login')} className="text-left px-5 py-3 text-sm font-bold text-[#4A5568] hover:bg-[#E8F5E9] hover:text-[#1E8E3E] transition-colors flex items-center gap-3">
                     <span className="material-symbols-outlined text-[18px] text-[#1E8E3E]">corporate_fare</span> Client Login
                   </button>
@@ -198,7 +198,7 @@ function LandingPageContent() {
       </section>
 
       {/* 4. ABOUT SECTION */}
-      <section id="about" className="py-24 px-6 md:px-10 relative z-10 bg-[#F5F7FA]">
+      <section id="about" className="py-24 px-6 md:px-10 relative z-10 bg-[#F5F7FA] dark:bg-slate-950">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-sm font-bold text-[#1E8E3E] uppercase tracking-[0.2em] mb-4">Our Vision</h2>
@@ -273,7 +273,7 @@ function LandingPageContent() {
       </section>
 
       {/* 6. FOR CLIENTS & VENDORS */}
-      <section className="py-20 px-6 md:px-10 relative z-10 bg-[#F5F7FA]">
+      <section className="py-20 px-6 md:px-10 relative z-10 bg-[#F5F7FA] dark:bg-slate-950">
         <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-8 lg:gap-12">
 
           {/* For Clients */}
@@ -380,7 +380,7 @@ function LandingPageContent() {
               { title: "Secure platform", icon: "security" },
               { title: "Compliance-driven", icon: "rule" }
             ].map((feat, i) => (
-              <div key={i} className="bg-[#F5F7FA] border border-[#E2E8F0] shadow-[0_4px_16px_rgba(0,0,0,0.06)] rounded-[16px] p-10 text-center flex flex-col items-center justify-center hover:-translate-y-1 transition-transform">
+              <div key={i} className="bg-[#F5F7FA] border border-[#E2E8F0] shadow-[0_4px_16px_rgba(0,0,0,0.06)] rounded-[16px] p-10 text-center flex flex-col items-center justify-center hover:-translate-y-1 transition-transform dark:bg-slate-950">
                 <span className="material-symbols-outlined text-[48px] text-[#1E8E3E] mb-6">{feat.icon}</span>
                 <h4 className="font-bold text-[#1A1A2E] text-xl">{feat.title}</h4>
               </div>
@@ -406,7 +406,7 @@ function LandingPageContent() {
 
       <footer className="py-12 px-6 md:px-10 bg-[#1A1A2E] text-[rgba(255,255,255,0.8)] border-t-[3px] border-t-[#1E8E3E]">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="flex items-center gap-2 cursor-pointer bg-white px-4 py-2 rounded-xl" onClick={() => window.scrollTo(0, 0)}>
+          <div className="flex items-center gap-2 cursor-pointer bg-white px-4 py-2 rounded-xl dark:bg-slate-900" onClick={() => window.scrollTo(0, 0)}>
             <img src="/logo%202.png" alt="We Connect" className="h-[36px] object-contain" />
           </div>
           <p className="text-[12px] uppercase tracking-widest font-medium">
@@ -425,7 +425,7 @@ function LandingPageContent() {
 
 export default function LandingPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#F5F7FA] flex items-center justify-center"><div className="w-8 h-8 border-4 border-[#1E8E3E] border-t-transparent rounded-full animate-spin"></div></div>}>
+    <Suspense fallback={<div className="min-h-screen bg-[#F5F7FA] flex items-center justify-center dark:bg-slate-950"><div className="w-8 h-8 border-4 border-[#1E8E3E] border-t-transparent rounded-full animate-spin"></div></div>}>
       <LandingPageContent />
     </Suspense>
   );

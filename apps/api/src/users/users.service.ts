@@ -6,6 +6,15 @@ import { UserRole } from '@prisma/client';
 export class UsersService {
   constructor(private prisma: PrismaService) {}
 
+  async findAll(role?: UserRole) {
+    const users = await this.prisma.user.findMany({
+      where: role ? { role } : {},
+      include: { company: true },
+      orderBy: { createdAt: 'desc' },
+    });
+    return users.map(({ passwordHash, ...safe }) => safe);
+  }
+
   async findByEmail(email: string) {
     return this.prisma.user.findUnique({
       where: { email },
@@ -23,7 +32,7 @@ export class UsersService {
     return safe;
   }
 
-  async create(data: { email: string; name: string; passwordHash: string; role?: string }) {
+  async create(data: { email: string; name: string; passwordHash: string; role?: string; phone?: string }) {
     const existing = await this.prisma.user.findUnique({ where: { email: data.email } });
     if (existing) throw new ConflictException('Email already registered');
 
@@ -33,6 +42,7 @@ export class UsersService {
         name: data.name,
         passwordHash: data.passwordHash,
         role: (data.role as UserRole) || 'USER',
+        phone: data.phone,
       },
     });
   }

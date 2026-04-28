@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -52,13 +52,13 @@ export default function AdminLogin() {
         <div className="absolute bottom-[-10%] left-[-5%] w-[400px] h-[400px] rounded-full bg-blue-500 opacity-10 blur-3xl" />
       </div>
 
-      <div className="w-full max-w-md bg-white rounded-3xl p-8 shadow-2xl border border-slate-200">
+      <div className="w-full max-w-md bg-white rounded-3xl p-8 shadow-2xl border border-slate-200 dark:bg-slate-900 dark:border-slate-700">
         <div className="flex items-center justify-center gap-3 mb-6">
           <div className="w-10 h-10 rounded-xl bg-slate-900 flex items-center justify-center">
             <span className="material-symbols-outlined text-emerald-400 text-xl">admin_panel_settings</span>
           </div>
           <div>
-            <h1 className="font-headline font-extrabold text-slate-900 text-xl tracking-tighter">WeConnect Admin</h1>
+            <h1 className="font-headline font-extrabold text-slate-900 text-xl tracking-tighter dark:text-white">WeConnect Admin</h1>
             <p className="text-[9px] uppercase tracking-[0.2em] text-slate-500 font-bold -mt-0.5">Secure Console</p>
           </div>
         </div>
@@ -74,16 +74,16 @@ export default function AdminLogin() {
           <div>
             <label className="text-[10px] uppercase font-black tracking-widest text-slate-500 mb-1 block">Administrator Email</label>
             <input type="email" required value={loginEmail} onChange={e => setLoginEmail(e.target.value)}
-              placeholder="admin@WeConnect.com" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:bg-white transition-all font-medium" />
+              placeholder="admin@WeConnect.com" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:bg-white dark:focus:bg-slate-800 dark:focus:text-white transition-all font-medium dark:bg-slate-950 dark:border-slate-700" />
           </div>
           <div>
             <label className="text-[10px] uppercase font-black tracking-widest text-slate-500 mb-1 block">Security Key</label>
             <div className="relative">
               <input type={showPassword ? "text" : "password"} required value={loginPassword}
                 onChange={e => setLoginPassword(e.target.value)} placeholder="••••••••"
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:bg-white transition-all font-mono pr-12" />
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:bg-white dark:focus:bg-slate-800 dark:focus:text-white transition-all font-mono pr-12 dark:bg-slate-950 dark:border-slate-700" />
               <button type="button" onClick={() => setShowPassword(p => !p)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600">
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700">
                 <span className="material-symbols-outlined text-lg">{showPassword ? "visibility_off" : "visibility"}</span>
               </button>
             </div>
@@ -99,8 +99,8 @@ export default function AdminLogin() {
           </button>
         </form>
 
-        <div className="mt-8 text-center border-t border-slate-100 pt-6">
-          <p className="text-[10px] text-slate-400 mb-3">For presentation purposes only</p>
+        <div className="mt-8 text-center border-t border-slate-100 pt-6 dark:border-slate-800">
+          <p className="text-[10px] text-slate-500 mb-3">For presentation purposes only</p>
           <button type="button" onClick={loadDemoAdmin} className="text-xs font-bold text-emerald-600 hover:underline bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-100 transition-colors">
             Load Demo Credentials
           </button>
@@ -109,3 +109,4 @@ export default function AdminLogin() {
     </main>
   );
 }
+

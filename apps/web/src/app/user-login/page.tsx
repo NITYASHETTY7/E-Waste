@@ -1,9 +1,10 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import { motion, AnimatePresence } from "framer-motion";
+import ForgotPasswordModal from "@/components/ForgotPasswordModal";
 
 type AuthTab = "login" | "register";
 
@@ -17,6 +18,7 @@ function UserLoginPageContent() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showForgot, setShowForgot] = useState(false);
 
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
@@ -65,7 +67,11 @@ function UserLoginPageContent() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 relative overflow-hidden bg-[#F5F7FA]">
+    <>
+      {showForgot && (
+        <ForgotPasswordModal accentColor="#FFC107" onClose={() => setShowForgot(false)} />
+      )}
+      <div className="min-h-screen flex items-center justify-center p-6 relative overflow-hidden bg-[#F5F7FA] dark:bg-slate-950">
       {/* Brand Background Elements */}
       <div className="absolute top-[-10%] right-[-10%] w-[50%] h-[50%] bg-[#FFC107]/5 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[-10%] left-[-10%] w-[50%] h-[50%] bg-[#1E8E3E]/5 rounded-full blur-[120px] pointer-events-none" />
@@ -75,7 +81,7 @@ function UserLoginPageContent() {
         <motion.div 
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          className="mb-6 flex items-center justify-between bg-white border border-slate-200 rounded-2xl p-4 shadow-sm"
+          className="mb-6 flex items-center justify-between bg-white border border-slate-200 rounded-2xl p-4 shadow-sm dark:bg-slate-900 dark:border-slate-700"
         >
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-[#FFC107]/10 flex items-center justify-center">
@@ -91,7 +97,7 @@ function UserLoginPageContent() {
           </button>
         </motion.div>
 
-        <div className="bg-white border border-slate-200 rounded-[2.5rem] p-8 md:p-12 shadow-[0_20px_50px_rgba(0,0,0,0.05)] overflow-hidden relative">
+        <div className="bg-white border border-slate-200 rounded-[2.5rem] p-8 md:p-12 shadow-[0_20px_50px_rgba(0,0,0,0.05)] overflow-hidden relative dark:bg-slate-900 dark:border-slate-700">
           <div className="absolute top-0 right-0 w-32 h-32 bg-[#FFC107]/5 rounded-full blur-3xl pointer-events-none" />
           
           {/* Branding */}
@@ -100,7 +106,7 @@ function UserLoginPageContent() {
           </div>
 
           {/* Tab Switcher */}
-          <div className="flex bg-slate-50 p-1.5 rounded-2xl mb-10 border border-slate-100">
+          <div className="flex bg-slate-50 p-1.5 rounded-2xl mb-10 border border-slate-100 dark:bg-slate-950 dark:border-slate-800">
             {(["login", "register"] as const).map(t => (
               <button 
                 key={t}
@@ -108,7 +114,7 @@ function UserLoginPageContent() {
                 className={`flex-1 py-3.5 text-[10px] font-black uppercase tracking-[0.2em] rounded-xl transition-all ${
                   activeTab === t 
                     ? "bg-[#FFC107] text-[#0f172a] shadow-lg shadow-yellow-700/20" 
-                    : "text-slate-400 hover:text-slate-600"
+                    : "text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-white"
                 }`}
               >
                 {t === "login" ? "Sign In" : "Register"}
@@ -137,29 +143,29 @@ function UserLoginPageContent() {
                 className="space-y-6"
               >
                 <div className="text-center mb-8">
-                  <h2 className="text-2xl font-black text-slate-900 mb-2 tracking-tight">User Portal</h2>
+                  <h2 className="text-2xl font-black text-slate-900 mb-2 tracking-tight dark:text-white">User Portal</h2>
                   <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em]">Individual Generator</p>
                 </div>
 
                 <form onSubmit={handleLogin} className="space-y-5">
                   <div>
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1 mb-2 block">Email Address</label>
+                    <label className="text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] ml-1 mb-2 block">Email Address</label>
                     <input type="email" required value={loginEmail} onChange={e => setLoginEmail(e.target.value)}
                       placeholder="name@example.com" 
-                      className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 placeholder:text-slate-300 focus:border-[#FFC107] focus:bg-white focus:ring-4 focus:ring-[#FFC107]/5 outline-none transition-all font-medium" 
+                      className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:border-[#FFC107] focus:bg-white dark:focus:bg-slate-800 dark:focus:text-white focus:ring-4 focus:ring-[#FFC107]/5 outline-none transition-all font-medium dark:bg-slate-950 dark:text-white dark:border-slate-700" 
                     />
                   </div>
                   <div>
                     <div className="flex justify-between items-center mb-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Password</label>
-                      <button type="button" className="text-[10px] font-black text-[#e6ae06] uppercase tracking-widest hover:underline">Forgot?</button>
+                      <label className="text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] ml-1">Password</label>
+                      <button type="button" onClick={() => setShowForgot(true)} className="text-[10px] font-black text-[#e6ae06] uppercase tracking-widest hover:underline">Forgot?</button>
                     </div>
                     <div className="relative">
                       <input type={showPassword ? "text" : "password"} required value={loginPassword} onChange={e => setLoginPassword(e.target.value)}
                         placeholder="••••••••" 
-                        className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 placeholder:text-slate-300 focus:border-[#FFC107] focus:bg-white focus:ring-4 focus:ring-[#FFC107]/5 outline-none transition-all font-mono" 
+                        className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:border-[#FFC107] focus:bg-white dark:focus:bg-slate-800 dark:focus:text-white focus:ring-4 focus:ring-[#FFC107]/5 outline-none transition-all font-mono dark:bg-slate-950 dark:text-white dark:border-slate-700" 
                       />
-                      <button type="button" onClick={() => setShowPassword(p => !p)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-600 transition-colors">
+                      <button type="button" onClick={() => setShowPassword(p => !p)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 transition-colors">
                         <span className="material-symbols-outlined text-xl">{showPassword ? "visibility_off" : "visibility"}</span>
                       </button>
                     </div>
@@ -178,33 +184,33 @@ function UserLoginPageContent() {
                 className="space-y-6"
               >
                 <div className="text-center mb-8">
-                  <h2 className="text-2xl font-black text-slate-900 mb-2 tracking-tight">Join We Connect</h2>
+                  <h2 className="text-2xl font-black text-slate-900 mb-2 tracking-tight dark:text-white">Join We Connect</h2>
                   <p className="text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em]">Dispose E-Waste Responsibly</p>
                 </div>
 
                 <form onSubmit={handleRegister} className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Full Name</label>
-                      <input type="text" required value={regName} onChange={e => setRegName(e.target.value)} placeholder="John Doe" className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 focus:border-[#FFC107] outline-none transition-all" />
+                      <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1 mb-2 block">Full Name</label>
+                      <input type="text" required value={regName} onChange={e => setRegName(e.target.value)} placeholder="John Doe" className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 focus:border-[#FFC107] outline-none transition-all dark:bg-slate-950 dark:text-white dark:border-slate-700" />
                     </div>
                     <div>
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Phone</label>
-                      <input type="tel" required value={regPhone} onChange={e => setRegPhone(e.target.value)} placeholder="+91..." className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 focus:border-[#FFC107] outline-none transition-all" />
+                      <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1 mb-2 block">Phone</label>
+                      <input type="tel" required value={regPhone} onChange={e => setRegPhone(e.target.value)} placeholder="+91..." className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 focus:border-[#FFC107] outline-none transition-all dark:bg-slate-950 dark:text-white dark:border-slate-700" />
                     </div>
                   </div>
                   <div>
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Email Address</label>
-                    <input type="email" required value={regEmail} onChange={e => setRegEmail(e.target.value)} placeholder="contact@example.com" className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 focus:border-[#FFC107] outline-none transition-all" />
+                    <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1 mb-2 block">Email Address</label>
+                    <input type="email" required value={regEmail} onChange={e => setRegEmail(e.target.value)} placeholder="contact@example.com" className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 focus:border-[#FFC107] outline-none transition-all dark:bg-slate-950 dark:text-white dark:border-slate-700" />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Password</label>
-                      <input type="password" required value={regPassword} onChange={e => setRegPassword(e.target.value)} placeholder="Min. 8" className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 focus:border-[#FFC107] outline-none transition-all font-mono" />
+                      <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1 mb-2 block">Password</label>
+                      <input type="password" required value={regPassword} onChange={e => setRegPassword(e.target.value)} placeholder="Min. 8" className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 focus:border-[#FFC107] outline-none transition-all font-mono dark:bg-slate-950 dark:text-white dark:border-slate-700" />
                     </div>
                     <div>
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Confirm</label>
-                      <input type="password" required value={regConfirm} onChange={e => setRegConfirm(e.target.value)} placeholder="Repeat" className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 focus:border-[#FFC107] outline-none transition-all font-mono" />
+                      <label className="text-[10px] font-black text-slate-600 uppercase tracking-widest ml-1 mb-2 block">Confirm</label>
+                      <input type="password" required value={regConfirm} onChange={e => setRegConfirm(e.target.value)} placeholder="Repeat" className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 focus:border-[#FFC107] outline-none transition-all font-mono dark:bg-slate-950 dark:text-white dark:border-slate-700" />
                     </div>
                   </div>
                   <button type="submit" disabled={loading} className="w-full py-5 bg-[#FFC107] text-[#0f172a] font-black text-[11px] uppercase tracking-[0.3em] rounded-2xl mt-6 hover:bg-[#e6ae06] shadow-xl hover:shadow-[#FFC107]/20 transition-all active:scale-[0.98]">
@@ -216,13 +222,14 @@ function UserLoginPageContent() {
           </AnimatePresence>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 export default function UserLoginPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[#F5F7FA]"><div className="w-8 h-8 border-4 border-[#FFC107] border-t-transparent rounded-full animate-spin"></div></div>}>
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[#F5F7FA] dark:bg-slate-950"><div className="w-8 h-8 border-4 border-[#FFC107] border-t-transparent rounded-full animate-spin"></div></div>}>
       <UserLoginPageContent />
     </Suspense>
   );
 }
+

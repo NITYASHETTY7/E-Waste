@@ -11,7 +11,11 @@ export class PickupsService {
   ) {}
 
   async create(auctionId: string, paymentId?: string) {
-    return this.prisma.pickup.create({ data: { auctionId, paymentId } });
+    return this.prisma.pickup.upsert({
+      where: { auctionId },
+      create: { auctionId, paymentId },
+      update: { ...(paymentId && { paymentId }) },
+    });
   }
 
   async findAll(status?: PickupStatus) {

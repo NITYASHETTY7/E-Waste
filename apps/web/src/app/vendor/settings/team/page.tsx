@@ -78,7 +78,7 @@ export default function VendorTeamSettings() {
                         <div className="flex items-center gap-2">
                           <p className="font-bold text-sm text-[color:var(--color-on-surface)]">{member.name}</p>
                           {member.role === "Owner" && <span className="text-[9px] bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded font-black uppercase">Owner</span>}
-                          {member.status === "pending" && <span className="text-[9px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-black uppercase">Invited</span>}
+                          {member.status === "pending" && <span className="text-[9px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-black uppercase dark:bg-slate-800">Invited</span>}
                         </div>
                         <p className="text-xs text-[color:var(--color-on-surface-variant)]">{member.email}</p>
                       </div>

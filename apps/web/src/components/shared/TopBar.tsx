@@ -29,7 +29,7 @@ const PAGE_TITLES: Record<string, string> = {
 };
 
 export default function TopBar() {
-  const { currentUser, notifications, setIsSidebarOpen, isSidebarCollapsed, setIsSidebarCollapsed, theme, toggleTheme } = useApp();
+  const { currentUser, notifications, setIsSidebarOpen, isSidebarCollapsed, setIsSidebarCollapsed } = useApp();
   const pathname = usePathname();
 
   const title = PAGE_TITLES[pathname] || "We Connect";
@@ -87,18 +87,6 @@ export default function TopBar() {
       </div>
 
       <div className="flex items-center gap-2 md:gap-4">
-        {/* Theme Toggle */}
-        <button 
-          onClick={toggleTheme}
-          className="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 transition-all group"
-          aria-label="Toggle Theme"
-          title={theme === 'light' ? 'Switch to Dark Mode' : 'Switch to Light Mode'}
-        >
-          <span className="material-symbols-outlined text-slate-600 dark:text-slate-300 text-xl group-hover:scale-110 transition-transform">
-            {theme === 'light' ? 'dark_mode' : 'light_mode'}
-          </span>
-        </button>
-
         {/* Quick Add */}
         <button className="hidden sm:flex w-10 h-10 rounded-2xl bg-primary text-white items-center justify-center hover:shadow-lg hover:shadow-primary/30 active:scale-95 transition-all" title="Quick Action">
           <span className="material-symbols-outlined">add</span>

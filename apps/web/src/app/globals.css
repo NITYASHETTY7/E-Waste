@@ -188,7 +188,6 @@
 
 .dark {
   /* Core Colors Overrides for Tailwind 4 */
-  --color-slate-50: #020617; /* Slate 950 - Deepest background */
   --color-background: #020617;
   --color-surface: #0f172a;
   --color-surface-bright: #1e293b;
@@ -200,9 +199,9 @@
   --color-surface-container-lowest: #020617;
   --color-surface-variant: #1e293b;
   
-  --color-on-surface: #f8fafc;
-  --color-on-surface-variant: #94a3b8;
-  --color-on-background: #f8fafc;
+  --color-on-surface: #cbd5e1;
+  --color-on-surface-variant: #64748b;
+  --color-on-background: #cbd5e1;
   --color-outline: #334155;
   --color-outline-variant: #1e293b;
 
@@ -221,9 +220,9 @@
   --background: #020617;
   --surface: #0f172a;
   --surface-2: #141b2d;
-  --text-primary: #f8fafc;
-  --text-secondary: #cbd5e1;
-  --text-muted: #94a3b8;
+  --text-primary: #cbd5e1;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
   --border: #1e293b;
   --border-focus: #1E8E3E;
   

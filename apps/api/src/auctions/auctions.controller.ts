@@ -1,6 +1,6 @@
 import {
   Controller, Get, Post, Patch, Param, Body, Query,
-  UseGuards, Request, UploadedFile, UseInterceptors
+  UseGuards, Request, UploadedFile, UseInterceptors, BadRequestException
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AuctionsService } from './auctions.service';
@@ -20,6 +20,12 @@ export class AuctionsController {
   @Get()
   findAll(@Query('status') status?: AuctionStatus, @Query('clientId') clientId?: string) {
     return this.svc.findAll(status, clientId);
+  }
+
+  // List all bids across auctions (used by frontend fetchAllData)
+  @Get('bids')
+  findAllBids(@Query('auctionId') auctionId?: string) {
+    return this.svc.findAllBids(auctionId);
   }
 
   @Get(':id')
@@ -45,7 +51,9 @@ export class AuctionsController {
     @Request() req: any,
     @UploadedFile() file: Express.Multer.File,
   ) {
-    return this.svc.submitSealedBid(id, req.user.userId, parseFloat(body.amount), file, body.remarks);
+    const amount = parseFloat(body.amount);
+    if (isNaN(amount)) throw new BadRequestException('amount is required and must be a number');
+    return this.svc.submitSealedBid(id, req.user.userId, amount, file, body.remarks);
   }
 
   @Patch(':id/winner')
@@ -61,5 +69,15 @@ export class AuctionsController {
     @Body('type') type: 'FINAL_QUOTE' | 'LETTERHEAD_QUOTATION',
   ) {
     return this.svc.uploadFinalQuote(id, file, type);
+  }
+
+  @Patch(':id/approve-quote')
+  approveQuote(@Param('id') id: string) {
+    return this.svc.approveQuote(id);
+  }
+
+  @Patch(':id/reject-quote')
+  rejectQuote(@Param('id') id: string, @Body('remarks') remarks: string) {
+    return this.svc.rejectQuote(id, remarks);
   }
 }

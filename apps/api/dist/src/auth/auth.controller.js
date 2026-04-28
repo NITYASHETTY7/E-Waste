@@ -15,12 +15,15 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AuthController = void 0;
 const common_1 = require("@nestjs/common");
 const auth_service_1 = require("./auth.service");
+const otp_service_1 = require("./otp.service");
 const auth_dto_1 = require("./auth.dto");
 const jwt_auth_guard_1 = require("./jwt-auth.guard");
 let AuthController = class AuthController {
     authService;
-    constructor(authService) {
+    otpService;
+    constructor(authService, otpService) {
         this.authService = authService;
+        this.otpService = otpService;
     }
     register(dto) {
         return this.authService.register(dto);
@@ -30,6 +33,18 @@ let AuthController = class AuthController {
     }
     profile(req) {
         return this.authService.getProfile(req.user.userId);
+    }
+    async sendOtp(body) {
+        return this.otpService.sendOtp(body.email, body.phone);
+    }
+    async verifyOtp(body) {
+        return await this.otpService.verifyOtp(body.email, body.code, body.type);
+    }
+    async forgotPassword(body) {
+        return this.authService.forgotPassword(body.email);
+    }
+    async resetPassword(body) {
+        return this.authService.resetPassword(body.email, body.otp, body.newPassword);
     }
 };
 exports.AuthController = AuthController;
@@ -55,8 +70,37 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], AuthController.prototype, "profile", null);
+__decorate([
+    (0, common_1.Post)('send-otp'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "sendOtp", null);
+__decorate([
+    (0, common_1.Post)('verify-otp'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "verifyOtp", null);
+__decorate([
+    (0, common_1.Post)('forgot-password'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "forgotPassword", null);
+__decorate([
+    (0, common_1.Post)('reset-password'),
+    __param(0, (0, common_1.Body)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "resetPassword", null);
 exports.AuthController = AuthController = __decorate([
     (0, common_1.Controller)('auth'),
-    __metadata("design:paramtypes", [auth_service_1.AuthService])
+    __metadata("design:paramtypes", [auth_service_1.AuthService,
+        otp_service_1.OtpService])
 ], AuthController);
 //# sourceMappingURL=auth.controller.js.map

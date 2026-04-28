@@ -20,8 +20,8 @@ export declare class AuditsController {
     findAll(vendorId?: string, requirementId?: string): Promise<({
         requirement: {
             client: {
-                name: string;
                 id: string;
+                name: string;
                 createdAt: Date;
                 updatedAt: Date;
                 type: import("@prisma/client").$Enums.CompanyType;
@@ -50,8 +50,8 @@ export declare class AuditsController {
             clientId: string;
         };
         vendor: {
-            name: string;
             id: string;
+            name: string;
             createdAt: Date;
             updatedAt: Date;
             type: import("@prisma/client").$Enums.CompanyType;
@@ -90,8 +90,8 @@ export declare class AuditsController {
     findOne(id: string): Promise<{
         requirement: {
             client: {
-                name: string;
                 id: string;
+                name: string;
                 createdAt: Date;
                 updatedAt: Date;
                 type: import("@prisma/client").$Enums.CompanyType;
@@ -120,8 +120,8 @@ export declare class AuditsController {
             clientId: string;
         };
         vendor: {
-            name: string;
             id: string;
+            name: string;
             createdAt: Date;
             updatedAt: Date;
             type: import("@prisma/client").$Enums.CompanyType;

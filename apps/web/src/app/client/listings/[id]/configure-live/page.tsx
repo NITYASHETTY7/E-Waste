@@ -91,7 +91,7 @@ export default function ConfigureLiveAuction() {
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-20 animate-fade-in">
       <div className="flex items-center gap-4">
-        <Link href="/client/listings" className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-all">
+        <Link href="/client/listings" className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center hover:bg-slate-50 transition-all dark:bg-slate-900 dark:border-slate-700">
           <span className="material-symbols-outlined text-sm">arrow_back</span>
         </Link>
         <div>
@@ -179,7 +179,7 @@ export default function ConfigureLiveAuction() {
 
         <div className="space-y-6">
           {listing.invitedVendorIds && listing.invitedVendorIds.length > 0 && (
-            <div className="card p-6 bg-white border border-amber-100">
+            <div className="card p-6 bg-white border border-amber-100 dark:bg-slate-900">
               <h4 className="text-xs font-black uppercase tracking-widest text-amber-600 mb-4 flex items-center gap-2">
                 <span className="material-symbols-outlined text-sm">mail</span>
                 Vendor Invitation Responses
@@ -193,9 +193,9 @@ export default function ConfigureLiveAuction() {
                   <p className="text-[9px] font-black uppercase tracking-widest text-red-600">Declined</p>
                   <p className="text-xl font-headline font-bold text-red-700">{declinedVendors.length}</p>
                 </div>
-                <div className="bg-slate-50 p-2 rounded-xl text-center border border-slate-100">
+                <div className="bg-slate-50 p-2 rounded-xl text-center border border-slate-100 dark:bg-slate-950 dark:border-slate-800">
                   <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Pending</p>
-                  <p className="text-xl font-headline font-bold text-slate-600">{pendingVendors.length}</p>
+                  <p className="text-xl font-headline font-bold text-slate-600 dark:text-slate-400">{pendingVendors.length}</p>
                 </div>
               </div>
               <div className="space-y-2">
@@ -203,10 +203,10 @@ export default function ConfigureLiveAuction() {
                   const vendor = users.find(u => u.id === vid);
                   const response = listing.vendorResponses?.find(r => r.vendorId === vid);
                   return (
-                    <div key={vid} className="flex items-center justify-between p-2 bg-slate-50 rounded-lg border border-slate-100">
+                    <div key={vid} className="flex items-center justify-between p-2 bg-slate-50 rounded-lg border border-slate-100 dark:bg-slate-950 dark:border-slate-800">
                       <div className="flex items-center gap-2">
                         <div className={`w-2 h-2 rounded-full ${response?.status === 'interested' ? 'bg-emerald-500' : response?.status === 'declined' ? 'bg-red-500' : 'bg-slate-300'}`} />
-                        <p className="text-xs font-bold text-slate-700">{vendor?.name || vid}</p>
+                        <p className="text-xs font-bold text-slate-700 dark:text-slate-300">{vendor?.name || vid}</p>
                       </div>
                       <span className={`text-[9px] font-black px-2 py-0.5 rounded uppercase tracking-widest ${
                         response?.status === 'interested' ? 'bg-emerald-100 text-emerald-700' :
@@ -274,10 +274,10 @@ export default function ConfigureLiveAuction() {
              </div>
           </div>
 
-          <div className="card p-6 border-dashed border-2 border-slate-200 bg-slate-50">
+          <div className="card p-6 border-dashed border-2 border-slate-200 bg-slate-50 dark:bg-slate-950 dark:border-slate-700">
              <h4 className="text-xs font-black uppercase tracking-widest text-slate-500 mb-4">Auction Preview</h4>
              <div className="space-y-3">
-                <p className="text-sm font-bold text-slate-800">{listing.title}</p>
+                <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{listing.title}</p>
                 <div className="flex items-center gap-2 text-xs text-slate-500">
                    <span className="material-symbols-outlined text-sm">scale</span> {listing.weight} KG
                 </div>

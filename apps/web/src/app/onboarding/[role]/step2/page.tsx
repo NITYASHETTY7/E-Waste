@@ -82,20 +82,6 @@ export default function OnboardingStep2() {
     setUploads(prev => { const n = { ...prev }; delete n[key]; return n; });
   };
 
-  const fillDemoDocs = () => {
-    const demoUploads: Record<string, UploadedDoc> = {};
-    slots.forEach(slot => {
-      demoUploads[slot.key] = {
-        name: slot.key,
-        fileName: `${slot.key.replace(/_/g, '-')}-demo.pdf`,
-        size: `${(Math.random() * 2 + 0.5).toFixed(1)} MB`,
-        uploadedAt: new Date().toISOString(),
-        status: "pending",
-      };
-    });
-    setUploads(demoUploads);
-    setErrors([]);
-  };
 
   const handleSubmit = () => {
     const missing = slots.filter(s => s.required && !uploads[s.key]).map(s => s.key);
@@ -124,13 +110,7 @@ export default function OnboardingStep2() {
         </p>
       </div>
 
-      <div className="flex justify-end mb-4">
-        <button type="button" onClick={fillDemoDocs}
-          className="flex items-center gap-2 px-4 py-2 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl text-xs font-bold hover:bg-amber-100 transition-all">
-          <span className="material-symbols-outlined text-sm">auto_awesome</span>
-          Auto-fill Demo Docs
-        </button>
-      </div>
+
       <div className="space-y-4 mb-8">
         {slots.map(slot => {
           const uploaded = uploads[slot.key];
@@ -143,7 +123,7 @@ export default function OnboardingStep2() {
                 uploaded ? "border-[color:var(--color-primary)] bg-[color:var(--color-primary-fixed)]/5" :
                 hasError ? "border-red-400 bg-red-50" :
                 isDraggingOver ? "border-[color:var(--color-tertiary)] bg-[color:var(--color-surface-container)]" :
-                "border-[color:var(--color-outline-variant)] bg-white hover:border-[color:var(--color-primary)]/40"
+                "border-[color:var(--color-outline-variant)] bg-slate-50 hover:border-[color:var(--color-primary)]/40"
               }`}
               onDragOver={e => { e.preventDefault(); setDragging(slot.key); }}
               onDragLeave={() => setDragging(null)}

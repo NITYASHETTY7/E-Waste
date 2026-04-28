@@ -50,8 +50,8 @@ export default function ClientBids() {
     if (status === "live") {
       return (
         <div className="animate-fade-in -mt-8 -mx-4 md:-mx-8">
-           <div className="px-4 py-3 bg-white border-b border-slate-200">
-             <button onClick={() => setSelectedAuctionId(null)} className="text-[#DC3545] bg-[#F5F7FA] hover:bg-red-50 transition px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest border border-slate-200 flex items-center gap-2 w-fit">
+           <div className="px-4 py-3 bg-white border-b border-slate-200 dark:bg-slate-900 dark:border-slate-700">
+             <button onClick={() => setSelectedAuctionId(null)} className="text-[#DC3545] bg-[#F5F7FA] hover:bg-red-50 transition px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-widest border border-slate-200 flex items-center gap-2 w-fit dark:bg-slate-950 dark:border-slate-700">
                 <span className="material-symbols-outlined text-sm">arrow_back</span> Back to Auctions
              </button>
            </div>
@@ -82,8 +82,8 @@ export default function ClientBids() {
                   <span className="text-[10px] font-black uppercase tracking-widest bg-white/20 px-2 py-1 rounded">Compliance Required</span>
                </div>
                
-               <div className="p-6 bg-white">
-                  <p className="text-sm text-slate-600 mb-6">As the auction host, you must now upload the legal settlement documents for <strong>{topBid.vendorName}</strong>. These will be securely visible only to the winner.</p>
+               <div className="p-6 bg-white dark:bg-slate-900">
+                  <p className="text-sm text-slate-600 mb-6 dark:text-slate-400">As the auction host, you must now upload the legal settlement documents for <strong>{topBid.vendorName}</strong>. These will be securely visible only to the winner.</p>
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                      <div>
@@ -104,8 +104,8 @@ export default function ClientBids() {
                            ].map(docType => {
                               const existing = listing.closingDocuments?.find(d => d.name === docType);
                               return (
-                                 <div key={docType} className="flex items-center justify-between p-3 border border-slate-100 rounded-xl hover:bg-slate-50 transition-colors">
-                                    <span className="text-xs font-bold text-slate-700">{docType}</span>
+                                 <div key={docType} className="flex items-center justify-between p-3 border border-slate-100 rounded-xl hover:bg-slate-50 transition-colors dark:border-slate-800">
+                                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{docType}</span>
                                     {existing ? (
                                        <div className="flex items-center gap-2">
                                           <span className="text-[10px] text-emerald-600 font-bold uppercase tracking-widest">Uploaded</span>
@@ -130,15 +130,15 @@ export default function ClientBids() {
                         </div>
                      </div>
                      
-                     <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100">
+                     <div className="bg-slate-50 rounded-2xl p-6 border border-slate-100 dark:bg-slate-950 dark:border-slate-800">
                         <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">Documents Shared with Winner</h4>
                         {listing.closingDocuments && listing.closingDocuments.length > 0 ? (
                            <div className="space-y-2">
                               {listing.closingDocuments.map((doc, idx) => (
-                                 <div key={idx} className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm border border-slate-100">
+                                 <div key={idx} className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm border border-slate-100 dark:bg-slate-900 dark:border-slate-800">
                                     <span className="material-symbols-outlined text-red-500 text-lg">picture_as_pdf</span>
                                     <div className="flex-1 min-w-0">
-                                       <p className="text-xs font-bold text-slate-800 truncate">{doc.name}</p>
+                                       <p className="text-xs font-bold text-slate-800 truncate dark:text-slate-200">{doc.name}</p>
                                        <p className="text-[9px] text-slate-400">{formatDate(doc.timestamp)} {formatTime(doc.timestamp)}</p>
                                     </div>
                                  </div>
@@ -170,7 +170,7 @@ export default function ClientBids() {
              </div>
            </div>
            
-           <div className="p-6 grid grid-cols-2 md:grid-cols-4 gap-6 bg-white">
+           <div className="p-6 grid grid-cols-2 md:grid-cols-4 gap-6 bg-white dark:bg-slate-900">
               <div>
                  <p className="text-[10px] uppercase tracking-widest text-[color:var(--color-on-surface-variant)] font-bold mb-1">Base Price</p>
                  <p className="font-headline font-bold text-lg">₹{listing.basePrice?.toLocaleString() || "N/A"}</p>

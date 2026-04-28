@@ -145,9 +145,9 @@ export default function ClientPost() {
                 className={`p-4 rounded-xl border-2 text-center transition-all ${
                   selectedCategory === cat.label
                     ? "border-[color:var(--color-primary)] bg-[color:var(--color-secondary-container)]"
-                    : "border-[color:var(--color-outline-variant)] bg-white hover:border-[color:var(--color-primary)]/30"
+                    : "border-[color:var(--color-outline-variant)] bg-[color:var(--color-surface)] hover:border-[color:var(--color-primary)]/30 hover:bg-[color:var(--color-surface-variant)]"
                 }`}>
-                <span className={`material-symbols-outlined text-3xl block mb-2 ${selectedCategory === cat.label ? "text-[color:var(--color-primary)]" : "text-[color:var(--color-on-surface-variant)]"}`}
+                <span className={`material-symbols-outlined text-3xl block mb-2 ${selectedCategory === cat.label ? "text-[color:var(--color-primary)]" : "text-slate-500"}`}
                   style={selectedCategory === cat.label ? { fontVariationSettings: "'FILL' 1" } : undefined}>
                   {cat.icon}
                 </span>
@@ -196,7 +196,7 @@ export default function ClientPost() {
                      className={`p-3 rounded-xl border-2 text-left transition-all ${
                        form.urgency === val
                          ? val === "high" ? "border-red-400 bg-red-50" : val === "medium" ? "border-amber-400 bg-amber-50" : "border-[color:var(--color-primary)] bg-[color:var(--color-secondary-container)]"
-                         : "border-[color:var(--color-outline-variant)] bg-white"
+                         : "border-[color:var(--color-outline-variant)] bg-[color:var(--color-surface)] hover:bg-[color:var(--color-surface-variant)]"
                      }`}>
                      <p className="text-[10px] font-black uppercase tracking-widest">{label}</p>
                      <p className="text-[9px] text-[color:var(--color-on-surface-variant)] mt-0.5">{desc}</p>
@@ -243,9 +243,9 @@ export default function ClientPost() {
                 {errors.sealedBidEndDate && <p className="text-red-500 text-xs mt-1">{errors.sealedBidEndDate}</p>}
               </div>
             </div>
-            <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl flex items-start gap-3">
-              <span className="material-symbols-outlined text-blue-500 text-base mt-0.5">info</span>
-              <p className="text-xs text-blue-700 leading-relaxed">
+            <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl flex items-start gap-3">
+              <span className="material-symbols-outlined text-blue-400 text-base mt-0.5">info</span>
+              <p className="text-xs text-blue-200 leading-relaxed">
                 <strong>Base price, tick size, and open bidding schedule</strong> are configured after invitation responses are received. You will set these when you click <em>"Schedule Open Bidding"</em> on your listings page.
               </p>
             </div>
@@ -320,18 +320,18 @@ export default function ClientPost() {
                {REQUIRED_DOCS.map(docReq => {
                  const uploadedDoc = documents.find(d => d.type === docReq.id);
                  return (
-                   <div key={docReq.id} className={`flex flex-col md:flex-row md:items-center justify-between gap-3 p-3 border rounded-xl transition-colors ${uploadedDoc ? "bg-emerald-50/30 border-emerald-200" : "bg-slate-50 border-slate-100"}`}>
+                   <div key={docReq.id} className={`flex flex-col md:flex-row md:items-center justify-between gap-3 p-3 border rounded-xl transition-colors ${uploadedDoc ? "bg-emerald-50/10 border-emerald-500/30" : "bg-[color:var(--color-surface)] border-[color:var(--color-outline-variant)]"}`}>
                       <div>
                         <p className="text-sm font-bold text-[color:var(--color-on-surface)] flex items-center gap-2">
                            {docReq.label}
                            {docReq.required 
                             ? <span className="text-[9px] text-red-500 bg-red-50 px-1.5 py-0.5 rounded font-black uppercase shadow-sm">Req</span> 
-                            : <span className="text-[9px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded font-black uppercase tracking-widest">{docReq.optionalText}</span>}
+                            : <span className="text-[9px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded font-black uppercase tracking-widest dark:bg-slate-800">{docReq.optionalText}</span>}
                         </p>
                       </div>
                       <div className="shrink-0">
                          {uploadedDoc ? (
-                            <div className="flex items-center gap-2 bg-white text-emerald-700 px-3 py-1.5 rounded-lg border border-emerald-200 shadow-sm">
+                            <div className="flex items-center gap-2 bg-white text-emerald-700 px-3 py-1.5 rounded-lg border border-emerald-200 shadow-sm dark:bg-slate-900">
                                <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
                                <span className="text-xs font-bold truncate max-w-[140px] md:max-w-[180px]">{uploadedDoc.name}</span>
                                <button type="button" onClick={() => setDocuments(documents.filter(d => d.type !== docReq.id))} className="ml-2 hover:text-red-500 transition-colors"><span className="material-symbols-outlined text-sm">close</span></button>
@@ -380,7 +380,7 @@ export default function ClientPost() {
              
              <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2">
                 {users.filter(u => u.role === 'vendor' && u.status === 'active').map(vendor => (
-                  <label key={vendor.id} className={`flex items-center gap-4 p-4 rounded-xl border-2 transition-all cursor-pointer ${selectedVendors.includes(vendor.id) ? "border-[color:var(--color-primary)] bg-[color:var(--color-secondary-container)]" : "border-[color:var(--color-outline-variant)] bg-white hover:border-[color:var(--color-primary)]/30"}`}>
+                  <label key={vendor.id} className={`flex items-center gap-4 p-4 rounded-xl border-2 transition-all cursor-pointer ${selectedVendors.includes(vendor.id) ? "border-[color:var(--color-primary)] bg-[color:var(--color-secondary-container)]" : "border-[color:var(--color-outline-variant)] bg-[color:var(--color-surface)] hover:border-[color:var(--color-primary)]/30 hover:bg-[color:var(--color-surface-variant)]"}`}>
                     <input 
                       type="checkbox" 
                       className="w-5 h-5 accent-[color:var(--color-primary)]"

@@ -46,6 +46,7 @@ export interface User {
   password?: string;
   phone?: string;
   avatar?: string;
+  companyId?: string;
   status: 'active' | 'pending' | 'rejected' | 'disabled' | 'on-hold';
   statusReason?: string;
   onboardingStep: number; // 1-4, or 5 = complete

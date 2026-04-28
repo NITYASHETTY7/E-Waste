@@ -108,7 +108,7 @@ export default function VendorMarketplace() {
           return (
             <Link key={listing.id} href={`/vendor/marketplace/${listing.id}`} className="card p-0 flex flex-col hover:shadow-lg transition-all group overflow-hidden border border-transparent hover:border-[color:var(--color-primary)]/30">
                {listing.images && listing.images.length > 0 && (
-                 <div className="w-full h-40 bg-slate-100 relative shrink-0">
+                 <div className="w-full h-40 bg-slate-100 relative shrink-0 dark:bg-slate-800">
                    <img src={listing.images[0]} alt={listing.title} className="w-full h-full object-cover" />
                  </div>
                )}
@@ -141,7 +141,7 @@ export default function VendorMarketplace() {
                    </div>
                  </div>
 
-                 <div className="flex items-center justify-between bg-slate-50 border border-slate-100 rounded-xl mb-4 mt-auto p-3">
+                 <div className="flex items-center justify-between bg-slate-50 border border-slate-100 rounded-xl mb-4 mt-auto p-3 dark:bg-slate-950 dark:border-slate-800">
                    <div>
                      <p className="text-[10px] uppercase tracking-widest font-bold text-[color:var(--color-on-surface-variant)]">Current High</p>
                      <p className="font-headline font-bold text-[color:var(--color-on-surface)] md:text-lg">
@@ -155,7 +155,7 @@ export default function VendorMarketplace() {
                  </div>
 
                  {tab === "past" ? (
-                    <div className="flex items-center justify-center gap-2 py-3 bg-slate-100 rounded-xl">
+                    <div className="flex items-center justify-center gap-2 py-3 bg-slate-100 rounded-xl dark:bg-slate-800">
                       <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">Auction Ended</span>
                     </div>
                  ) : alreadyBid ? (

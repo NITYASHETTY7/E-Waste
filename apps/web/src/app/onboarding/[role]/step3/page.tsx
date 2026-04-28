@@ -53,20 +53,6 @@ export default function OnboardingStep3() {
     setIfscLoading(false);
   };
 
-  const fillDemo = () => {
-    const isConsumer = effectiveRole === "consumer";
-    setForm({
-      accountHolderName: isConsumer ? "Rahul Sharma" : "GreenCycle Pvt Ltd",
-      bankName: "HDFC Bank",
-      accountNumber: "50100123456789",
-      ifscCode: "HDFC0001234",
-      accountType: isConsumer ? "savings" : "current",
-    });
-    setConfirmAccount("50100123456789");
-    setBranchName("HDFC Bank - Koramangala Branch");
-    setChequeFile(isConsumer ? "cancelled-cheque-rahul.pdf" : null);
-    setErrors({});
-  };
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -99,13 +85,7 @@ export default function OnboardingStep3() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="flex justify-end">
-          <button type="button" onClick={fillDemo}
-            className="flex items-center gap-2 px-4 py-2 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl text-xs font-bold hover:bg-amber-100 transition-all">
-            <span className="material-symbols-outlined text-sm">auto_awesome</span>
-            Fill Demo Data
-          </button>
-        </div>
+
         <div className="card p-6 space-y-5">
           <div>
             <label className="label">Account Holder Name *</label>
@@ -133,8 +113,8 @@ export default function OnboardingStep3() {
                     onClick={() => set("accountType", type as "current" | "savings")}
                     className={`py-2.5 rounded-lg text-xs font-black uppercase tracking-wider border-2 transition-all ${
                       form.accountType === type
-                        ? "bg-[color:var(--color-primary)] text-white border-[color:var(--color-primary)]"
-                        : "bg-white text-[color:var(--color-on-surface-variant)] border-[color:var(--color-outline-variant)]"
+                        ? "bg-[color:var(--color-primary)] text-[color:var(--color-on-primary)] border-[color:var(--color-primary)]"
+                        : "bg-[color:var(--color-surface)] text-[color:var(--color-on-surface-variant)] border-[color:var(--color-outline-variant)] hover:bg-[color:var(--color-surface-variant)]"
                     }`}
                   >
                     {type === "current" ? "Current" : "Savings"}
@@ -223,9 +203,9 @@ export default function OnboardingStep3() {
           {errors.cheque && <p className="text-red-500 text-xs mt-2 font-bold">{errors.cheque}</p>}
         </div>
 
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex gap-3">
-          <span className="material-symbols-outlined text-amber-600 shrink-0 mt-0.5">info</span>
-          <p className="text-xs text-amber-800">
+        <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-4 flex gap-3">
+          <span className="material-symbols-outlined text-amber-500 shrink-0 mt-0.5">info</span>
+          <p className="text-xs text-amber-200">
             <strong>Important:</strong> Ensure account details match your company name exactly. Mismatched details may delay payment settlements by 5–7 business days.
           </p>
         </div>

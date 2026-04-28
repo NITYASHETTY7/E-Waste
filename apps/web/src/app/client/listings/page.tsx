@@ -109,7 +109,7 @@ export default function ClientListings() {
             return (
               <div key={listing.id} className="card p-0 overflow-hidden hover:shadow-lg transition-all flex flex-col md:flex-row">
                 {listing.images && listing.images.length > 0 && (
-                  <div className="w-full md:w-72 h-52 md:h-auto bg-slate-100 relative shrink-0">
+                  <div className="w-full md:w-72 h-52 md:h-auto bg-slate-100 relative shrink-0 dark:bg-slate-800">
                     <img src={listing.images[0]} alt={listing.title} className="w-full h-full object-cover" />
                     <div className="absolute top-3 left-3 flex gap-2">
                       <span className={`pill shadow-lg backdrop-blur-md ${
@@ -142,11 +142,11 @@ export default function ClientListings() {
                       </div>
                     </div>
 
-                    <div className="text-right bg-slate-50 border border-slate-100 px-4 py-3 rounded-xl min-w-[150px]">
+                    <div className="text-right bg-slate-50 border border-slate-100 px-4 py-3 rounded-xl min-w-[150px] dark:bg-slate-950 dark:border-slate-800">
                       <p className="text-[10px] uppercase tracking-widest text-slate-500 font-bold mb-0.5">
                         {displayStatus === "invites" ? "Base Price" : displayStatus === "sealed" ? "Est. Base Price" : "Current Price"}
                       </p>
-                      <p className="font-headline font-bold text-slate-900 text-xl">₹{currentPrice.toLocaleString()}</p>
+                      <p className="font-headline font-bold text-slate-900 text-xl dark:text-white">₹{currentPrice.toLocaleString()}</p>
                       {displayStatus === "live" && (
                         <p className="text-[9px] text-[color:var(--color-primary)] font-black uppercase tracking-tighter mt-1">+{listing.bidIncrement?.toLocaleString()} Tick Size</p>
                       )}
@@ -238,19 +238,19 @@ export default function ClientListings() {
 
         return (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in" onClick={() => setSelectedListingId(null)}>
-            <div className="bg-white rounded-2xl p-6 md:p-8 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="bg-white rounded-2xl p-6 md:p-8 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl dark:bg-slate-900" onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-6 pb-4 border-b border-[color:var(--color-outline-variant)]/20">
                 <h3 className="text-2xl font-headline font-extrabold text-[color:var(--color-on-surface)] flex items-center gap-2">
                   <span className="material-symbols-outlined text-[color:var(--color-primary)]">inventory_2</span>
                   {isEditing ? "Edit Listing" : "Inventory Details"}
                 </h3>
-                <button onClick={() => setSelectedListingId(null)} className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center hover:bg-slate-200 transition-colors">
+                <button onClick={() => setSelectedListingId(null)} className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center hover:bg-slate-200 transition-colors dark:bg-slate-800">
                   <span className="material-symbols-outlined text-xl">close</span>
                 </button>
               </div>
 
               <div className="space-y-6">
-                <div className="card bg-slate-50 border-none p-6">
+                <div className="card bg-slate-50 border-none p-6 dark:bg-slate-950">
                   <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-4">Material Characteristics</h4>
                   <div className="space-y-4">
                     {isEditing ? (
@@ -274,21 +274,21 @@ export default function ClientListings() {
                       <>
                         <div>
                           <p className="text-[10px] uppercase font-bold text-slate-400 mb-1">Declared Title</p>
-                          <p className="font-bold text-slate-900 text-lg">{listing.title}</p>
+                          <p className="font-bold text-slate-900 text-lg dark:text-white">{listing.title}</p>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <div>
                             <p className="text-[10px] uppercase font-bold text-slate-400 mb-1">Net Weight</p>
-                            <p className="font-bold text-slate-900">{listing.weight} KG</p>
+                            <p className="font-bold text-slate-900 dark:text-white">{listing.weight} KG</p>
                           </div>
                           <div>
                             <p className="text-[10px] uppercase font-bold text-slate-400 mb-1">Category Segment</p>
-                            <p className="font-bold text-slate-900">{listing.category}</p>
+                            <p className="font-bold text-slate-900 dark:text-white">{listing.category}</p>
                           </div>
                         </div>
                         <div>
                           <p className="text-[10px] uppercase font-bold text-slate-400 mb-1">Lot Description</p>
-                          <p className="text-sm text-slate-600 leading-relaxed">{listing.description}</p>
+                          <p className="text-sm text-slate-600 leading-relaxed dark:text-slate-400">{listing.description}</p>
                         </div>
                       </>
                     )}
@@ -303,10 +303,10 @@ export default function ClientListings() {
                         const vendor = users.find(u => u.id === vid);
                         const response = listing.vendorResponses?.find(r => r.vendorId === vid);
                         return (
-                          <div key={vid} className="flex items-center justify-between p-3 bg-white rounded-xl border border-amber-100">
+                          <div key={vid} className="flex items-center justify-between p-3 bg-white rounded-xl border border-amber-100 dark:bg-slate-900">
                             <div className="flex items-center gap-3">
                               <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center font-black text-amber-800 text-sm">{(vendor?.name || "?")[0]}</div>
-                              <p className="font-bold text-sm text-slate-800">{vendor?.name || vid}</p>
+                              <p className="font-bold text-sm text-slate-800 dark:text-slate-200">{vendor?.name || vid}</p>
                             </div>
                             <span className={`pill text-[10px] ${
                               response?.status === 'interested' ? 'pill-success' :
@@ -321,12 +321,12 @@ export default function ClientListings() {
                   </div>
                 )}
 
-                <div className="card bg-slate-50 border-none p-6">
+                <div className="card bg-slate-50 border-none p-6 dark:bg-slate-950">
                   <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-4">Financial State</h4>
                   <div className="grid grid-cols-2 gap-6">
                     <div>
                       <p className="text-[10px] uppercase font-bold text-slate-400 mb-1">Base Price</p>
-                      <p className="text-2xl font-headline font-bold text-slate-900">₹{listing.basePrice?.toLocaleString() || "TBD"}</p>
+                      <p className="text-2xl font-headline font-bold text-slate-900 dark:text-white">₹{listing.basePrice?.toLocaleString() || "TBD"}</p>
                     </div>
                     <div>
                       <p className="text-[10px] uppercase font-bold text-slate-400 mb-1">Active Tick Size</p>
@@ -340,9 +340,9 @@ export default function ClientListings() {
                   {listing.documents && listing.documents.length > 0 ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {listing.documents.map((doc, idx) => (
-                        <div key={idx} className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded-xl">
+                        <div key={idx} className="flex items-center gap-3 p-3 bg-white border border-slate-200 rounded-xl dark:bg-slate-900 dark:border-slate-700">
                           <span className="material-symbols-outlined text-red-500">description</span>
-                          <span className="text-xs font-bold text-slate-700 truncate flex-1">{doc.name}</span>
+                          <span className="text-xs font-bold text-slate-700 truncate flex-1 dark:text-slate-300">{doc.name}</span>
                           <a href={doc.url} download className="material-symbols-outlined text-slate-400 hover:text-[color:var(--color-primary)] transition-colors">download</a>
                         </div>
                       ))}
@@ -352,7 +352,7 @@ export default function ClientListings() {
                   )}
                 </div>
 
-                <div className="flex gap-3 pt-6 border-t border-slate-100">
+                <div className="flex gap-3 pt-6 border-t border-slate-100 dark:border-slate-800">
                   {isEditing ? (
                     <>
                       <button onClick={() => setIsEditing(false)} className="btn-outline flex-1 py-3 uppercase text-[11px] font-black">Cancel</button>

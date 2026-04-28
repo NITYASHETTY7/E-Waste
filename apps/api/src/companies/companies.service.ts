@@ -19,8 +19,17 @@ export class CompaniesService {
     city?: string;
     state?: string;
     pincode?: string;
-  }) {
-    return this.prisma.company.create({ data });
+  }, userId?: string) {
+    const company = await this.prisma.company.create({ data });
+    
+    if (userId) {
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: { companyId: company.id }
+      });
+    }
+    
+    return company;
   }
 
   async findAll(type?: CompanyType, status?: CompanyStatus) {
@@ -61,7 +70,9 @@ export class CompaniesService {
   }
 
   async update(id: string, data: any) {
-    return this.prisma.company.update({ where: { id }, data });
+    // Strip relations and read-only fields that Prisma rejects
+    const { id: _id, users, kycDocuments, auctions, wonAuctions, auditInvitations, requirements, createdAt, updatedAt, ...safeData } = data;
+    return this.prisma.company.update({ where: { id }, data: safeData });
   }
 
   async uploadKycDocument(

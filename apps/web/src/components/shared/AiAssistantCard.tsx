@@ -25,7 +25,7 @@ export function AiAssistantCard() {
           Get insights and automate your daily tasks with our new smart assistant.
         </p>
         
-        <button className="w-full h-9 bg-white text-indigo-600 rounded-xl text-xs font-black flex items-center justify-center gap-2 hover:bg-slate-50 active:scale-95 transition-all shadow-lg">
+        <button className="w-full h-9 bg-white text-indigo-600 rounded-xl text-xs font-black flex items-center justify-center gap-2 hover:bg-slate-50 active:scale-95 transition-all shadow-lg dark:bg-slate-900">
           Ask AI Assistant
           <span className="material-symbols-outlined text-sm">arrow_forward</span>
         </button>

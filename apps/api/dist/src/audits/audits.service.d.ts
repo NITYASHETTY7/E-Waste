@@ -1,9 +1,11 @@
 import { PrismaService } from '../prisma/prisma.service';
 import { S3Service } from '../s3/s3.service';
+import { NotificationService } from '../notifications/notification.service';
 export declare class AuditsService {
     private prisma;
     private s3;
-    constructor(prisma: PrismaService, s3: S3Service);
+    private notifications;
+    constructor(prisma: PrismaService, s3: S3Service, notifications: NotificationService);
     inviteVendors(requirementId: string, vendorIds: string[]): Promise<{
         id: string;
         createdAt: Date;
@@ -19,8 +21,8 @@ export declare class AuditsService {
     findAllInvitations(vendorId?: string, requirementId?: string): Promise<({
         requirement: {
             client: {
-                name: string;
                 id: string;
+                name: string;
                 createdAt: Date;
                 updatedAt: Date;
                 type: import("@prisma/client").$Enums.CompanyType;
@@ -49,8 +51,8 @@ export declare class AuditsService {
             clientId: string;
         };
         vendor: {
-            name: string;
             id: string;
+            name: string;
             createdAt: Date;
             updatedAt: Date;
             type: import("@prisma/client").$Enums.CompanyType;
@@ -89,8 +91,8 @@ export declare class AuditsService {
     findOneInvitation(id: string): Promise<{
         requirement: {
             client: {
-                name: string;
                 id: string;
+                name: string;
                 createdAt: Date;
                 updatedAt: Date;
                 type: import("@prisma/client").$Enums.CompanyType;
@@ -119,8 +121,8 @@ export declare class AuditsService {
             clientId: string;
         };
         vendor: {
-            name: string;
             id: string;
+            name: string;
             createdAt: Date;
             updatedAt: Date;
             type: import("@prisma/client").$Enums.CompanyType;

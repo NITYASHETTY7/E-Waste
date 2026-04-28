@@ -196,7 +196,7 @@ export default function PendingPage() {
           </div>
           <div className="relative z-10">
             <a href="mailto:support@WeConnect.com"
-              className="bg-white text-[#0f172a] hover:bg-slate-100 transition-all px-8 py-3.5 rounded-xl text-sm font-black uppercase tracking-widest flex items-center gap-3 shadow-lg hover:-translate-y-1">
+              className="bg-white text-[#0f172a] hover:bg-slate-100 transition-all px-8 py-3.5 rounded-xl text-sm font-black uppercase tracking-widest flex items-center gap-3 shadow-lg hover:-translate-y-1 dark:bg-slate-900">
               <span className="material-symbols-outlined text-[20px]">mail</span>
               Contact Support
             </a>

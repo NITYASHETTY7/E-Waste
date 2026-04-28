@@ -5,23 +5,26 @@ import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useApp } from "@/context/AppContext";
 import { UserRole } from "@/types";
+import ForgotPasswordModal from "@/components/ForgotPasswordModal";
 
 type AuthTab = "login" | "register";
 
 export default function GetStartedPage() {
   const router = useRouter();
-  const { login } = useApp();
+  const { login, register, startOnboarding } = useApp();
   
   // States
   const [mounted, setMounted] = useState(false);
   const [tab, setTab] = useState<AuthTab>("login");
   const [role, setRole] = useState<"client" | "vendor">("client");
   const [clientType, setClientType] = useState<"corporate" | "individual">("corporate");
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showForgot, setShowForgot] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -35,26 +38,33 @@ export default function GetStartedPage() {
     setError("");
     
     try {
-      // Mimic API call
-      await new Promise(r => setTimeout(r, 800));
-      
       if (tab === "login") {
-        login(role as UserRole, email);
+        await login(role as UserRole, email, password);
         if (role === "client") router.push("/client/dashboard");
         else router.push("/vendor/dashboard");
       } else {
+        // Register: create user in backend first, then start onboarding
         const routeRole = role === "client" ? (clientType === "corporate" ? "client" : "consumer") : "vendor";
+        const apiRole = routeRole === "consumer" ? "USER" : routeRole.toUpperCase();
+        if (!name.trim()) { setError("Please enter your name."); setLoading(false); return; }
+        await register(apiRole as UserRole, name, email, password);
+        startOnboarding(routeRole, email, password);
         router.push(`/onboarding/${routeRole}/step1`);
       }
-    } catch (err) {
-      setError("Authentication failed. Please check your credentials.");
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || "Authentication failed. Please check your credentials.";
+      setError(Array.isArray(msg) ? msg.join(", ") : msg);
     } finally {
       setLoading(false);
     }
   };
 
-  const quickLogin = (role: UserRole, emailAddr: string) => {
-    login(role, emailAddr);
+  const quickLogin = async (role: UserRole, emailAddr: string) => {
+    try {
+      await login(role, emailAddr, "password");
+    } catch {
+      // If backend login fails, still allow demo navigation with mock data
+    }
     if (role === "admin") router.push("/admin/dashboard");
     else if (role === "client") router.push("/client/dashboard");
     else if (role === "vendor") router.push("/vendor/dashboard");
@@ -62,7 +72,11 @@ export default function GetStartedPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col lg:flex-row overflow-hidden font-sans" suppressHydrationWarning>
+    <>
+      {showForgot && (
+        <ForgotPasswordModal accentColor="#065F46" onClose={() => setShowForgot(false)} />
+      )}
+    <div className="min-h-screen bg-white flex flex-col lg:flex-row overflow-hidden font-sans dark:bg-slate-900" suppressHydrationWarning>
       
       {/* --- LEFT SIDEBAR (Emerald Green) --- */}
       <motion.div 
@@ -135,11 +149,11 @@ export default function GetStartedPage() {
       </motion.div>
 
       {/* --- RIGHT CONTENT AREA (Light) --- */}
-      <div className="flex-1 bg-[#F5F7FA] p-8 lg:p-16 flex flex-col items-center justify-center relative overflow-y-auto">
+      <div className="flex-1 bg-[#F5F7FA] p-8 lg:p-16 flex flex-col items-center justify-center relative overflow-y-auto dark:bg-slate-950">
         <div className="w-full max-w-[500px] space-y-10">
           
           {/* Tabs */}
-          <div className="flex p-1 bg-white rounded-2xl shadow-sm border border-slate-100">
+          <div className="flex p-1 bg-white rounded-2xl shadow-sm border border-slate-100 dark:bg-slate-900 dark:border-slate-800">
             <button 
               onClick={() => setTab("login")}
               className={`flex-1 py-3 text-xs font-black uppercase tracking-widest rounded-xl transition-all ${tab === 'login' ? 'bg-[#065F46] text-white shadow-lg shadow-emerald-900/20' : 'text-slate-400 hover:text-slate-600'}`}
@@ -155,7 +169,7 @@ export default function GetStartedPage() {
           </div>
 
           <div className="space-y-2">
-            <h2 className="text-3xl font-black text-slate-900 leading-tight">
+            <h2 className="text-3xl font-black text-slate-900 leading-tight dark:text-white">
               {tab === 'login' ? 'Welcome Back' : 'Get Started Now'}
             </h2>
             <p className="text-slate-500 text-sm font-medium">
@@ -227,6 +241,24 @@ export default function GetStartedPage() {
 
           {/* Form */}
           <form onSubmit={handleAuth} className="space-y-6">
+            {tab === 'register' && (
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block px-1">
+                  {role === 'vendor' ? 'Company Name' : clientType === 'corporate' ? 'Company Name' : 'Full Name'}
+                </label>
+                <div className="relative group">
+                  <input 
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder={role === 'vendor' ? 'Green Recyclers Pvt Ltd' : 'Tech Corp Ltd'}
+                    className="w-full h-14 bg-white border border-slate-100 rounded-2xl px-5 text-sm font-bold text-slate-900 placeholder:text-slate-300 focus:outline-none focus:border-[#065F46] transition-all shadow-sm group-hover:border-slate-200 dark:bg-slate-900 dark:text-white dark:border-slate-800"
+                    required
+                  />
+                  <span className="material-symbols-outlined absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 text-[20px] pointer-events-none">badge</span>
+                </div>
+              </div>
+            )}
             <div className="space-y-2">
               <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block px-1">Email Address</label>
               <div className="relative group">
@@ -235,7 +267,7 @@ export default function GetStartedPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="name@company.com"
-                  className="w-full h-14 bg-white border border-slate-100 rounded-2xl px-5 text-sm font-bold text-slate-900 placeholder:text-slate-300 focus:outline-none focus:border-[#065F46] transition-all shadow-sm group-hover:border-slate-200"
+                  className="w-full h-14 bg-white border border-slate-100 rounded-2xl px-5 text-sm font-bold text-slate-900 placeholder:text-slate-300 focus:outline-none focus:border-[#065F46] transition-all shadow-sm group-hover:border-slate-200 dark:bg-slate-900 dark:text-white dark:border-slate-800"
                   required
                 />
                 <span className="material-symbols-outlined absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 text-[20px] pointer-events-none">mail</span>
@@ -245,7 +277,9 @@ export default function GetStartedPage() {
             <div className="space-y-2">
               <div className="flex items-center justify-between px-1">
                 <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">Password</label>
-                <button type="button" className="text-[9px] font-black text-emerald-600 uppercase tracking-widest hover:underline">Forgot?</button>
+                {tab === "login" && (
+                  <button type="button" onClick={() => setShowForgot(true)} className="text-[9px] font-black text-emerald-600 uppercase tracking-widest hover:underline">Forgot?</button>
+                )}
               </div>
               <div className="relative group">
                 <input 
@@ -253,7 +287,7 @@ export default function GetStartedPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full h-14 bg-white border border-slate-100 rounded-2xl px-5 text-sm font-bold text-slate-900 placeholder:text-slate-300 focus:outline-none focus:border-[#065F46] transition-all shadow-sm group-hover:border-slate-200"
+                  className="w-full h-14 bg-white border border-slate-100 rounded-2xl px-5 text-sm font-bold text-slate-900 placeholder:text-slate-300 focus:outline-none focus:border-[#065F46] transition-all shadow-sm group-hover:border-slate-200 dark:bg-slate-900 dark:text-white dark:border-slate-800"
                   required
                 />
                 <button 
@@ -289,7 +323,7 @@ export default function GetStartedPage() {
           </form>
 
           {/* Demo Accounts */}
-          <div className="pt-10 border-t border-slate-100 space-y-6">
+          <div className="pt-10 border-t border-slate-100 space-y-6 dark:border-slate-800">
             <div className="flex items-center justify-between">
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Demo Accounts</p>
               <span className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-50 text-emerald-600 text-[8px] font-black uppercase tracking-widest rounded-full border border-emerald-100">
@@ -300,9 +334,9 @@ export default function GetStartedPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               {[
-                { label: "Client", email: "client@weconnect.com", role: "client" },
-                { label: "Vendor", email: "vendor@weconnect.com", role: "vendor" },
-                { label: "Admin", email: "admin@weconnect.com", role: "admin" }
+                { label: "Client", email: "client@weconnect.com", role: "client", password: "password" },
+                { label: "Vendor", email: "vendor@weconnect.com", role: "vendor", password: "password" },
+                { label: "Admin", email: "admin@weconnect.com", role: "admin", password: "password" }
               ].map((demo, i) => (
                 <button 
                   key={i}
@@ -318,7 +352,7 @@ export default function GetStartedPage() {
             <div className="text-center pt-2">
               <p className="text-[10px] font-bold text-slate-400">
                 Admin portal: <button 
-                  onClick={() => quickLogin("admin", "admin@weconnect.com")}
+                  onClick={() => quickLogin("admin" as UserRole, "admin@weconnect.com")}
                   className="text-emerald-600 font-black hover:underline cursor-pointer"
                 >
                   We Connect Console
@@ -330,5 +364,6 @@ export default function GetStartedPage() {
         </div>
       </div>
     </div>
+    </>
   );
 }

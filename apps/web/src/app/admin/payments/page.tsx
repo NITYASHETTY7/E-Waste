@@ -44,7 +44,7 @@ export default function AdminPayments() {
           { label: "Proof Submitted", value: stats.proofUploaded, icon: "upload_file", color: "text-purple-600 bg-purple-50" },
           { label: "Confirmed", value: stats.confirmed, icon: "verified", color: "text-primary bg-primary/10" },
         ].map(s => (
-          <div key={s.label} className="card p-5 border border-slate-100">
+          <div key={s.label} className="card p-5 border border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-3">
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${s.color}`}>
                 <span className="material-symbols-outlined text-lg">{s.icon}</span>
@@ -59,12 +59,12 @@ export default function AdminPayments() {
       </div>
 
       {paymentListings.length === 0 ? (
-        <div className="card p-16 text-center border-2 border-dashed border-slate-200">
+        <div className="card p-16 text-center border-2 border-dashed border-slate-200 dark:border-slate-700">
           <span className="material-symbols-outlined text-5xl text-slate-300 block mb-3">payments</span>
-          <p className="font-bold text-slate-600">No payments to review yet</p>
+          <p className="font-bold text-slate-600 dark:text-slate-400">No payments to review yet</p>
         </div>
       ) : (
-        <div className="card overflow-hidden border border-slate-100">
+        <div className="card overflow-hidden border border-slate-100 dark:border-slate-800">
           <div className="divide-y divide-slate-100">
             {paymentListings.map(listing => {
               const win = getWinBid(listing.id);
@@ -79,7 +79,7 @@ export default function AdminPayments() {
                       <span className="text-xs font-black text-slate-400">{listing.id}</span>
                       <span className={`text-[9px] px-2.5 py-0.5 rounded-full font-black uppercase ${meta.color}`}>{meta.label}</span>
                     </div>
-                    <h3 className="font-bold text-slate-900 truncate">{listing.title}</h3>
+                    <h3 className="font-bold text-slate-900 truncate dark:text-white">{listing.title}</h3>
                     <p className="text-xs text-slate-500 mt-0.5">Client: {client?.name || listing.userName} · Vendor: {win?.vendorName || "—"}</p>
 
                     <div className="flex gap-4 mt-2">

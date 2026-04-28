@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import { OnboardingProfile } from "@/types";
 
+
 const INDIA_STATES = ["Andhra Pradesh","Arunachal Pradesh","Assam","Bihar","Chhattisgarh","Goa","Gujarat","Haryana","Himachal Pradesh","Jharkhand","Karnataka","Kerala","Madhya Pradesh","Maharashtra","Manipur","Meghalaya","Mizoram","Nagaland","Odisha","Punjab","Rajasthan","Sikkim","Tamil Nadu","Telangana","Tripura","Uttar Pradesh","Uttarakhand","West Bengal","Delhi","Chandigarh","Puducherry"];
 
 const CLIENT_SECTORS = ["IT & Technology","Banking & Finance","Healthcare","Manufacturing","Retail & E-Commerce","Education","Real Estate","Government / PSU","Hospitality","Telecom","Other"];
@@ -38,6 +39,8 @@ export default function OnboardingStep1() {
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   const set = (key: keyof OnboardingProfile, val: string) => {
     setForm(prev => ({ ...prev, [key]: val }));
@@ -53,28 +56,6 @@ export default function OnboardingStep1() {
     }
   };
 
-  const fillDemo = () => {
-    const isVendor = effectiveRole === "vendor";
-    const isConsumer = effectiveRole === "consumer";
-    setForm({
-      companyName: isVendor ? "GreenCycle Pvt Ltd" : isConsumer ? "Rahul Sharma" : "Accenture India Ltd",
-      contactPerson: isVendor ? "Rajesh Kumar" : isConsumer ? "Rahul Sharma" : "Sanjay Mehta",
-      email: pendingOnboardingEmail || (isVendor ? "ops@greencycle.in" : isConsumer ? "rahul@example.com" : "procurement@accenture.com"),
-      phone: "+91 98765 43210",
-      address: "Plot 45, Peenya Industrial Area, 2nd Phase",
-      city: "Bangalore",
-      state: "Karnataka",
-      pincode: "560058",
-      companyRegistrationNo: (isVendor || !isConsumer) ? "CIN-U72900KA2020PTC136422" : "",
-      processingCapacity: isVendor ? "500 MT/month" : "",
-      materialSpecializations: isVendor ? ["Circuit Boards", "Li-ion Batteries", "Server Equipment"] : [],
-      cpcbNo: isVendor ? "CPCB/EWRE/KAR/2024/001" : "",
-      gstin: (!isVendor && !isConsumer) ? "29AABCU9603R1ZX" : "",
-      industrySector: (!isVendor && !isConsumer) ? "IT & Technology" : "",
-      numberOfEmployees: (!isVendor && !isConsumer) ? "500+" : "",
-    });
-    setErrors({});
-  };
 
   const validate = () => {
     const e: Record<string, string> = {};
@@ -82,12 +63,21 @@ export default function OnboardingStep1() {
     return e;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const errs = validate();
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
-    saveOnboardingProfile(form as OnboardingProfile);
-    router.push(`/onboarding/${effectiveRole}/step2`);
+    setSubmitting(true);
+    setSubmitError("");
+    try {
+      await saveOnboardingProfile(form as OnboardingProfile);
+      router.push(`/onboarding/${effectiveRole}/step2`);
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || err?.message || "Failed to save profile. Please try again.";
+      setSubmitError(Array.isArray(msg) ? msg.join(", ") : msg);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
 
@@ -107,14 +97,7 @@ export default function OnboardingStep1() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Demo fill button */}
-        <div className="flex justify-end">
-          <button type="button" onClick={fillDemo}
-            className="flex items-center gap-2 px-4 py-2 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl text-xs font-bold hover:bg-amber-100 transition-all">
-            <span className="material-symbols-outlined text-sm">auto_awesome</span>
-            Fill Demo Data
-          </button>
-        </div>
+
         {/* Basic Info */}
         <div className="card p-6 space-y-5">
           <h3 className="text-sm font-black uppercase tracking-widest text-[color:var(--color-on-surface-variant)] flex items-center gap-2">
@@ -275,9 +258,17 @@ export default function OnboardingStep1() {
           </div>
         ) : null}
 
-        <button type="submit" className="btn-tertiary w-full py-4 rounded-xl text-sm font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg">
-          Continue to Document Upload
-          <span className="material-symbols-outlined">arrow_forward</span>
+        {submitError && (
+          <div className="p-3 rounded-xl bg-red-500/10 border border-red-400/30 text-red-400 text-sm text-center">
+            {submitError}
+          </div>
+        )}
+        <button type="submit" disabled={submitting} className="btn-tertiary w-full py-4 rounded-xl text-sm font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg disabled:opacity-60">
+          {submitting ? (
+            <><span className="material-symbols-outlined animate-spin text-lg">progress_activity</span> Saving...</>
+          ) : (
+            <>Continue to Document Upload <span className="material-symbols-outlined">arrow_forward</span></>
+          )}
         </button>
       </form>
     </div>

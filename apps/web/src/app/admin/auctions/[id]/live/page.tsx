@@ -90,10 +90,10 @@ export default function AdminLiveObserver() {
   const highVendor = currentHighBid ? (vendorMap.get(currentHighBid.vendorId)?.name ?? "—") : "—";
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans">
+    <div className="min-h-screen bg-slate-50 font-sans dark:bg-slate-950">
 
       {/* ── Sticky Header ── */}
-      <div className="sticky top-0 z-30 bg-white border-b-2 border-purple-500 shadow-sm">
+      <div className="sticky top-0 z-30 bg-white border-b-2 border-purple-500 shadow-sm dark:bg-slate-900">
         <div className="max-w-[1400px] mx-auto px-4 py-3 flex items-center gap-3 flex-wrap">
           {/* Admin badge */}
           <div className="flex items-center gap-2 bg-purple-50 border border-purple-200 px-3 py-1.5 rounded-lg shrink-0">
@@ -108,7 +108,7 @@ export default function AdminLiveObserver() {
           </div>
 
           {/* Title */}
-          <span className="text-slate-800 font-bold text-sm truncate max-w-[220px] shrink-0">{listing.title}</span>
+          <span className="text-slate-800 font-bold text-sm truncate max-w-[220px] shrink-0 dark:text-slate-200">{listing.title}</span>
 
           {/* Stat pills */}
           <div className="flex items-center gap-2 flex-wrap flex-1">
@@ -119,7 +119,7 @@ export default function AdminLiveObserver() {
               { label: "Bids", value: String(auctionBids.length), color: "text-slate-700" },
               { label: "Participants", value: String(participants), color: "text-purple-700" },
             ].map(p => (
-              <div key={p.label} className="flex flex-col items-center px-3 py-1 rounded-lg bg-slate-50 border border-slate-200 min-w-[80px]">
+              <div key={p.label} className="flex flex-col items-center px-3 py-1 rounded-lg bg-slate-50 border border-slate-200 min-w-[80px] dark:bg-slate-950 dark:border-slate-700">
                 <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">{p.label}</span>
                 <span className={`font-mono font-black text-sm ${p.color}`}>{p.value}</span>
               </div>
@@ -133,7 +133,7 @@ export default function AdminLiveObserver() {
           </div>
 
           <button onClick={() => router.push("/admin/listings")}
-            className="shrink-0 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold uppercase tracking-widest border border-slate-200 transition-colors flex items-center gap-1">
+            className="shrink-0 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold uppercase tracking-widest border border-slate-200 transition-colors flex items-center gap-1 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700">
             <span className="material-symbols-outlined text-sm">arrow_back</span> Back
           </button>
         </div>
@@ -154,17 +154,17 @@ export default function AdminLiveObserver() {
         <div className="flex flex-col gap-5">
 
           {/* Bid Progression Chart */}
-          <div className="bg-white rounded-2xl border border-slate-200 border-t-4 border-t-emerald-500 shadow-sm overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50/60">
+          <div className="bg-white rounded-2xl border border-slate-200 border-t-4 border-t-emerald-500 shadow-sm overflow-hidden dark:bg-slate-900 dark:border-slate-700">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 bg-slate-50/60 dark:border-slate-800">
               <div>
                 <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Real-Time Bid Progression</p>
-                <p className="text-slate-800 font-bold text-sm mt-0.5">{auctionBids.length} bids · {participants} participant{participants !== 1 ? "s" : ""}</p>
+                <p className="text-slate-800 font-bold text-sm mt-0.5 dark:text-slate-200">{auctionBids.length} bids · {participants} participant{participants !== 1 ? "s" : ""}</p>
               </div>
               <div className="flex items-center gap-2 flex-wrap">
                 {vendorLines.slice(0, 6).map(v => (
-                  <div key={v.id} className="flex items-center gap-1.5 bg-white border border-slate-200 px-2 py-1 rounded-md">
+                  <div key={v.id} className="flex items-center gap-1.5 bg-white border border-slate-200 px-2 py-1 rounded-md dark:bg-slate-900 dark:border-slate-700">
                     <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: v.color }} />
-                    <span className="text-[10px] font-bold text-slate-700">{v.name}</span>
+                    <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300">{v.name}</span>
                   </div>
                 ))}
               </div>
@@ -182,8 +182,8 @@ export default function AdminLiveObserver() {
           </div>
 
           {/* Bid Ledger — full vendor names visible to admin */}
-          <div className="bg-white rounded-2xl border border-slate-200 border-t-4 border-t-blue-500 shadow-sm overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100 bg-slate-50/60">
+          <div className="bg-white rounded-2xl border border-slate-200 border-t-4 border-t-blue-500 shadow-sm overflow-hidden dark:bg-slate-900 dark:border-slate-700">
+            <div className="flex items-center justify-between px-5 py-3 border-b border-slate-100 bg-slate-50/60 dark:border-slate-800">
               <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Full Bid Ledger</p>
               <span className="text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded-full">{auctionBids.length} events</span>
             </div>
@@ -216,7 +216,7 @@ export default function AdminLiveObserver() {
         <div className="flex flex-col gap-5">
 
           {/* Lot Details */}
-          <div className="bg-white rounded-2xl border border-slate-200 border-t-4 border-t-blue-500 shadow-sm p-5">
+          <div className="bg-white rounded-2xl border border-slate-200 border-t-4 border-t-blue-500 shadow-sm p-5 dark:bg-slate-900 dark:border-slate-700">
             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4">Lot Details</p>
             <div className="space-y-3">
               {[
@@ -231,7 +231,7 @@ export default function AdminLiveObserver() {
                   <span className="material-symbols-outlined text-slate-400 text-base w-5 shrink-0">{icon}</span>
                   <div className="flex-1 min-w-0">
                     <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">{label}</p>
-                    <p className="text-sm font-bold text-slate-800 truncate">{value}</p>
+                    <p className="text-sm font-bold text-slate-800 truncate dark:text-slate-200">{value}</p>
                   </div>
                 </div>
               ))}
@@ -239,7 +239,7 @@ export default function AdminLiveObserver() {
           </div>
 
           {/* Admin-only stats panel */}
-          <div className="bg-white rounded-2xl border border-purple-200 border-t-4 border-t-purple-500 shadow-sm p-5">
+          <div className="bg-white rounded-2xl border border-purple-200 border-t-4 border-t-purple-500 shadow-sm p-5 dark:bg-slate-900">
             <div className="flex items-center gap-2 mb-4">
               <span className="material-symbols-outlined text-purple-600 text-base">admin_panel_settings</span>
               <p className="text-[10px] font-black uppercase tracking-widest text-purple-700">Admin Overview</p>
@@ -272,7 +272,7 @@ export default function AdminLiveObserver() {
 
           {/* Per-vendor breakdown */}
           {vendorLines.length > 0 && (
-            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5">
+            <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 dark:bg-slate-900 dark:border-slate-700">
               <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Participant Breakdown</p>
               <div className="space-y-2">
                 {vendorLines.map(v => {
@@ -282,7 +282,7 @@ export default function AdminLiveObserver() {
                     <div key={v.id} className={`flex items-center gap-3 p-2.5 rounded-xl border ${isLeader ? "bg-emerald-50 border-emerald-200" : "bg-slate-50 border-slate-100"}`}>
                       <span className="w-3 h-3 rounded-full shrink-0" style={{ background: v.color }} />
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-bold text-slate-800 truncate">{v.name}</p>
+                        <p className="text-xs font-bold text-slate-800 truncate dark:text-slate-200">{v.name}</p>
                         <p className="text-[10px] text-slate-400">{v.points.length} bid{v.points.length !== 1 ? "s" : ""}</p>
                       </div>
                       <div className="text-right shrink-0">

@@ -101,9 +101,9 @@ export default function AdminDocuments() {
         ))}
       </div>
 
-      <div className="card overflow-hidden border border-slate-100">
-        <div className="p-4 border-b border-slate-100 bg-slate-50/50">
-          <p className="text-sm font-bold text-slate-600">{combined.length} document{combined.length !== 1 ? "s" : ""}</p>
+      <div className="card overflow-hidden border border-slate-100 dark:border-slate-800">
+        <div className="p-4 border-b border-slate-100 bg-slate-50/50 dark:border-slate-800">
+          <p className="text-sm font-bold text-slate-600 dark:text-slate-400">{combined.length} document{combined.length !== 1 ? "s" : ""}</p>
         </div>
         {combined.length === 0 ? (
           <div className="p-16 text-center text-slate-400">
@@ -123,7 +123,7 @@ export default function AdminDocuments() {
                     }`}>{typeIcon[doc.type]}</span>
                   </div>
                   <div>
-                    <p className="font-bold text-sm text-slate-900">{doc.name}</p>
+                    <p className="font-bold text-sm text-slate-900 dark:text-white">{doc.name}</p>
                     <p className="text-xs text-slate-500">{doc.listingTitle} · {doc.userName}</p>
                   </div>
                 </div>
@@ -133,7 +133,7 @@ export default function AdminDocuments() {
                   }`}>{doc.type}</span>
                   <p className="text-xs text-slate-400">{new Date(doc.uploadedAt).toLocaleDateString("en-IN")}</p>
                   <a href={doc.url} download
-                    className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-primary hover:text-white text-slate-500 flex items-center justify-center transition-colors">
+                    className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-primary hover:text-white text-slate-500 flex items-center justify-center transition-colors dark:bg-slate-800">
                     <span className="material-symbols-outlined text-sm">download</span>
                   </a>
                 </div>

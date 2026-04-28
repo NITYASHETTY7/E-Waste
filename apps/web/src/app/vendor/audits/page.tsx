@@ -36,9 +36,9 @@ export default function VendorAudits() {
       </div>
 
       {myAudits.length === 0 ? (
-        <div className="card p-20 text-center border-2 border-dashed border-slate-200">
+        <div className="card p-20 text-center border-2 border-dashed border-slate-200 dark:border-slate-700">
           <span className="material-symbols-outlined text-6xl text-slate-300 mb-4 block">fact_check</span>
-          <h3 className="text-xl font-bold text-slate-900">No Audit Invitations</h3>
+          <h3 className="text-xl font-bold text-slate-900 dark:text-white">No Audit Invitations</h3>
           <p className="text-slate-500 mt-2">You'll receive audit invitations when admin selects you for a site visit.</p>
         </div>
       ) : (
@@ -55,7 +55,7 @@ export default function VendorAudits() {
                       <span className={`text-[9px] px-2.5 py-0.5 rounded-full font-black uppercase ${meta.color}`}>{meta.label}</span>
                       <span className="text-xs font-black text-slate-400">{audit.listingId}</span>
                     </div>
-                    <h3 className="font-bold text-slate-900">{listing?.title || audit.listingId}</h3>
+                    <h3 className="font-bold text-slate-900 dark:text-white">{listing?.title || audit.listingId}</h3>
                     <p className="text-xs text-slate-500 mt-0.5">{listing?.location} · {listing?.weight} KG · {listing?.category}</p>
 
                     {audit.status !== "invited" && (
@@ -65,9 +65,9 @@ export default function VendorAudits() {
                           { label: "SPOC Phone", value: audit.spocPhone },
                           { label: "Site Address", value: audit.siteAddress },
                         ].map(info => info.value && (
-                          <div key={info.label} className="bg-slate-50 rounded-xl p-2.5">
+                          <div key={info.label} className="bg-slate-50 rounded-xl p-2.5 dark:bg-slate-950">
                             <p className="text-[9px] font-black text-slate-400 uppercase">{info.label}</p>
-                            <p className="text-sm font-bold text-slate-900">{info.value}</p>
+                            <p className="text-sm font-bold text-slate-900 dark:text-white">{info.value}</p>
                           </div>
                         ))}
                       </div>
@@ -82,10 +82,10 @@ export default function VendorAudits() {
                     {audit.status === "completed" && (
                       <div className="mt-3 p-3 bg-emerald-50 rounded-xl border border-emerald-100">
                         <p className="text-xs font-bold text-emerald-700 mb-1">Audit Report</p>
-                        <p className="text-xs text-slate-700">
+                        <p className="text-xs text-slate-700 dark:text-slate-300">
                           Product match: <span className={`font-bold ${audit.productMatch ? "text-emerald-600" : "text-red-600"}`}>{audit.productMatch ? "Yes ✓" : "No ✗"}</span>
                         </p>
-                        {audit.auditRemarks && <p className="text-xs text-slate-600 mt-1 italic">"{audit.auditRemarks}"</p>}
+                        {audit.auditRemarks && <p className="text-xs text-slate-600 mt-1 italic dark:text-slate-400">"{audit.auditRemarks}"</p>}
                         <p className="text-xs text-slate-400 mt-1">Completed: {new Date(audit.completedAt!).toLocaleDateString("en-IN")}</p>
                       </div>
                     )}
@@ -128,7 +128,7 @@ export default function VendorAudits() {
       {completionModal.open && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-5">
-            <h3 className="text-xl font-headline font-extrabold text-slate-900">Submit Audit Report</h3>
+            <h3 className="text-xl font-headline font-extrabold text-slate-900 dark:text-white">Submit Audit Report</h3>
 
             <div>
               <label className="label mb-3">Does the product match the listing description?</label>
@@ -160,7 +160,7 @@ export default function VendorAudits() {
 
             <div className="flex justify-end gap-3">
               <button onClick={() => setCompletionModal({ open: false, auditId: null })}
-                className="px-5 py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 hover:bg-slate-50">Cancel</button>
+                className="px-5 py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:border-slate-700">Cancel</button>
               <button
                 onClick={handleComplete}
                 disabled={productMatch === null || (productMatch === false && !remarks)}

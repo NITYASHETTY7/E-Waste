@@ -23,8 +23,8 @@ let CompaniesController = class CompaniesController {
     constructor(companiesService) {
         this.companiesService = companiesService;
     }
-    create(body) {
-        return this.companiesService.create(body);
+    create(req, body) {
+        return this.companiesService.create(body, req.user?.userId);
     }
     findAll(type, status) {
         return this.companiesService.findAll(type, status);
@@ -48,9 +48,10 @@ let CompaniesController = class CompaniesController {
 exports.CompaniesController = CompaniesController;
 __decorate([
     (0, common_1.Post)(),
-    __param(0, (0, common_1.Body)()),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [Object, Object]),
     __metadata("design:returntype", void 0)
 ], CompaniesController.prototype, "create", null);
 __decorate([

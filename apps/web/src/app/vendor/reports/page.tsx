@@ -38,7 +38,7 @@ export default function VendorReports() {
     <div className="space-y-8 max-w-6xl mx-auto pb-20">
       <div className="flex justify-between items-end">
         <div>
-           <h2 className="text-3xl font-headline font-extrabold tracking-tight text-slate-900">Vendor Performance Audit</h2>
+           <h2 className="text-3xl font-headline font-extrabold tracking-tight text-slate-900 dark:text-white">Vendor Performance Audit</h2>
            <p className="text-slate-500 mt-1">Winning rates, acquisition history, and compliance documentation.</p>
         </div>
         <div className="flex gap-2">
@@ -54,9 +54,9 @@ export default function VendorReports() {
          <div className="card p-6 flex flex-col justify-between h-48 border-t-4 border-t-emerald-500">
             <div>
                <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Winning Rate</p>
-               <h3 className="text-4xl font-headline font-bold text-slate-900">{winRate}%</h3>
+               <h3 className="text-4xl font-headline font-bold text-slate-900 dark:text-white">{winRate}%</h3>
             </div>
-            <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+            <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden dark:bg-slate-800">
                <div className="bg-emerald-500 h-full transition-all duration-1000" style={{ width: `${winRate}%` }} />
             </div>
             <p className="text-[10px] text-slate-500 font-bold uppercase">{wonBids.length} Wins / {myBids.length} Participated</p>
@@ -66,7 +66,7 @@ export default function VendorReports() {
          <div className="card p-6 flex flex-col justify-between h-48 border-t-4 border-t-blue-500">
             <div>
                <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Total Material Purchased</p>
-               <h3 className="text-4xl font-headline font-bold text-slate-900">{totalKg.toLocaleString()} <span className="text-lg font-bold text-slate-400">KG</span></h3>
+               <h3 className="text-4xl font-headline font-bold text-slate-900 dark:text-white">{totalKg.toLocaleString()} <span className="text-lg font-bold text-slate-400">KG</span></h3>
             </div>
             <p className="text-[10px] text-slate-500 font-bold uppercase">Across {wonBids.length} successful auctions</p>
          </div>
@@ -75,7 +75,7 @@ export default function VendorReports() {
          <div className="card p-6 flex flex-col justify-between h-48 border-t-4 border-t-amber-500">
             <div>
                <p className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">Total Payment Outflow</p>
-               <h3 className="text-4xl font-headline font-bold text-slate-900">₹{(totalAquisitionValue / 1000).toFixed(1)}K</h3>
+               <h3 className="text-4xl font-headline font-bold text-slate-900 dark:text-white">₹{(totalAquisitionValue / 1000).toFixed(1)}K</h3>
             </div>
             <p className="text-[10px] text-slate-500 font-bold uppercase">Includes settled and pending settlements</p>
          </div>
@@ -84,23 +84,23 @@ export default function VendorReports() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
          {/* Material Categories Detail */}
          <div className="card p-8">
-            <h4 className="font-headline font-bold text-slate-900 mb-8">Material Breakdown by Category</h4>
+            <h4 className="font-headline font-bold text-slate-900 mb-8 dark:text-white">Material Breakdown by Category</h4>
             {materialData.length > 0 ? (
                <div className="space-y-6">
                   {materialData.map(m => (
                      <div key={m.label}>
                         <div className="flex justify-between text-xs font-bold mb-2">
-                           <span className="text-slate-600">{m.label}</span>
-                           <span className="text-slate-900">{m.kg} KG</span>
+                           <span className="text-slate-600 dark:text-slate-400">{m.label}</span>
+                           <span className="text-slate-900 dark:text-white">{m.kg} KG</span>
                         </div>
-                        <div className="h-2.5 w-full bg-slate-50 rounded-full overflow-hidden border border-slate-100">
+                        <div className="h-2.5 w-full bg-slate-50 rounded-full overflow-hidden border border-slate-100 dark:bg-slate-950 dark:border-slate-800">
                            <div className={`h-full ${m.color} rounded-full`} style={{ width: `${(m.kg / maxKg) * 100}%` }} />
                         </div>
                      </div>
                   ))}
                </div>
             ) : (
-               <div className="py-12 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+               <div className="py-12 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 dark:bg-slate-950 dark:border-slate-700">
                   <p className="text-slate-400 text-sm font-bold">No acquisition data available yet.</p>
                </div>
             )}
@@ -109,16 +109,16 @@ export default function VendorReports() {
          {/* Payment Ledger / History */}
          <div className="card p-8">
             <div className="flex items-center justify-between mb-8">
-               <h4 className="font-headline font-bold text-slate-900">Payment History Ledger</h4>
+               <h4 className="font-headline font-bold text-slate-900 dark:text-white">Payment History Ledger</h4>
                <button onClick={() => handleDownload("Payment History")} className="text-[10px] font-black uppercase text-blue-600 hover:underline">Track Payments</button>
             </div>
             <div className="space-y-4">
                {wonBids.length > 0 ? wonBids.map(bid => {
                   const listing = listings.find(l => l.id === bid.listingId);
                   return (
-                     <div key={bid.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100">
+                     <div key={bid.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-slate-100 dark:bg-slate-950 dark:border-slate-800">
                         <div>
-                           <p className="font-bold text-slate-800 text-sm">{listing?.title || "Auction Item"}</p>
+                           <p className="font-bold text-slate-800 text-sm dark:text-slate-200">{listing?.title || "Auction Item"}</p>
                            <p className="text-[10px] text-slate-500 font-bold uppercase">{formatDate(bid.createdAt)}</p>                        </div>
                         <div className="text-right">
                            <p className="font-bold text-emerald-600">₹{bid.amount.toLocaleString()}</p>
@@ -127,7 +127,7 @@ export default function VendorReports() {
                      </div>
                   )
                }) : (
-                  <div className="py-12 text-center border-2 border-dashed border-slate-100 rounded-2xl">
+                  <div className="py-12 text-center border-2 border-dashed border-slate-100 rounded-2xl dark:border-slate-800">
                      <p className="text-slate-300 text-sm font-bold italic">No payment history recorded.</p>
                   </div>
                )}

@@ -36,7 +36,7 @@ export default function AdminCompliance() {
           { label: "Verified", value: complianceListings.filter(l => l.complianceStatus === "verified").length, color: "text-primary bg-primary/10", icon: "verified" },
           { label: "Total Processed", value: complianceListings.length, color: "text-purple-600 bg-purple-50", icon: "shield" },
         ].map(s => (
-          <div key={s.label} className="card p-5 border border-slate-100">
+          <div key={s.label} className="card p-5 border border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-3">
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${s.color}`}>
                 <span className="material-symbols-outlined text-lg">{s.icon}</span>
@@ -51,9 +51,9 @@ export default function AdminCompliance() {
       </div>
 
       {complianceListings.length === 0 ? (
-        <div className="card p-16 text-center border-2 border-dashed border-slate-200">
+        <div className="card p-16 text-center border-2 border-dashed border-slate-200 dark:border-slate-700">
           <span className="material-symbols-outlined text-5xl text-slate-300 block mb-3">shield</span>
-          <p className="font-bold text-slate-600">No compliance submissions yet</p>
+          <p className="font-bold text-slate-600 dark:text-slate-400">No compliance submissions yet</p>
           <p className="text-sm text-slate-400 mt-1">Documents appear here once vendors upload post-pickup compliance files.</p>
         </div>
       ) : (
@@ -75,7 +75,7 @@ export default function AdminCompliance() {
                           {isVerified ? "Verified" : "Pending Verification"}
                         </span>
                       </div>
-                      <h3 className="font-bold text-slate-900">{listing.title}</h3>
+                      <h3 className="font-bold text-slate-900 dark:text-white">{listing.title}</h3>
                       <p className="text-xs text-slate-500 mt-0.5">
                         {listing.location} · Vendor: {winner?.vendorName || "—"} · Client: {client?.name || listing.userName}
                       </p>
@@ -101,7 +101,7 @@ export default function AdminCompliance() {
                       return (
                         <div key={doc.key} className={`p-3 rounded-xl border text-center ${url ? "border-emerald-200 bg-emerald-50" : "border-dashed border-slate-200 bg-slate-50"}`}>
                           <span className={`material-symbols-outlined text-xl block mb-1 ${url ? "text-emerald-600" : "text-slate-300"}`}>{doc.icon}</span>
-                          <p className="text-[9px] font-black uppercase text-slate-600 leading-tight">{doc.label}</p>
+                          <p className="text-[9px] font-black uppercase text-slate-600 leading-tight dark:text-slate-400">{doc.label}</p>
                           {url ? (
                             <a href={url} download className="text-[9px] text-primary font-bold hover:underline block mt-1">Download</a>
                           ) : (
@@ -130,10 +130,10 @@ export default function AdminCompliance() {
             <div className="w-12 h-12 rounded-2xl bg-emerald-100 flex items-center justify-center mx-auto">
               <span className="material-symbols-outlined text-2xl text-emerald-600">verified</span>
             </div>
-            <h3 className="text-xl font-headline font-extrabold text-center text-slate-900">Verify Compliance?</h3>
+            <h3 className="text-xl font-headline font-extrabold text-center text-slate-900 dark:text-white">Verify Compliance?</h3>
             <p className="text-sm text-slate-500 text-center">This will mark the listing as fully completed and allow the client to download all compliance documents.</p>
             <div className="flex justify-end gap-3">
-              <button onClick={() => setConfirmId(null)} className="px-5 py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 hover:bg-slate-50">Cancel</button>
+              <button onClick={() => setConfirmId(null)} className="px-5 py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:border-slate-700">Cancel</button>
               <button onClick={() => { verifyCompliance(confirmId); setConfirmId(null); }}
                 className="px-5 py-2.5 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary/90">
                 Confirm & Complete

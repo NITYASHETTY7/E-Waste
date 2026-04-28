@@ -64,9 +64,9 @@ export default function AdminAuctions() {
       </div>
 
       {/* Listings table */}
-      <div className="card overflow-hidden border border-slate-100">
-        <div className="p-4 border-b border-slate-100 flex items-center gap-3">
-          <span className="text-sm font-bold text-slate-600">{filtered.length} auction{filtered.length !== 1 ? "s" : ""}</span>
+      <div className="card overflow-hidden border border-slate-100 dark:border-slate-800">
+        <div className="p-4 border-b border-slate-100 flex items-center gap-3 dark:border-slate-800">
+          <span className="text-sm font-bold text-slate-600 dark:text-slate-400">{filtered.length} auction{filtered.length !== 1 ? "s" : ""}</span>
         </div>
         {filtered.length === 0 ? (
           <div className="p-16 text-center text-slate-400">
@@ -88,7 +88,7 @@ export default function AdminAuctions() {
                       <span className="text-xs font-black text-slate-400">{listing.id}</span>
                       <span className={`text-[9px] px-2.5 py-0.5 rounded-full font-black uppercase ${meta.color}`}>{meta.label}</span>
                     </div>
-                    <h3 className="font-bold text-slate-900 truncate">{listing.title}</h3>
+                    <h3 className="font-bold text-slate-900 truncate dark:text-white">{listing.title}</h3>
                     <p className="text-xs text-slate-500 mt-0.5">{listing.location} · {listing.weight} KG · {listing.category}</p>
                     <div className="flex items-center gap-4 mt-2">
                       <span className="text-xs text-slate-500">{listingBids.length} bid{listingBids.length !== 1 ? "s" : ""}</span>

@@ -20,8 +20,15 @@ let CompaniesService = class CompaniesService {
         this.prisma = prisma;
         this.s3 = s3;
     }
-    async create(data) {
-        return this.prisma.company.create({ data });
+    async create(data, userId) {
+        const company = await this.prisma.company.create({ data });
+        if (userId) {
+            await this.prisma.user.update({
+                where: { id: userId },
+                data: { companyId: company.id }
+            });
+        }
+        return company;
     }
     async findAll(type, status) {
         return this.prisma.company.findMany({
@@ -55,7 +62,8 @@ let CompaniesService = class CompaniesService {
         return this.prisma.company.update({ where: { id }, data: { status } });
     }
     async update(id, data) {
-        return this.prisma.company.update({ where: { id }, data });
+        const { id: _id, users, kycDocuments, auctions, wonAuctions, auditInvitations, requirements, createdAt, updatedAt, ...safeData } = data;
+        return this.prisma.company.update({ where: { id }, data: safeData });
     }
     async uploadKycDocument(companyId, file, type) {
         const { key, bucket } = await this.s3.upload(file, `kyc/${companyId}`);

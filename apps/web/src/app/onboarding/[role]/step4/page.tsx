@@ -1,22 +1,17 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useApp } from "@/context/AppContext";
-
-function generateOTP() {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-}
+import api from "@/lib/api";
 
 export default function OnboardingStep4() {
   const params = useParams();
   const role = params.role as string;
   const router = useRouter();
-  const { currentUser, pendingOnboardingRole, completeOnboarding } = useApp();
+  const { currentUser, pendingOnboardingRole, pendingOnboardingEmail, completeOnboarding } = useApp();
   const effectiveRole = role || pendingOnboardingRole || currentUser?.role || "client";
-
-  const [emailOTP] = useState(generateOTP);
-  const [phoneOTP] = useState(generateOTP);
+  const userEmail = pendingOnboardingEmail || currentUser?.email || "";
 
   const [emailInput, setEmailInput] = useState(["", "", "", "", "", ""]);
   const [phoneInput, setPhoneInput] = useState(["", "", "", "", "", ""]);
@@ -27,10 +22,23 @@ export default function OnboardingStep4() {
   const [resendTimer, setResendTimer] = useState(60);
   const [verifying, setVerifying] = useState(false);
   const [completed, setCompleted] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
+  const [sendingOtp, setSendingOtp] = useState(false);
+  const [devOtp, setDevOtp] = useState<{ email?: string; phone?: string } | null>(null);
 
-  const emailRefs = useRef<(HTMLInputElement | null)[]>([null, null, null, null, null, null]);
-  const phoneRefs = useRef<(HTMLInputElement | null)[]>([null, null, null, null, null, null]);
+  const emailRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const phoneRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const sentRef = useRef(false);
 
+  // Send OTP only once userEmail is resolved
+  useEffect(() => {
+    if (userEmail && !sentRef.current) {
+      sentRef.current = true;
+      sendOTP();
+    }
+  }, [userEmail]);
+
+  // Countdown timer
   useEffect(() => {
     if (resendTimer > 0) {
       const t = setTimeout(() => setResendTimer(p => p - 1), 1000);
@@ -38,7 +46,29 @@ export default function OnboardingStep4() {
     }
   }, [resendTimer]);
 
-  const handleOTPChange = (
+  const userPhone = currentUser?.phone || currentUser?.onboardingProfile?.phone || "";
+
+  const sendOTP = async () => {
+    if (!userEmail) return;
+    sentRef.current = true;
+    setSendingOtp(true);
+    try {
+      const res = await api.post('/auth/send-otp', { email: userEmail, phone: userPhone || undefined });
+      setOtpSent(true);
+      // Surface dev OTP codes when AWS delivery is unavailable
+      if (res.data?.devEmailOtp || res.data?.devPhoneOtp) {
+        setDevOtp({ email: res.data.devEmailOtp, phone: res.data.devPhoneOtp });
+      }
+    } catch (e) {
+      console.error('Failed to send OTP via API', e);
+      setOtpSent(true);
+    } finally {
+      setSendingOtp(false);
+      setResendTimer(60);
+    }
+  };
+
+  const handleOTPChange = useCallback((
     idx: number,
     value: string,
     setArr: React.Dispatch<React.SetStateAction<string[]>>,
@@ -52,11 +82,14 @@ export default function OnboardingStep4() {
     });
 
     if (digit && idx < 5) {
-      refs.current[idx + 1]?.focus();
+      // Use requestAnimationFrame to prevent focus stealing
+      requestAnimationFrame(() => {
+        refs.current[idx + 1]?.focus();
+      });
     }
-  };
+  }, []);
 
-  const handlePaste = (
+  const handlePaste = useCallback((
     e: React.ClipboardEvent,
     setArr: React.Dispatch<React.SetStateAction<string[]>>,
     refs: React.MutableRefObject<(HTMLInputElement | null)[]>
@@ -72,10 +105,12 @@ export default function OnboardingStep4() {
     setArr(newArr);
     
     const nextIdx = Math.min(pastedData.length, 5);
-    refs.current[nextIdx]?.focus();
-  };
+    requestAnimationFrame(() => {
+      refs.current[nextIdx]?.focus();
+    });
+  }, []);
 
-  const handleKeyDown = (
+  const handleKeyDown = useCallback((
     idx: number,
     e: React.KeyboardEvent<HTMLInputElement>,
     arr: string[],
@@ -83,12 +118,15 @@ export default function OnboardingStep4() {
     refs: React.MutableRefObject<(HTMLInputElement | null)[]>
   ) => {
     if (e.key === "Backspace") {
+      e.preventDefault();
       if (!arr[idx] && idx > 0) {
-        refs.current[idx - 1]?.focus();
         setArr(prev => {
           const next = [...prev];
           next[idx - 1] = "";
           return next;
+        });
+        requestAnimationFrame(() => {
+          refs.current[idx - 1]?.focus();
         });
       } else {
         setArr(prev => {
@@ -98,22 +136,29 @@ export default function OnboardingStep4() {
         });
       }
     } else if (e.key === "ArrowLeft" && idx > 0) {
+      e.preventDefault();
       refs.current[idx - 1]?.focus();
     } else if (e.key === "ArrowRight" && idx < 5) {
+      e.preventDefault();
       refs.current[idx + 1]?.focus();
     }
-  };
+  }, []);
 
   const verifyEmail = async () => {
     const entered = emailInput.join("");
     if (entered.length !== 6) { setEmailError("Enter all 6 digits"); return; }
     setVerifying(true);
-    await new Promise(r => setTimeout(r, 800));
-    if (entered === emailOTP) {
-      setEmailVerified(true);
-      setEmailError("");
-    } else {
-      setEmailError("Incorrect OTP. Try again.");
+    setEmailError("");
+    try {
+      const res = await api.post('/auth/verify-otp', { email: userEmail, code: entered, type: 'email' });
+      if (res.data?.verified) {
+        setEmailVerified(true);
+      } else {
+        setEmailError("Incorrect OTP. Please try again.");
+      }
+    } catch (error: any) {
+      const msg = error?.response?.data?.message || "Verification failed. Please try again.";
+      setEmailError(msg);
     }
     setVerifying(false);
   };
@@ -122,36 +167,36 @@ export default function OnboardingStep4() {
     const entered = phoneInput.join("");
     if (entered.length !== 6) { setPhoneError("Enter all 6 digits"); return; }
     setVerifying(true);
-    await new Promise(r => setTimeout(r, 800));
-    if (entered === phoneOTP) {
-      setPhoneVerified(true);
-      setPhoneError("");
-    } else {
-      setPhoneError("Incorrect OTP. Try again.");
+    setPhoneError("");
+    try {
+      const res = await api.post('/auth/verify-otp', { email: userEmail, code: entered, type: 'phone' });
+      if (res.data?.verified) {
+        setPhoneVerified(true);
+      } else {
+        setPhoneError("Incorrect OTP. Please try again.");
+      }
+    } catch (error: any) {
+      const msg = error?.response?.data?.message || "Verification failed. Please try again.";
+      setPhoneError(msg);
     }
     setVerifying(false);
   };
 
-  const skipVerification = () => {
-    setEmailVerified(true);
-    setPhoneVerified(true);
-  };
-
   const handleComplete = async () => {
-    if (!emailVerified || !phoneVerified) return;
+    if (!emailVerified || (userPhone && !phoneVerified)) return;
     setCompleted(true);
     await new Promise(r => setTimeout(r, 1500));
-    completeOnboarding();
-    router.push(effectiveRole === "vendor" ? "/vendor/dashboard" : "/client/dashboard");
+    await completeOnboarding();
+    router.push(effectiveRole === "vendor" ? "/vendor/dashboard" : effectiveRole === "consumer" ? "/consumer/dashboard" : "/client/dashboard");
   };
 
-  const OTPBox = ({
-    arr, setArr, refs, verified, error, otpCode, label, icon, onVerify
+  const renderOTPBox = ({
+    arr, setArr, refs, verified, error, label, icon, onVerify
   }: {
     arr: string[];
     setArr: React.Dispatch<React.SetStateAction<string[]>>;
     refs: React.MutableRefObject<(HTMLInputElement | null)[]>;
-    verified: boolean; error: string; otpCode: string; label: string; icon: string;
+    verified: boolean; error: string; label: string; icon: string;
     onVerify: () => void;
   }) => {
     return (
@@ -169,7 +214,7 @@ export default function OnboardingStep4() {
             <div>
               <p className="font-bold text-[color:var(--color-on-surface)] text-sm">{label}</p>
               <p className="text-xs text-[color:var(--color-on-surface-variant)]">
-                {verified ? "Successfully verified" : "6-digit OTP sent"}
+                {verified ? "Successfully verified" : "Enter the 6-digit code sent to you"}
               </p>
             </div>
           </div>
@@ -178,13 +223,6 @@ export default function OnboardingStep4() {
 
         {!verified && (
           <>
-            <div className="bg-[color:var(--color-surface-container)] rounded-lg p-3 mb-4 flex items-center gap-2">
-              <span className="material-symbols-outlined text-sm text-[color:var(--color-on-surface-variant)]">info</span>
-              <p className="text-xs text-[color:var(--color-on-surface-variant)]">
-                Demo OTP: <span className="font-black font-mono text-[color:var(--color-on-surface)] tracking-widest">{otpCode}</span>
-              </p>
-            </div>
-
             <div className="flex gap-2 justify-center mb-4">
               {arr.map((digit, idx) => (
                 <input
@@ -192,16 +230,16 @@ export default function OnboardingStep4() {
                   ref={el => { refs.current[idx] = el; }}
                   type="text"
                   inputMode="numeric"
+                  autoComplete="one-time-code"
                   maxLength={1}
                   value={digit}
                   onPaste={(e) => handlePaste(e, setArr, refs)}
                   onChange={(e) => handleOTPChange(idx, e.target.value, setArr, refs)}
                   onKeyDown={(e) => handleKeyDown(idx, e, arr, setArr, refs)}
-                  onFocus={e => e.target.select()}
-                  className={`w-12 h-14 text-center text-xl font-black font-mono rounded-xl border-2 outline-none transition-all bg-[color:var(--color-surface-container-low)] ${
-                    digit ? "border-[color:var(--color-primary)] text-[color:var(--color-on-surface)]" :
-                    error ? "border-red-400" : "border-[color:var(--color-outline-variant)]"
-                  } focus:border-[color:var(--color-tertiary)] focus:bg-white`}
+                  className={`w-12 h-14 text-center text-xl font-black font-mono rounded-xl border-2 outline-none transition-all bg-white dark:bg-slate-900 text-slate-900 dark:text-white ${
+                    digit ? "border-[color:var(--color-primary)]" :
+                    error ? "border-red-400" : "border-slate-300 dark:border-slate-700"
+                  } focus:border-[color:var(--color-tertiary)] focus:ring-2 focus:ring-[color:var(--color-tertiary)]/20`}
                 />
               ))}
             </div>
@@ -257,27 +295,33 @@ export default function OnboardingStep4() {
         <p className="text-[color:var(--color-on-surface-variant)] mt-1">
           We've sent 6-digit verification codes to your email and phone. Please verify both.
         </p>
+        {sendingOtp && (
+          <p className="text-xs text-[color:var(--color-primary)] mt-2 flex items-center gap-1">
+            <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
+            Sending OTP...
+          </p>
+        )}
       </div>
 
-      <div className="flex justify-end mb-4">
-        <button type="button" onClick={skipVerification}
-          className="flex items-center gap-2 px-4 py-2 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl text-xs font-bold hover:bg-amber-100 transition-all">
-          <span className="material-symbols-outlined text-sm">auto_awesome</span>
-          Skip Verification (Demo)
-        </button>
-      </div>
+      {devOtp && (
+        <div className="mb-4 p-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 text-amber-300 text-xs font-mono space-y-1">
+          <p className="font-black uppercase tracking-widest text-amber-400 mb-2">⚠ Dev Fallback — AWS sandbox active</p>
+          {devOtp.email && <p>📧 Email OTP: <span className="font-black text-white text-base tracking-widest">{devOtp.email}</span></p>}
+          {devOtp.phone && <p>📱 Phone OTP: <span className="font-black text-white text-base tracking-widest">{devOtp.phone}</span></p>}
+        </div>
+      )}
 
       <div className="space-y-4 mb-6">
-        <OTPBox
-          arr={emailInput} setArr={setEmailInput} refs={emailRefs}
-          verified={emailVerified} error={emailError} otpCode={emailOTP}
-          label="Email OTP" icon="mail" onVerify={verifyEmail}
-        />
-        <OTPBox
-          arr={phoneInput} setArr={setPhoneInput} refs={phoneRefs}
-          verified={phoneVerified} error={phoneError} otpCode={phoneOTP}
-          label="Phone OTP" icon="phone_android" onVerify={verifyPhone}
-        />
+        {renderOTPBox({
+          arr: emailInput, setArr: setEmailInput, refs: emailRefs,
+          verified: emailVerified, error: emailError,
+          label: "Email OTP", icon: "mail", onVerify: verifyEmail
+        })}
+        {userPhone && renderOTPBox({
+          arr: phoneInput, setArr: setPhoneInput, refs: phoneRefs,
+          verified: phoneVerified, error: phoneError,
+          label: "Phone OTP", icon: "phone_android", onVerify: verifyPhone
+        })}
       </div>
 
       <div className="flex items-center justify-between mb-6">
@@ -285,7 +329,7 @@ export default function OnboardingStep4() {
         {resendTimer > 0 ? (
           <span className="text-xs font-bold text-[color:var(--color-on-surface-variant)]">Resend in {resendTimer}s</span>
         ) : (
-          <button onClick={() => setResendTimer(60)} className="text-xs font-bold text-[color:var(--color-primary)] hover:underline">
+          <button onClick={sendOTP} disabled={sendingOtp} className="text-xs font-bold text-[color:var(--color-primary)] hover:underline">
             Resend OTPs
           </button>
         )}
@@ -299,9 +343,9 @@ export default function OnboardingStep4() {
         </button>
         <button
           onClick={handleComplete}
-          disabled={!emailVerified || !phoneVerified}
+          disabled={!emailVerified || (!!userPhone && !phoneVerified)}
           className={`flex-1 py-4 rounded-xl text-sm font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg transition-all ${
-            emailVerified && phoneVerified
+            emailVerified && (!userPhone || phoneVerified)
               ? "btn-tertiary"
               : "bg-[color:var(--color-surface-dim)] text-[color:var(--color-on-surface-variant)] cursor-not-allowed"
           }`}

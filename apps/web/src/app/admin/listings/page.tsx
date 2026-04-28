@@ -142,13 +142,13 @@ export default function AdminListings() {
                       )}
                       {listing.status === "active" && (
                         <button onClick={() => updateListingStatus(listing.id, "completed")}
-                          className="text-xs font-bold px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors">
+                          className="text-xs font-bold px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors dark:bg-slate-800 dark:text-slate-300">
                           Complete
                         </button>
                       )}
                       {(listing.status !== "cancelled" && listing.status !== "rejected") && (
                         <button onClick={() => updateListingStatus(listing.id, "cancelled")}
-                          className="w-8 h-8 rounded-lg bg-slate-50 text-slate-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all" title="Cancel Listing">
+                          className="w-8 h-8 rounded-lg bg-slate-50 text-slate-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all dark:bg-slate-950" title="Cancel Listing">
                           <span className="material-symbols-outlined text-sm">close</span>
                         </button>
                       )}
@@ -192,9 +192,9 @@ export default function AdminListings() {
       {assignModal.isOpen && (
         <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setAssignModal({ isOpen: false, listingId: null })} />
-          <div className="relative bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl p-8 space-y-6">
+          <div className="relative bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl p-8 space-y-6 dark:bg-slate-900">
             <div>
-              <h3 className="text-xl font-black text-slate-900">Assign Vendor</h3>
+              <h3 className="text-xl font-black text-slate-900 dark:text-white">Assign Vendor</h3>
               <p className="text-sm text-slate-500 mt-1">Select a verified vendor to handle this request.</p>
             </div>
             
@@ -212,7 +212,7 @@ export default function AdminListings() {
                     {vendor.name[0]}
                   </div>
                   <div>
-                    <p className="font-bold text-slate-900">{vendor.name}</p>
+                    <p className="font-bold text-slate-900 dark:text-white">{vendor.name}</p>
                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-none mt-1">CPCB Verified</p>
                   </div>
                 </button>
@@ -224,7 +224,7 @@ export default function AdminListings() {
             
             <button
               onClick={() => setAssignModal({ isOpen: false, listingId: null })}
-              className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-[10px] uppercase tracking-widest"
+              className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-[10px] uppercase tracking-widest dark:bg-slate-800 dark:text-slate-400"
             >
               Cancel
             </button>

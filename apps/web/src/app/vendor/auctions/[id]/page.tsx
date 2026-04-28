@@ -142,7 +142,7 @@ export default function AuctionEntryPage() {
         <p className="text-slate-500">Auction listing not found.</p>
         <button
           onClick={() => router.back()}
-          className="mt-4 underline text-sm text-slate-600"
+          className="mt-4 underline text-sm text-slate-600 dark:text-slate-400"
         >
           Go back
         </button>
@@ -222,11 +222,11 @@ export default function AuctionEntryPage() {
           <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
             Upload Progress
           </span>
-          <span className="text-[10px] font-black text-slate-600">
+          <span className="text-[10px] font-black text-slate-600 dark:text-slate-400">
             {uploadedCount} / {totalDocs} documents
           </span>
         </div>
-        <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+        <div className="h-2 bg-slate-100 rounded-full overflow-hidden dark:bg-slate-800">
           <div
             className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-500"
             style={{ width: `${progressPct}%` }}
@@ -278,7 +278,7 @@ export default function AuctionEntryPage() {
                       Required
                     </span>
                   ) : (
-                    <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-full">
+                    <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded-full dark:bg-slate-800">
                       Optional
                     </span>
                   )}
@@ -346,7 +346,7 @@ export default function AuctionEntryPage() {
       </div>
 
       {/* Terms acceptance */}
-      <div className="card p-5 mb-6 border-slate-200 bg-slate-50">
+      <div className="card p-5 mb-6 border-slate-200 bg-slate-50 dark:bg-slate-950 dark:border-slate-700">
         <label className="flex items-start gap-3 cursor-pointer">
           <div className="mt-0.5">
             <input

@@ -17,10 +17,10 @@ export default function BiddingAnalytics() {
   ];
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mt-8 font-sans">
+    <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden mt-8 font-sans dark:bg-slate-900 dark:border-slate-700">
       {/* Top Bar KPIs */}
-      <div className="grid grid-cols-4 border-b border-slate-200 divide-x divide-slate-200">
-        <div className="p-4 flex items-center justify-center gap-4 bg-slate-50">
+      <div className="grid grid-cols-4 border-b border-slate-200 divide-x divide-slate-200 dark:border-slate-700">
+        <div className="p-4 flex items-center justify-center gap-4 bg-slate-50 dark:bg-slate-950">
           <div className="text-center">
             <span className="text-3xl font-light text-red-500">00</span>
             <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">MINS</p>
@@ -32,17 +32,17 @@ export default function BiddingAnalytics() {
           </div>
         </div>
         
-        <div className="p-4 flex flex-col items-center justify-center bg-white">
+        <div className="p-4 flex flex-col items-center justify-center bg-white dark:bg-slate-900">
           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">BASE AUCTION PRICE</p>
-          <p className="text-xl font-bold text-slate-800">₹662,000.00</p>
+          <p className="text-xl font-bold text-slate-800 dark:text-slate-200">₹662,000.00</p>
         </div>
 
-        <div className="p-4 flex flex-col items-center justify-center bg-white">
+        <div className="p-4 flex flex-col items-center justify-center bg-white dark:bg-slate-900">
           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">CURRENT HIGHEST BID</p>
-          <p className="text-xl font-bold text-slate-800">₹740,000.00</p>
+          <p className="text-xl font-bold text-slate-800 dark:text-slate-200">₹740,000.00</p>
         </div>
 
-        <div className="p-4 flex flex-col items-center justify-center bg-white">
+        <div className="p-4 flex flex-col items-center justify-center bg-white dark:bg-slate-900">
           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">VALUE GENERATED</p>
           <p className="text-xl font-bold text-emerald-500">+ ₹78,000.00</p>
         </div>
@@ -118,28 +118,28 @@ export default function BiddingAnalytics() {
         </div>
 
         {/* Leaderboard Panel */}
-        <div className="w-full lg:w-[320px] bg-slate-50 border-l border-slate-200 p-4">
+        <div className="w-full lg:w-[320px] bg-slate-50 border-l border-slate-200 p-4 dark:bg-slate-950 dark:border-slate-700">
           <div className="flex items-center justify-between mb-4">
-             <h3 className="text-sm font-bold text-slate-800">Leaderboard</h3>
+             <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">Leaderboard</h3>
              <span className="text-[10px] bg-blue-100 text-blue-600 px-2 py-0.5 rounded font-bold uppercase">Live Updates</span>
           </div>
           
           <div className="space-y-2 max-h-[380px] overflow-y-auto pr-1 custom-scrollbar">
             {vendors.map((vendor) => (
-              <div key={vendor.id} className="bg-white p-3 rounded-lg border border-slate-100 shadow-sm flex flex-col gap-1">
+              <div key={vendor.id} className="bg-white p-3 rounded-lg border border-slate-100 shadow-sm flex flex-col gap-1 dark:bg-slate-900 dark:border-slate-800">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className={`text-[10px] font-black px-1.5 py-0.5 rounded ${vendor.rankColor}`}>
                       {vendor.rank}
                     </span>
-                    <span className="text-xs font-bold text-slate-700 truncate max-w-[120px]">
+                    <span className="text-xs font-bold text-slate-700 truncate max-w-[120px] dark:text-slate-300">
                       {vendor.name}
                     </span>
                   </div>
                   <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: vendor.color }} />
                 </div>
                 <div className="text-right">
-                  <span className="text-sm font-bold text-slate-800">₹{vendor.currentBid.toLocaleString()}</span>
+                  <span className="text-sm font-bold text-slate-800 dark:text-slate-200">₹{vendor.currentBid.toLocaleString()}</span>
                 </div>
               </div>
             ))}

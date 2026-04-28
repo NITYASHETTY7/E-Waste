@@ -14,6 +14,7 @@ import { AuctionsModule } from './auctions/auctions.module';
 import { PaymentsModule } from './payments/payments.module';
 import { PickupsModule } from './pickups/pickups.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { NotificationModule } from './notifications/notification.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
     PaymentsModule,
     PickupsModule,
     DashboardModule,
+    NotificationModule,
   ],
   controllers: [AppController],
   providers: [AppService],

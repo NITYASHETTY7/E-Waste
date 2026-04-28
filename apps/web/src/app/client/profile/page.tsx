@@ -104,7 +104,7 @@ export default function ClientProfile() {
   return (
     <div className="max-w-4xl mx-auto pb-20">
       <div className="mb-8">
-        <h2 className="text-4xl font-black text-slate-900 tracking-tight">Organization <span className="text-[#1E8E3E]">Profile</span></h2>
+        <h2 className="text-4xl font-black text-slate-900 tracking-tight dark:text-white">Organization <span className="text-[#1E8E3E]">Profile</span></h2>
         <p className="text-slate-500 font-medium mt-1">Manage entity details, compliance documentation, and security settings.</p>
       </div>
 
@@ -147,7 +147,7 @@ export default function ClientProfile() {
         </div>
 
         {/* Content Area */}
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden dark:bg-slate-900 dark:border-slate-700">
           {tab === "profile" && (
             <div className="p-8 space-y-8 animate-fade-in">
               <div className="flex justify-between items-start">
@@ -156,12 +156,12 @@ export default function ClientProfile() {
                     {(currentUser?.name || "C")[0]}
                   </div>
                   <div>
-                    <h3 className="text-2xl font-black text-slate-900">{currentUser?.name}</h3>
+                    <h3 className="text-2xl font-black text-slate-900 dark:text-white">{currentUser?.name}</h3>
                     <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px]">Verified Corporate Entity</p>
                   </div>
                 </div>
                 {!isEditing && (
-                  <button onClick={() => setIsEditing(true)} className="px-4 py-2 bg-slate-100 text-slate-900 rounded-xl text-xs font-bold hover:bg-slate-200 transition-all">
+                  <button onClick={() => setIsEditing(true)} className="px-4 py-2 bg-slate-100 text-slate-900 rounded-xl text-xs font-bold hover:bg-slate-200 transition-all dark:bg-slate-800 dark:text-white">
                     Edit Details
                   </button>
                 )}
@@ -171,17 +171,17 @@ export default function ClientProfile() {
                 <form onSubmit={handleUpdateProfile} className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Entity Name</label>
+                      <label className="text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 ml-1">Entity Name</label>
                       <input 
-                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 dark:bg-slate-950 dark:border-slate-700 placeholder:text-slate-400 dark:placeholder:text-slate-500"
                         value={editData.name}
                         onChange={e => setEditData(prev => ({ ...prev, name: e.target.value }))}
                       />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-[10px] font-black uppercase text-slate-400 ml-1">Contact Email</label>
+                      <label className="text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 ml-1">Contact Email</label>
                       <input 
-                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 dark:bg-slate-950 dark:border-slate-700 placeholder:text-slate-400 dark:placeholder:text-slate-500"
                         value={editData.email}
                         onChange={e => setEditData(prev => ({ ...prev, email: e.target.value }))}
                       />
@@ -189,7 +189,7 @@ export default function ClientProfile() {
                   </div>
                   <div className="flex gap-3">
                     <button type="submit" className="px-6 py-2.5 bg-[#1E8E3E] text-white rounded-xl text-xs font-bold">Save Changes</button>
-                    <button type="button" onClick={() => setIsEditing(false)} className="px-6 py-2.5 bg-slate-100 text-slate-600 rounded-xl text-xs font-bold">Cancel</button>
+                    <button type="button" onClick={() => setIsEditing(false)} className="px-6 py-2.5 bg-slate-100 text-slate-600 rounded-xl text-xs font-bold dark:bg-slate-800 dark:text-slate-400">Cancel</button>
                   </div>
                 </form>
               ) : (
@@ -200,17 +200,17 @@ export default function ClientProfile() {
                     { label: "Employees", value: (profile as any).numberOfEmployees || "500+", icon: "groups" },
                     { label: "City", value: (profile as any).city ? `${(profile as any).city}, ${(profile as any).state}` : "Bengaluru", icon: "location_on" },
                   ].map((item) => (
-                    <div key={item.label} className="p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                    <div key={item.label} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 dark:bg-slate-950 dark:border-slate-800">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="material-symbols-outlined text-slate-400 text-lg">{item.icon}</span>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">{item.label}</p>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">{item.label}</p>
                       </div>
-                      <p className="text-sm font-bold text-slate-900">{item.value}</p>
+                      <p className="text-sm font-bold text-slate-900 dark:text-white">{item.value}</p>
                     </div>
                   ))}
-                  <div className="col-span-2 p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Registered Address</p>
-                    <p className="text-sm font-bold text-slate-900">{(profile as any).address || "Global Village Tech Park, Whitefield, Bengaluru - 560066"}</p>
+                  <div className="col-span-2 p-4 bg-slate-50 rounded-2xl border border-slate-100 dark:bg-slate-950 dark:border-slate-800">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1">Registered Address</p>
+                    <p className="text-sm font-bold text-slate-900 dark:text-white">{(profile as any).address || "Global Village Tech Park, Whitefield, Bengaluru - 560066"}</p>
                   </div>
                 </div>
               )}
@@ -219,20 +219,20 @@ export default function ClientProfile() {
 
           {tab === "documents" && (
             <div className="p-8 space-y-6 animate-fade-in">
-              <h4 className="text-xl font-black text-slate-900">Legal Repository</h4>
+              <h4 className="text-xl font-black text-slate-900 dark:text-white">Legal Repository</h4>
               <div className="space-y-3">
                 {docs.length > 0 ? docs.map((doc: any, i: number) => (
-                  <div key={i} className="flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-2xl group hover:border-emerald-200 transition-all">
+                  <div key={i} className="flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-2xl group hover:border-emerald-200 transition-all dark:bg-slate-950 dark:border-slate-800">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-slate-200 shadow-sm">
+                      <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-slate-200 shadow-sm dark:bg-slate-900 dark:border-slate-700">
                         <span className="material-symbols-outlined text-slate-400">description</span>
                       </div>
                       <div>
-                        <p className="text-sm font-bold text-slate-900">{doc.fileName}</p>
+                        <p className="text-sm font-bold text-slate-900 dark:text-white">{doc.fileName}</p>
                         <p className="text-[10px] text-slate-400 font-bold uppercase">{doc.size} • Verified {formatDate(doc.uploadedAt)}</p>
                       </div>
                     </div>
-                    <button className="w-8 h-8 rounded-lg bg-white border border-slate-200 text-slate-400 hover:text-[#1E8E3E] hover:border-[#1E8E3E] transition-all">
+                    <button className="w-8 h-8 rounded-lg bg-white border border-slate-200 text-slate-400 hover:text-[#1E8E3E] hover:border-[#1E8E3E] transition-all dark:bg-slate-900 dark:border-slate-700">
                       <span className="material-symbols-outlined text-lg">download</span>
                     </button>
                   </div>
@@ -255,12 +255,12 @@ export default function ClientProfile() {
                   { label: "Energy Offset", value: `${energySaved} kWh`, icon: "bolt", color: "text-amber-600", bg: "bg-amber-50" },
                   { label: "Metals Saved", value: `${metalsRecovered} KG`, icon: "diamond", color: "text-purple-600", bg: "bg-purple-50" },
                 ].map(s => (
-                  <div key={s.label} className="p-5 bg-white border border-slate-100 rounded-3xl flex items-center gap-4 shadow-sm">
+                  <div key={s.label} className="p-5 bg-white border border-slate-100 rounded-3xl flex items-center gap-4 shadow-sm dark:bg-slate-900 dark:border-slate-800">
                     <div className={`w-12 h-12 rounded-2xl ${s.bg} flex items-center justify-center shrink-0`}>
                       <span className={`material-symbols-outlined text-xl ${s.color}`}>{s.icon}</span>
                     </div>
                     <div>
-                      <p className="text-2xl font-black text-slate-900 tracking-tight">{s.value}</p>
+                      <p className="text-2xl font-black text-slate-900 tracking-tight dark:text-white">{s.value}</p>
                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{s.label}</p>
                     </div>
                   </div>
@@ -286,23 +286,23 @@ export default function ClientProfile() {
           {tab === "settings" && (
             <div className="p-8 space-y-10 animate-fade-in">
               <section className="space-y-4">
-                <h4 className="text-lg font-black text-slate-900">Security Credentials</h4>
+                <h4 className="text-lg font-black text-slate-900 dark:text-white">Security Credentials</h4>
                 <form onSubmit={handleChangePassword} className="space-y-4 max-w-md">
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase text-slate-400 ml-1 mb-1.5 block">New Password</label>
+                    <label className="text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 ml-1 mb-1.5 block">New Password</label>
                     <input 
                       type="password" 
-                      className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                      className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 dark:bg-slate-950 dark:border-slate-700 placeholder:text-slate-400 dark:placeholder:text-slate-500"
                       value={passwords.new}
                       onChange={e => setPasswords(prev => ({ ...prev, new: e.target.value }))}
                       placeholder="Min 8 characters"
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-black uppercase text-slate-400 ml-1 mb-1.5 block">Confirm New Password</label>
+                    <label className="text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 ml-1 mb-1.5 block">Confirm New Password</label>
                     <input 
                       type="password" 
-                      className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+                      className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 dark:bg-slate-950 dark:border-slate-700 placeholder:text-slate-400 dark:placeholder:text-slate-500"
                       value={passwords.confirm}
                       onChange={e => setPasswords(prev => ({ ...prev, confirm: e.target.value }))}
                     />
@@ -313,7 +313,7 @@ export default function ClientProfile() {
                 </form>
               </section>
 
-              <hr className="border-slate-100" />
+              <hr className="border-slate-100 dark:border-slate-800" />
 
               <section className="space-y-4">
                 <div className="flex items-center gap-2 text-red-600">
@@ -327,7 +327,7 @@ export default function ClientProfile() {
                     <p className="text-red-700 text-xs font-bold">Are you absolutely sure you want to delete your WeConnect account?</p>
                     <div className="flex gap-3">
                       <button onClick={handleDeleteAccount} className="px-4 py-2 bg-red-600 text-white rounded-lg text-xs font-bold">Yes, Delete Forever</button>
-                      <button onClick={() => setShowDeleteConfirm(false)} className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg text-xs font-bold">Cancel</button>
+                      <button onClick={() => setShowDeleteConfirm(false)} className="px-4 py-2 bg-slate-200 text-slate-700 rounded-lg text-xs font-bold dark:text-slate-300">Cancel</button>
                     </div>
                   </div>
                 ) : (

@@ -60,7 +60,7 @@ export default function VendorDashboard() {
     };
   });
 
-  if (!mounted) return <div className="min-h-screen bg-slate-50 flex items-center justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div></div>;
+  if (!mounted) return <div className="min-h-screen bg-slate-50 flex items-center justify-center dark:bg-slate-950"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div></div>;
 
   return (
     <div className="dashboard-container space-y-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

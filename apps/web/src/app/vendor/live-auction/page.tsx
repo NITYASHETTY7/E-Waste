@@ -14,7 +14,7 @@ export default function VendorLiveAuctionPage() {
         </div>
       </div>
       
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden dark:bg-slate-900">
         <LiveAuctionEmbed userRole="vendor" />
       </div>
     </div>

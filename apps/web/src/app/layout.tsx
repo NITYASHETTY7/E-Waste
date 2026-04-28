@@ -36,7 +36,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${spaceGrotesk.variable} ${manrope.variable}`}
+      className={`${spaceGrotesk.variable} ${manrope.variable} dark`}
       suppressHydrationWarning
     >
       <head>

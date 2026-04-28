@@ -33,14 +33,14 @@ export default function ConsumerDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F5F7FA] p-6 md:p-10">
+    <div className="min-h-screen bg-[#F5F7FA] p-6 md:p-10 dark:bg-slate-950">
       <div className="max-w-7xl mx-auto space-y-10">
         
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
           <div className="space-y-2">
             <p className="text-[10px] font-black text-[#e6ae06] uppercase tracking-[0.3em]">Individual Portal</p>
-            <h1 className="text-4xl font-black text-slate-900 tracking-tight">
+            <h1 className="text-4xl font-black text-slate-900 tracking-tight dark:text-white">
               Hello, <span className="text-[#FFC107]">{currentUser?.name?.split(' ')[0]}</span>!
             </h1>
             <p className="text-slate-500 font-medium text-sm">Thank you for disposing of your e-waste responsibly with We Connect.</p>
@@ -59,17 +59,17 @@ export default function ConsumerDashboard() {
           className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
         >
           {stats.map((s, i) => (
-            <motion.div key={i} variants={item} className="bg-white p-7 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-2xl hover:shadow-slate-200/50 transition-all group relative overflow-hidden">
+            <motion.div key={i} variants={item} className="bg-white p-7 rounded-[2.5rem] border border-slate-100 shadow-sm hover:shadow-2xl hover:shadow-slate-200/50 transition-all group relative overflow-hidden dark:bg-slate-900 dark:border-slate-800">
               <div className="flex items-center justify-between mb-5">
                 <div className={`w-14 h-14 rounded-2xl ${s.bg} flex items-center justify-center transition-transform group-hover:scale-110`}>
                   <span className={`material-symbols-outlined text-2xl ${s.color}`}>{s.icon}</span>
                 </div>
                 <div className="flex flex-col items-end">
                   <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest leading-none mb-1">Lifetime</span>
-                  <div className="w-8 h-1 bg-slate-100 rounded-full" />
+                  <div className="w-8 h-1 bg-slate-100 rounded-full dark:bg-slate-800" />
                 </div>
               </div>
-              <p className="text-3xl font-black text-slate-900 mb-1">{s.value}</p>
+              <p className="text-3xl font-black text-slate-900 mb-1 dark:text-white">{s.value}</p>
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{s.label}</p>
               
               {/* Subtle mesh background for accent cards */}
@@ -87,7 +87,7 @@ export default function ConsumerDashboard() {
             <div className="flex items-center justify-between px-2">
               <div className="flex items-center gap-3">
                 <div className="w-1.5 h-6 bg-[#FFC107] rounded-full" />
-                <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight">Active Requests</h2>
+                <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight dark:text-white">Active Requests</h2>
               </div>
               <button className="text-[10px] font-black text-[#e6ae06] uppercase tracking-[0.2em] border-b-2 border-[#FFC107]/30 hover:border-[#FFC107] pb-0.5 transition-all">View History</button>
             </div>
@@ -95,13 +95,13 @@ export default function ConsumerDashboard() {
             <div className="space-y-4">
               {userPickups.length > 0 ? (
                 userPickups.map((pickup) => (
-                  <div key={pickup.id} className="group bg-white border border-slate-100 p-7 rounded-[2.5rem] flex items-center justify-between hover:border-[#FFC107]/40 transition-all shadow-sm hover:shadow-lg">
+                  <div key={pickup.id} className="group bg-white border border-slate-100 p-7 rounded-[2.5rem] flex items-center justify-between hover:border-[#FFC107]/40 transition-all shadow-sm hover:shadow-lg dark:bg-slate-900 dark:border-slate-800">
                     <div className="flex items-center gap-6">
-                      <div className="w-16 h-16 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center group-hover:bg-yellow-50/50 transition-colors">
+                      <div className="w-16 h-16 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center group-hover:bg-yellow-50/50 transition-colors dark:bg-slate-950 dark:border-slate-800">
                         <span className="material-symbols-outlined text-slate-400 group-hover:text-[#FFC107] text-2xl transition-colors">inventory_2</span>
                       </div>
                       <div>
-                        <p className="font-black text-slate-900 text-lg">{pickup.title}</p>
+                        <p className="font-black text-slate-900 text-lg dark:text-white">{pickup.title}</p>
                         <div className="flex items-center gap-3 mt-1.5">
                           <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">ID: {pickup.id}</p>
                           <span className="w-1 h-1 bg-slate-300 rounded-full" />
@@ -119,19 +119,19 @@ export default function ConsumerDashboard() {
                           {pickup.status}
                         </span>
                       </div>
-                      <button className="w-12 h-12 rounded-2xl bg-slate-50 text-slate-400 flex items-center justify-center group-hover:bg-[#FFC107] group-hover:text-[#0f172a] transition-all duration-300">
+                      <button className="w-12 h-12 rounded-2xl bg-slate-50 text-slate-400 flex items-center justify-center group-hover:bg-[#FFC107] group-hover:text-[#0f172a] transition-all duration-300 dark:bg-slate-950">
                         <span className="material-symbols-outlined">chevron_right</span>
                       </button>
                     </div>
                   </div>
                 ))
               ) : (
-                <div className="bg-white border-2 border-dashed border-slate-200 p-16 rounded-[3rem] text-center space-y-6">
-                  <div className="w-20 h-20 bg-slate-50 rounded-3xl flex items-center justify-center mx-auto ring-4 ring-white shadow-sm">
+                <div className="bg-white border-2 border-dashed border-slate-200 p-16 rounded-[3rem] text-center space-y-6 dark:bg-slate-900 dark:border-slate-700">
+                  <div className="w-20 h-20 bg-slate-50 rounded-3xl flex items-center justify-center mx-auto ring-4 ring-white shadow-sm dark:bg-slate-950">
                     <span className="material-symbols-outlined text-slate-300 text-4xl">local_shipping</span>
                   </div>
                   <div className="space-y-2">
-                    <h3 className="text-xl font-black text-slate-900">No active disposal requests</h3>
+                    <h3 className="text-xl font-black text-slate-900 dark:text-white">No active disposal requests</h3>
                     <p className="text-slate-400 font-medium text-sm max-w-xs mx-auto text-balance">Earn rewards and help the environment by recycling your old electronics.</p>
                   </div>
                   <Link href="/consumer/pickup" className="inline-flex px-10 py-4 bg-[#0f172a] text-white rounded-2xl font-black text-[10px] uppercase tracking-[0.3em] transform active:scale-95 hover:bg-[#FFC107] hover:text-[#0f172a] transition-all">
@@ -144,7 +144,7 @@ export default function ConsumerDashboard() {
 
           {/* Environmental Impact Card */}
           <div className="space-y-6">
-            <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight px-2">Environmental Impact</h2>
+            <h2 className="text-xl font-black text-slate-900 uppercase tracking-tight px-2 dark:text-white">Environmental Impact</h2>
             <div className="bg-slate-900 rounded-[3rem] p-9 text-white relative overflow-hidden shadow-2xl shadow-slate-900/30">
               <div className="absolute top-[-10%] right-[-10%] w-40 h-40 bg-[#FFC107]/20 rounded-full blur-[60px]" />
               <div className="absolute bottom-[-10%] left-[-10%] w-40 h-40 bg-emerald-500/10 rounded-full blur-[60px]" />

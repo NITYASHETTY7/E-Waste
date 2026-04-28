@@ -68,7 +68,7 @@ export default function AdminAudits() {
           { label: "Accepted", value: stats.accepted, icon: "check_circle", color: "text-primary bg-primary/10" },
           { label: "Completed", value: stats.completed, icon: "verified", color: "text-purple-600 bg-purple-50" },
         ].map(s => (
-          <div key={s.label} className="card p-5 border border-slate-100">
+          <div key={s.label} className="card p-5 border border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-3">
               <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${s.color}`}>
                 <span className="material-symbols-outlined text-lg">{s.icon}</span>
@@ -85,9 +85,9 @@ export default function AdminAudits() {
       {/* Listings with audit activity */}
       <div className="space-y-4">
         {auditEligible.length === 0 ? (
-          <div className="card p-16 text-center border-2 border-dashed border-slate-200">
+          <div className="card p-16 text-center border-2 border-dashed border-slate-200 dark:border-slate-700">
             <span className="material-symbols-outlined text-5xl text-slate-300 block mb-3">fact_check</span>
-            <p className="font-bold text-slate-600">No listings ready for audit</p>
+            <p className="font-bold text-slate-600 dark:text-slate-400">No listings ready for audit</p>
             <p className="text-sm text-slate-400 mt-1">Listings with interested vendors will appear here.</p>
           </div>
         ) : (
@@ -95,14 +95,14 @@ export default function AdminAudits() {
             const audits = getAuditsForListing(listing.id);
             const interested = listing.vendorResponses?.filter(r => r.status === "interested") || [];
             return (
-              <div key={listing.id} className="card p-0 overflow-hidden border border-slate-100">
-                <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex items-start justify-between gap-4">
+              <div key={listing.id} className="card p-0 overflow-hidden border border-slate-100 dark:border-slate-800">
+                <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex items-start justify-between gap-4 dark:border-slate-800">
                   <div>
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-xs font-black text-slate-400 uppercase tracking-widest">{listing.id}</span>
                       <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-black uppercase">{listing.auctionPhase}</span>
                     </div>
-                    <h3 className="font-bold text-slate-900">{listing.title}</h3>
+                    <h3 className="font-bold text-slate-900 dark:text-white">{listing.title}</h3>
                     <p className="text-sm text-slate-500 flex items-center gap-1 mt-1">
                       <span className="material-symbols-outlined text-sm">location_on</span>{listing.location}
                     </p>
@@ -118,17 +118,17 @@ export default function AdminAudits() {
                     {audits.map(audit => (
                       <div key={audit.id} className="p-4 flex items-start justify-between gap-4">
                         <div className="flex items-start gap-3">
-                          <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center shrink-0">
+                          <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center shrink-0 dark:bg-slate-800">
                             <span className="material-symbols-outlined text-sm text-slate-500">recycling</span>
                           </div>
                           <div>
-                            <p className="font-bold text-sm text-slate-900">{audit.vendorName}</p>
+                            <p className="font-bold text-sm text-slate-900 dark:text-white">{audit.vendorName}</p>
                             {audit.scheduledDate && (
                               <p className="text-xs text-slate-500">Scheduled: {new Date(audit.scheduledDate).toLocaleDateString("en-IN")}</p>
                             )}
                             {audit.status === "completed" && (
                               <div className="mt-1">
-                                <p className="text-xs font-bold text-slate-700">
+                                <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
                                   Product match: <span className={audit.productMatch ? "text-emerald-600" : "text-red-600"}>{audit.productMatch ? "Yes" : "No"}</span>
                                 </p>
                                 {audit.auditRemarks && <p className="text-xs text-slate-500 mt-0.5 italic">"{audit.auditRemarks}"</p>}
@@ -189,21 +189,21 @@ export default function AdminAudits() {
               </div>
               <div>
                 <label className="label">Select Vendors to Invite</label>
-                <div className="space-y-2 max-h-40 overflow-y-auto border border-slate-200 rounded-xl p-3">
+                <div className="space-y-2 max-h-40 overflow-y-auto border border-slate-200 rounded-xl p-3 dark:border-slate-700">
                   {vendors.map(v => (
                     <label key={v.id} className="flex items-center gap-3 cursor-pointer hover:bg-slate-50 p-1.5 rounded-lg">
                       <input type="checkbox" className="w-4 h-4 accent-primary"
                         checked={selectedVendors.includes(v.id)}
                         onChange={e => setSelectedVendors(prev => e.target.checked ? [...prev, v.id] : prev.filter(id => id !== v.id))}
                       />
-                      <span className="text-sm font-medium text-slate-900">{v.name}</span>
+                      <span className="text-sm font-medium text-slate-900 dark:text-white">{v.name}</span>
                     </label>
                   ))}
                 </div>
               </div>
             </div>
-            <div className="p-6 border-t border-slate-100 flex justify-end gap-3">
-              <button onClick={() => setInviteModal(false)} className="px-5 py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 hover:bg-slate-50">Cancel</button>
+            <div className="p-6 border-t border-slate-100 flex justify-end gap-3 dark:border-slate-800">
+              <button onClick={() => setInviteModal(false)} className="px-5 py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:border-slate-700">Cancel</button>
               <button
                 onClick={handleSendInvites}
                 disabled={!selectedListing || !selectedVendors.length || !spocName || !spocPhone || !siteAddress}

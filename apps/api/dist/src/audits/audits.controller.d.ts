@@ -34,6 +34,11 @@ export declare class AuditsController {
                 pincode: string | null;
                 rating: number | null;
                 ratingCount: number;
+                bankAccountHolder: string | null;
+                bankName: string | null;
+                bankAccountNumber: string | null;
+                bankIfscCode: string | null;
+                bankAccountType: string | null;
             };
         } & {
             id: string;
@@ -47,6 +52,11 @@ export declare class AuditsController {
             targetPrice: number | null;
             totalWeight: number | null;
             category: string | null;
+            invitedVendorIds: string[];
+            sealedPhaseStart: Date | null;
+            sealedPhaseEnd: Date | null;
+            adminApprovedAt: Date | null;
+            adminApprovedById: string | null;
             clientId: string;
         };
         vendor: {
@@ -64,6 +74,11 @@ export declare class AuditsController {
             pincode: string | null;
             rating: number | null;
             ratingCount: number;
+            bankAccountHolder: string | null;
+            bankName: string | null;
+            bankAccountNumber: string | null;
+            bankIfscCode: string | null;
+            bankAccountType: string | null;
         };
         report: {
             id: string;
@@ -104,6 +119,11 @@ export declare class AuditsController {
                 pincode: string | null;
                 rating: number | null;
                 ratingCount: number;
+                bankAccountHolder: string | null;
+                bankName: string | null;
+                bankAccountNumber: string | null;
+                bankIfscCode: string | null;
+                bankAccountType: string | null;
             };
         } & {
             id: string;
@@ -117,6 +137,11 @@ export declare class AuditsController {
             targetPrice: number | null;
             totalWeight: number | null;
             category: string | null;
+            invitedVendorIds: string[];
+            sealedPhaseStart: Date | null;
+            sealedPhaseEnd: Date | null;
+            adminApprovedAt: Date | null;
+            adminApprovedById: string | null;
             clientId: string;
         };
         vendor: {
@@ -134,6 +159,11 @@ export declare class AuditsController {
             pincode: string | null;
             rating: number | null;
             ratingCount: number;
+            bankAccountHolder: string | null;
+            bankName: string | null;
+            bankAccountNumber: string | null;
+            bankIfscCode: string | null;
+            bankAccountType: string | null;
         };
         report: ({
             photos: {

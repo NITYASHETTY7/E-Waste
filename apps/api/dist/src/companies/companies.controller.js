@@ -29,6 +29,9 @@ let CompaniesController = class CompaniesController {
     findAll(type, status) {
         return this.companiesService.findAll(type, status);
     }
+    getSignedUrl(s3Key, s3Bucket) {
+        return this.companiesService.getSignedUrl(s3Key, s3Bucket);
+    }
     findOne(id) {
         return this.companiesService.findOne(id);
     }
@@ -62,6 +65,14 @@ __decorate([
     __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", void 0)
 ], CompaniesController.prototype, "findAll", null);
+__decorate([
+    (0, common_1.Get)('signed-url'),
+    __param(0, (0, common_1.Query)('s3Key')),
+    __param(1, (0, common_1.Query)('s3Bucket')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, String]),
+    __metadata("design:returntype", void 0)
+], CompaniesController.prototype, "getSignedUrl", null);
 __decorate([
     (0, common_1.Get)(':id'),
     __param(0, (0, common_1.Param)('id')),

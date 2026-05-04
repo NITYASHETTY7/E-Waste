@@ -29,7 +29,7 @@ let PickupsService = class PickupsService {
         });
     }
     async findAll(status) {
-        return this.prisma.pickup.findMany({
+        const pickups = await this.prisma.pickup.findMany({
             where: status ? { status } : {},
             include: {
                 auction: { include: { client: true, winner: true } },
@@ -37,6 +37,13 @@ let PickupsService = class PickupsService {
             },
             orderBy: { createdAt: 'desc' },
         });
+        return Promise.all(pickups.map(async (pickup) => {
+            const docs = await Promise.all(pickup.pickupDocs.map(async (doc) => ({
+                ...doc,
+                signedUrl: await this.s3.getSignedUrl(doc.s3Key, doc.s3Bucket),
+            })));
+            return { ...pickup, pickupDocs: docs };
+        }));
     }
     async findOne(id) {
         const pickup = await this.prisma.pickup.findUnique({

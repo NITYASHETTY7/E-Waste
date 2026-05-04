@@ -4,19 +4,38 @@ import { useState } from "react";
 import { useApp } from "@/context/AppContext";
 import { Listing } from "@/types";
 import Link from "next/link";
+import api from "@/lib/api";
 
 const fmtDate = (iso?: string) => iso ? new Date(iso).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : null;
 
 export default function ClientListings() {
-  const { listings, bids, users, currentUser, updateListingStatus, editListing } = useApp();
-  const [filter, setFilter] = useState<"all" | "invites" | "sealed" | "live" | "ended">("all");
+  const { listings, bids, users, currentUser, updateListingStatus, editListing, approveRequirement } = useApp();
+  const [filter, setFilter] = useState<"all" | "invites" | "sealed" | "live" | "ended" | "review">("all");
   const [selectedListingId, setSelectedListingId] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState<{title: string; weight: number | string; basePrice: number | string; bidIncrement: number | string; description: string}>({title: "", weight: 0, basePrice: 0, bidIncrement: 0, description: ""});
 
+  const [approveModal, setApproveModal] = useState<{ isOpen: boolean; listingId: string | null; title: string }>({ isOpen: false, listingId: null, title: "" });
+  const [targetPrice, setTargetPrice] = useState("");
+  const [approving, setApproving] = useState(false);
+
   const myListings = listings.filter(l => l.userId === currentUser?.id);
+  const reviewListings = myListings.filter(l => l.requirementStatus === 'client_review');
+
+  const handleApproveSheet = async () => {
+    if (!approveModal.listingId || !targetPrice) return;
+    setApproving(true);
+    try {
+      await approveRequirement(approveModal.listingId, Number(targetPrice));
+      setApproveModal({ isOpen: false, listingId: null, title: "" });
+      setTargetPrice("");
+    } finally {
+      setApproving(false);
+    }
+  };
 
   const getDisplayStatus = (listing: Listing) => {
+    if (listing.requirementStatus === 'client_review') return "review";
     if (listing.auctionPhase === 'invitation_window') return "invites";
     if (listing.auctionPhase === 'sealed_bid') return "sealed";
     if (listing.auctionPhase === 'live') return "live";
@@ -74,12 +93,15 @@ export default function ClientListings() {
         </Link>
       </div>
 
-      <div className="flex gap-1 p-1 bg-[color:var(--color-surface-container-low)] rounded-xl w-fit">
-        {(["all", "invites", "sealed", "live", "ended"] as const).map(f => (
+      <div className="flex gap-1 p-1 bg-[color:var(--color-surface-container-low)] rounded-xl w-fit flex-wrap">
+        {(["all", "review", "invites", "sealed", "live", "ended"] as const).map(f => (
           <button key={f} onClick={() => setFilter(f)}
-            className={`px-6 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${
+            className={`relative px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all flex items-center gap-1.5 ${
               filter === f ? "bg-white text-[color:var(--color-on-surface)] shadow-sm" : "text-[color:var(--color-on-surface-variant)]"
             }`}>
+            {f === "review" && reviewListings.length > 0 && (
+              <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+            )}
             {f === "all" ? `All (${myListings.length})` : `${f} (${myListings.filter(l => getDisplayStatus(l) === f).length})`}
           </button>
         ))}
@@ -197,9 +219,39 @@ export default function ClientListings() {
                     )}
                   </div>
 
+                  {displayStatus === "review" && (
+                    <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-3">
+                      <span className="material-symbols-outlined text-amber-500 mt-0.5 shrink-0">description</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-black text-amber-800 uppercase tracking-wide">Processed Sheet Ready for Review</p>
+                        <p className="text-xs text-amber-700 mt-0.5">Admin has uploaded a cleaned material list. Review and set your target price to proceed.</p>
+                        <button
+                          onClick={async () => {
+                            try {
+                              const res = await api.get(`/requirements/${listing.id}/download/processed`);
+                              if (res.data?.url) window.open(res.data.url, '_blank');
+                            } catch { /* no sheet yet */ }
+                          }}
+                          className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 underline mt-1"
+                        >
+                          <span className="material-symbols-outlined text-xs">download</span>
+                          Download Sheet
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="flex items-center justify-between mt-auto pt-4 border-t border-[color:var(--color-outline-variant)]/20">
                     <button onClick={() => openDetails(listing)} className="btn-outline text-[11px] py-2 px-4 uppercase tracking-widest font-black">Details</button>
                     <div className="flex gap-2">
+                      {displayStatus === "review" && (
+                        <button
+                          onClick={() => { setApproveModal({ isOpen: true, listingId: listing.id, title: listing.title }); setTargetPrice(""); }}
+                          className="flex items-center gap-1.5 text-[11px] font-black px-5 py-2.5 bg-amber-500 text-white rounded-xl hover:bg-amber-600 transition-all uppercase tracking-widest shadow-md">
+                          <span className="material-symbols-outlined text-sm">fact_check</span>
+                          Approve Sheet
+                        </button>
+                      )}
                       {displayStatus === "invites" && (
                         <Link
                           href={`/client/listings/${listing.id}/configure-live`}
@@ -228,6 +280,61 @@ export default function ClientListings() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Approve Sheet Modal */}
+      {approveModal.isOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-5" onClick={e => e.stopPropagation()}>
+            <div>
+              <h3 className="text-xl font-headline font-extrabold text-slate-900 dark:text-white">Approve Material Sheet</h3>
+              <p className="text-sm text-slate-500 mt-1 leading-relaxed">
+                Review the processed sheet and set your minimum acceptable target price. Vendors will bid above this price.
+              </p>
+            </div>
+
+            <div className="bg-amber-50 border border-amber-100 rounded-xl p-4">
+              <p className="text-[10px] font-black uppercase tracking-widest text-amber-600 mb-0.5">Listing</p>
+              <p className="font-bold text-amber-900 text-sm">{approveModal.title}</p>
+            </div>
+
+            <div>
+              <label className="label">Your Target Price (₹) <span className="text-red-500">*</span></label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 font-bold text-slate-500">₹</span>
+                <input
+                  type="number"
+                  min={0}
+                  placeholder="e.g. 50000"
+                  value={targetPrice}
+                  onChange={e => setTargetPrice(e.target.value)}
+                  className="input-base pl-8"
+                  autoFocus
+                />
+              </div>
+              <p className="text-[10px] text-slate-400 mt-1">Vendors submitting sealed bids must bid above this floor price.</p>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={() => setApproveModal({ isOpen: false, listingId: null, title: "" })}
+                className="flex-1 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleApproveSheet}
+                disabled={!targetPrice || Number(targetPrice) <= 0 || approving}
+                className="flex-1 py-2.5 rounded-xl bg-amber-500 text-white text-sm font-bold hover:bg-amber-600 disabled:opacity-50 flex items-center justify-center gap-2 transition-all"
+              >
+                {approving
+                  ? <><span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>Submitting...</>
+                  : <><span className="material-symbols-outlined text-sm">check_circle</span>Confirm & Proceed</>
+                }
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

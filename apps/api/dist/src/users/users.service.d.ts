@@ -19,6 +19,11 @@ export declare class UsersService {
             pincode: string | null;
             rating: number | null;
             ratingCount: number;
+            bankAccountHolder: string | null;
+            bankName: string | null;
+            bankAccountNumber: string | null;
+            bankIfscCode: string | null;
+            bankAccountType: string | null;
         } | null;
         id: string;
         email: string;
@@ -52,6 +57,11 @@ export declare class UsersService {
             pincode: string | null;
             rating: number | null;
             ratingCount: number;
+            bankAccountHolder: string | null;
+            bankName: string | null;
+            bankAccountNumber: string | null;
+            bankIfscCode: string | null;
+            bankAccountType: string | null;
         } | null;
     } & {
         id: string;
@@ -131,5 +141,8 @@ export declare class UsersService {
         otpExpiresAt: Date | null;
         otpType: string | null;
         phoneVerified: boolean;
+    }>;
+    deleteMe(userId: string): Promise<{
+        success: boolean;
     }>;
 }

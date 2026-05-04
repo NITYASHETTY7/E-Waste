@@ -34,6 +34,9 @@ let UsersController = class UsersController {
     linkCompany(id, companyId) {
         return this.usersService.linkToCompany(id, companyId);
     }
+    deleteMe(req) {
+        return this.usersService.deleteMe(req.user.userId);
+    }
 };
 exports.UsersController = UsersController;
 __decorate([
@@ -66,6 +69,13 @@ __decorate([
     __metadata("design:paramtypes", [String, String]),
     __metadata("design:returntype", void 0)
 ], UsersController.prototype, "linkCompany", null);
+__decorate([
+    (0, common_1.Delete)('me'),
+    __param(0, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", void 0)
+], UsersController.prototype, "deleteMe", null);
 exports.UsersController = UsersController = __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Controller)('users'),

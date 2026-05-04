@@ -19,6 +19,11 @@ export declare class UsersController {
             pincode: string | null;
             rating: number | null;
             ratingCount: number;
+            bankAccountHolder: string | null;
+            bankName: string | null;
+            bankAccountNumber: string | null;
+            bankIfscCode: string | null;
+            bankAccountType: string | null;
         } | null;
         id: string;
         email: string;
@@ -72,5 +77,8 @@ export declare class UsersController {
         otpExpiresAt: Date | null;
         otpType: string | null;
         phoneVerified: boolean;
+    }>;
+    deleteMe(req: any): Promise<{
+        success: boolean;
     }>;
 }

@@ -7,7 +7,36 @@ export interface UploadedDoc {
   uploadedAt: string;
   status: 'pending' | 'verified' | 'rejected';
   url?: string;
+  signedUrl?: string;
+  s3Key?: string;
+  s3Bucket?: string;
+  _rawFile?: File;
 }
+
+export const DOC_KEY_TO_TYPE: Record<string, string> = {
+  company_reg: 'CERTIFICATE_OF_INCORPORATION',
+  gst_cert: 'GST_CERTIFICATE',
+  company_pan: 'COMPANY_PAN',
+  pan_card: 'PAN_CARD',
+  signatory_id: 'AUTHORIZED_SIGNATORY_ID',
+  board_resolution: 'BOARD_RESOLUTION',
+  kyc_form: 'KYC_FORM',
+  emd_proof: 'EMD_PROOF',
+  terms: 'TERMS_ACCEPTANCE',
+  pcb_auth: 'PCB_AUTHORIZATION',
+  recycler_license: 'RECYCLER_LICENSE',
+  factory_license: 'FACTORY_LICENSE',
+  epr_cert: 'EPR_AUTHORIZATION',
+  insurance: 'BUSINESS_INSURANCE',
+  vendor_onboarding: 'VENDOR_ONBOARDING_FORM',
+  incorporation_cert: 'CERTIFICATE_OF_INCORPORATION',
+  auth_letter: 'AUTHORIZATION_LETTER',
+  address_proof: 'ADDRESS_PROOF',
+  e_waste_declaration: 'E_WASTE_DECLARATION',
+  aadhar_card: 'AADHAR_CARD',
+  gst_card: 'GST_CERTIFICATE',
+  cancelled_cheque: 'CANCELLED_CHEQUE',
+};
 
 export interface BankDetails {
   accountHolderName: string;
@@ -130,7 +159,9 @@ export interface Listing {
   viewCount?: number;
   bidCount?: number;
   // Requirement upload flow
-  requirementStatus?: 'pending' | 'processing' | 'finalized';
+  requirementId?: string;
+  requirementStatus?: 'pending' | 'processing' | 'client_review' | 'finalized';
+  processedSheetUrl?: string;
   // Winner info (post-auction)
   winnerVendorId?: string;
   winnerVendorName?: string;

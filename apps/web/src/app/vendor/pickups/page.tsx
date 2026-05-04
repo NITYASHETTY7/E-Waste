@@ -169,15 +169,7 @@ export default function VendorPickups() {
 
   const handleComplianceSubmit = async () => {
     if (!complianceModal.listingId) return;
-    const readFile = (f: File): Promise<string> => new Promise(r => { const fr = new FileReader(); fr.onload = e => r(e.target?.result as string); fr.readAsDataURL(f); });
-    const docs: Record<string, string> = {};
-    if (compFiles.form6) docs.form6Url = await readFile(compFiles.form6);
-    if (compFiles.weightEmpty) docs.weightSlipEmptyUrl = await readFile(compFiles.weightEmpty);
-    if (compFiles.weightLoaded) docs.weightSlipLoadedUrl = await readFile(compFiles.weightLoaded);
-    if (compFiles.recycling) docs.recyclingCertUrl = await readFile(compFiles.recycling);
-    if (compFiles.disposal) docs.disposalCertUrl = await readFile(compFiles.disposal);
-    if (pickupDate) docs.pickupScheduledDate = new Date(pickupDate).toISOString();
-    submitComplianceDocs(complianceModal.listingId, docs);
+    await submitComplianceDocs(complianceModal.listingId, compFiles, pickupDate || undefined);
     setComplianceModal({ open: false, listingId: null });
     setCompFiles({ form6: null, weightEmpty: null, weightLoaded: null, recycling: null, disposal: null });
     setPickupDate("");

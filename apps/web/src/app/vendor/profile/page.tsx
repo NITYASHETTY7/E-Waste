@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useApp } from "@/context/AppContext";
 import { formatDate } from "@/utils/format";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
+import api from "@/lib/api";
 
 export default function VendorProfile() {
   const { currentUser, bids, listings, updateUserProfile, changePassword, deleteAccount } = useApp();
@@ -14,6 +15,9 @@ export default function VendorProfile() {
   
   const [tab, setTab] = useState<"profile" | "documents" | "stats" | "settings">("profile");
   const [isEditing, setIsEditing] = useState(false);
+  const [kycDocs, setKycDocs] = useState<any[]>([]);
+  const [loadingKyc, setLoadingKyc] = useState(false);
+  const [urlLoading, setUrlLoading] = useState<string | null>(null);
   const [editData, setEditData] = useState({
     name: currentUser?.name || '',
     email: currentUser?.email || '',
@@ -22,6 +26,26 @@ export default function VendorProfile() {
   const [passwords, setPasswords] = useState({ current: '', new: '', confirm: '' });
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error', msg: string } | null>(null);
+
+  useEffect(() => {
+    if (tab === "documents" && currentUser?.companyId && kycDocs.length === 0) {
+      setLoadingKyc(true);
+      api.get(`/companies/${currentUser.companyId}`)
+        .then(res => setKycDocs(res.data?.kycDocuments || []))
+        .catch(() => {})
+        .finally(() => setLoadingKyc(false));
+    }
+  }, [tab, currentUser?.companyId]);
+
+  const openDoc = async (doc: any) => {
+    if (doc.signedUrl) { window.open(doc.signedUrl, "_blank"); return; }
+    setUrlLoading(doc.id);
+    try {
+      const res = await api.get("/companies/signed-url", { params: { s3Key: doc.s3Key, s3Bucket: doc.s3Bucket } });
+      window.open(res.data.url, "_blank");
+    } catch { alert("Could not open document."); }
+    finally { setUrlLoading(null); }
+  };
 
   const myBids = bids.filter(b => b.vendorId === currentUser?.id);
   const wonBids = myBids.filter(b => b.status === "accepted");
@@ -175,29 +199,44 @@ export default function VendorProfile() {
           {tab === "documents" && (
             <div className="p-8 space-y-6 animate-fade-in">
               <h4 className="text-xl font-black text-slate-900 dark:text-white">Regulatory Documents</h4>
-              <div className="space-y-3">
-                {docs.length > 0 ? docs.map((doc, i) => (
-                  <div key={i} className="flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-2xl group hover:border-blue-200 transition-all dark:bg-slate-950 dark:border-slate-800">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-slate-200 shadow-sm dark:bg-slate-900 dark:border-slate-700">
-                        <span className="material-symbols-outlined text-slate-400">verified</span>
+              {loadingKyc ? (
+                <div className="py-12 text-center">
+                  <span className="material-symbols-outlined text-3xl text-slate-300 animate-spin block mb-2">progress_activity</span>
+                  <p className="text-slate-400 text-sm">Loading documents from S3...</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {kycDocs.length > 0 ? kycDocs.map((doc) => (
+                    <div key={doc.id} className="flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-2xl group hover:border-blue-200 transition-all dark:bg-slate-950 dark:border-slate-800">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center border border-slate-200 shadow-sm dark:bg-slate-900 dark:border-slate-700">
+                          <span className="material-symbols-outlined text-blue-500">verified</span>
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-slate-900 dark:text-white">{doc.fileName}</p>
+                          <p className="text-[10px] text-slate-400 font-bold uppercase">{doc.type?.replace(/_/g, " ")} · {new Date(doc.uploadedAt).toLocaleDateString("en-IN")}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-sm font-bold text-slate-900 dark:text-white">{doc.fileName}</p>
-                        <p className="text-[10px] text-slate-400 font-bold uppercase">{doc.size} • Verified {formatDate(doc.uploadedAt)}</p>
-                      </div>
+                      <button
+                        onClick={() => openDoc(doc)}
+                        disabled={urlLoading === doc.id}
+                        className="w-9 h-9 rounded-lg bg-white border border-slate-200 text-slate-400 hover:text-blue-600 hover:border-blue-600 transition-all flex items-center justify-center dark:bg-slate-900 dark:border-slate-700 disabled:opacity-50"
+                      >
+                        {urlLoading === doc.id
+                          ? <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
+                          : <span className="material-symbols-outlined text-sm">open_in_new</span>
+                        }
+                      </button>
                     </div>
-                    <button className="w-8 h-8 rounded-lg bg-white border border-slate-200 text-slate-400 hover:text-blue-600 hover:border-blue-600 transition-all dark:bg-slate-900 dark:border-slate-700">
-                      <span className="material-symbols-outlined text-lg">download</span>
-                    </button>
-                  </div>
-                )) : (
-                  <div className="py-20 text-center space-y-2">
-                    <span className="material-symbols-outlined text-4xl text-slate-200">folder_open</span>
-                    <p className="text-slate-400 font-bold text-sm italic">No custom certificates uploaded yet.</p>
-                  </div>
-                )}
-              </div>
+                  )) : (
+                    <div className="py-20 text-center space-y-2">
+                      <span className="material-symbols-outlined text-4xl text-slate-200">folder_open</span>
+                      <p className="text-slate-400 font-bold text-sm italic">No documents uploaded yet.</p>
+                      <p className="text-slate-400 text-xs">Documents uploaded during onboarding appear here.</p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 

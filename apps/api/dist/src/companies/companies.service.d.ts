@@ -29,9 +29,15 @@ export declare class CompaniesService {
         pincode: string | null;
         rating: number | null;
         ratingCount: number;
+        bankAccountHolder: string | null;
+        bankName: string | null;
+        bankAccountNumber: string | null;
+        bankIfscCode: string | null;
+        bankAccountType: string | null;
     }>;
-    findAll(type?: CompanyType, status?: CompanyStatus): Promise<({
+    findAll(type?: CompanyType, status?: CompanyStatus): Promise<{
         kycDocuments: {
+            signedUrl: string;
             id: string;
             companyId: string;
             type: import("@prisma/client").$Enums.DocumentType;
@@ -47,7 +53,6 @@ export declare class CompaniesService {
             name: string;
             role: import("@prisma/client").$Enums.UserRole;
         }[];
-    } & {
         id: string;
         name: string;
         createdAt: Date;
@@ -62,7 +67,12 @@ export declare class CompaniesService {
         pincode: string | null;
         rating: number | null;
         ratingCount: number;
-    })[]>;
+        bankAccountHolder: string | null;
+        bankName: string | null;
+        bankAccountNumber: string | null;
+        bankIfscCode: string | null;
+        bankAccountType: string | null;
+    }[]>;
     findOne(id: string): Promise<{
         kycDocuments: {
             signedUrl: string;
@@ -95,6 +105,11 @@ export declare class CompaniesService {
         pincode: string | null;
         rating: number | null;
         ratingCount: number;
+        bankAccountHolder: string | null;
+        bankName: string | null;
+        bankAccountNumber: string | null;
+        bankIfscCode: string | null;
+        bankAccountType: string | null;
     }>;
     updateStatus(id: string, status: CompanyStatus): Promise<{
         id: string;
@@ -111,6 +126,11 @@ export declare class CompaniesService {
         pincode: string | null;
         rating: number | null;
         ratingCount: number;
+        bankAccountHolder: string | null;
+        bankName: string | null;
+        bankAccountNumber: string | null;
+        bankIfscCode: string | null;
+        bankAccountType: string | null;
     }>;
     update(id: string, data: any): Promise<{
         id: string;
@@ -127,6 +147,11 @@ export declare class CompaniesService {
         pincode: string | null;
         rating: number | null;
         ratingCount: number;
+        bankAccountHolder: string | null;
+        bankName: string | null;
+        bankAccountNumber: string | null;
+        bankIfscCode: string | null;
+        bankAccountType: string | null;
     }>;
     uploadKycDocument(companyId: string, file: Express.Multer.File, type: DocumentType): Promise<{
         id: string;
@@ -137,6 +162,9 @@ export declare class CompaniesService {
         fileName: string;
         mimeType: string | null;
         uploadedAt: Date;
+    }>;
+    getSignedUrl(s3Key: string, s3Bucket?: string): Promise<{
+        url: string;
     }>;
     updateRating(vendorId: string, newRating: number): Promise<{
         id: string;
@@ -153,5 +181,10 @@ export declare class CompaniesService {
         pincode: string | null;
         rating: number | null;
         ratingCount: number;
+        bankAccountHolder: string | null;
+        bankName: string | null;
+        bankAccountNumber: string | null;
+        bankIfscCode: string | null;
+        bankAccountType: string | null;
     }>;
 }

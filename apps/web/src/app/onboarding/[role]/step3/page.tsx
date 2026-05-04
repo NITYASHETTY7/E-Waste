@@ -29,6 +29,7 @@ export default function OnboardingStep3() {
   });
   const [confirmAccount, setConfirmAccount] = useState("");
   const [chequeFile, setChequeFile] = useState<string | null>(null);
+  const [chequeRawFile, setChequeRawFile] = useState<File | null>(null);
   const [showAccount, setShowAccount] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [ifscLoading, setIfscLoading] = useState(false);
@@ -65,7 +66,7 @@ export default function OnboardingStep3() {
     e.preventDefault();
     const errs = validate();
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
-    saveOnboardingBankDetails(form as BankDetails);
+    saveOnboardingBankDetails(form as BankDetails, chequeRawFile || undefined);
     router.push(`/onboarding/${effectiveRole}/step4`);
   };
 
@@ -197,7 +198,7 @@ export default function OnboardingStep3() {
               <p className="text-sm font-bold text-[color:var(--color-on-surface-variant)]">Upload Cancelled Cheque</p>
               <p className="text-xs text-[color:var(--color-on-surface-variant)]">PDF, JPG or PNG · Max 5MB · Helps with faster verification</p>
               <input type="file" ref={fileRef} className="hidden" accept=".pdf,.jpg,.jpeg,.png"
-                onChange={e => { if (e.target.files?.[0]) setChequeFile(e.target.files[0].name); }} />
+                onChange={e => { if (e.target.files?.[0]) { setChequeFile(e.target.files[0].name); setChequeRawFile(e.target.files[0]); } }} />
             </div>
           )}
           {errors.cheque && <p className="text-red-500 text-xs mt-2 font-bold">{errors.cheque}</p>}

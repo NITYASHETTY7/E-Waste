@@ -31,6 +31,11 @@ export declare class DashboardService {
                 pincode: string | null;
                 rating: number | null;
                 ratingCount: number;
+                bankAccountHolder: string | null;
+                bankName: string | null;
+                bankAccountNumber: string | null;
+                bankIfscCode: string | null;
+                bankAccountType: string | null;
             } | null;
         } & {
             id: string;
@@ -41,20 +46,20 @@ export declare class DashboardService {
             description: string | null;
             targetPrice: number | null;
             category: string;
+            sealedPhaseStart: Date | null;
+            sealedPhaseEnd: Date | null;
             clientId: string;
-            requirementId: string | null;
             basePrice: number;
             tickSize: number;
             maxTicks: number;
             extensionMinutes: number;
-            sealedPhaseStart: Date | null;
-            sealedPhaseEnd: Date | null;
             openPhaseStart: Date | null;
             openPhaseEnd: Date | null;
             extensionCount: number;
+            winnerId: string | null;
+            requirementId: string | null;
             quoteApproved: boolean | null;
             quoteRemarks: string | null;
-            winnerId: string | null;
         })[];
     }>;
     getVendorStats(vendorId: string): Promise<{
@@ -77,6 +82,11 @@ export declare class DashboardService {
                 pincode: string | null;
                 rating: number | null;
                 ratingCount: number;
+                bankAccountHolder: string | null;
+                bankName: string | null;
+                bankAccountNumber: string | null;
+                bankIfscCode: string | null;
+                bankAccountType: string | null;
             };
         } & {
             id: string;
@@ -87,20 +97,20 @@ export declare class DashboardService {
             description: string | null;
             targetPrice: number | null;
             category: string;
+            sealedPhaseStart: Date | null;
+            sealedPhaseEnd: Date | null;
             clientId: string;
-            requirementId: string | null;
             basePrice: number;
             tickSize: number;
             maxTicks: number;
             extensionMinutes: number;
-            sealedPhaseStart: Date | null;
-            sealedPhaseEnd: Date | null;
             openPhaseStart: Date | null;
             openPhaseEnd: Date | null;
             extensionCount: number;
+            winnerId: string | null;
+            requirementId: string | null;
             quoteApproved: boolean | null;
             quoteRemarks: string | null;
-            winnerId: string | null;
         })[];
     }>;
 }

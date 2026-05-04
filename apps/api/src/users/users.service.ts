@@ -60,4 +60,9 @@ export class UsersService {
       data: { role },
     });
   }
+
+  async deleteMe(userId: string) {
+    await this.prisma.user.delete({ where: { id: userId } });
+    return { success: true };
+  }
 }

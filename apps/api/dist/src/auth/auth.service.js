@@ -61,6 +61,25 @@ let AuthService = class AuthService {
         this.prisma = prisma;
     }
     async register(dto) {
+        const existing = await this.usersService.findByEmail(dto.email);
+        if (existing) {
+            if (existing.isActive)
+                throw new common_1.ConflictException('Email already registered');
+            const passwordMatch = await bcrypt.compare(dto.password, existing.passwordHash);
+            if (!passwordMatch)
+                throw new common_1.ConflictException('Email already registered');
+            const freshUser = await this.prisma.user.findUnique({
+                where: { id: existing.id },
+                include: { company: { include: { kycDocuments: true } } },
+            });
+            const otpResult = await this.otpService.sendOtp(dto.email, existing.phone ?? undefined).catch(() => ({ emailSent: false, phoneSent: false }));
+            return {
+                ...this.buildResponse(freshUser ?? existing),
+                otp: otpResult,
+                resumed: true,
+                resumeStep: this.computeResumeStep(freshUser ?? existing),
+            };
+        }
         const hash = await bcrypt.hash(dto.password, 10);
         const user = await this.usersService.create({
             email: dto.email,
@@ -86,6 +105,15 @@ let AuthService = class AuthService {
         const otpResult = await this.otpService.sendOtp(dto.email, dto.phone).catch(() => ({ emailSent: false, phoneSent: false }));
         const freshUser = await this.prisma.user.findUnique({ where: { id: user.id }, include: { company: true } });
         return { ...this.buildResponse(freshUser ?? user), otp: otpResult };
+    }
+    computeResumeStep(user) {
+        if (!user?.company)
+            return 1;
+        if (user.company.bankAccountNumber)
+            return 4;
+        if (user.company.kycDocuments?.length > 0)
+            return 3;
+        return 2;
     }
     async login(dto) {
         const user = await this.usersService.findByEmail(dto.email);

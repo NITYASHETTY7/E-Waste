@@ -2,11 +2,11 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { ExpressAdapter } from '@nestjs/platform-express';
-import * as express from 'express';
+import express from 'express';
 
 const server = express();
 
-export const createNextServer = async (expressInstance) => {
+export const createNextServer = async (expressInstance: express.Express) => {
   const app = await NestFactory.create(
     AppModule,
     new ExpressAdapter(expressInstance),

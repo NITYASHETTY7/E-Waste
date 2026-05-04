@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, BadRequestException, NotFoundException, ConflictException } from '@nestjs/common';
 import { UsersService } from '../users/users.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
@@ -17,6 +17,29 @@ export class AuthService {
   ) {}
 
   async register(dto: RegisterDto) {
+    // Check for an incomplete registration to resume
+    const existing = await this.usersService.findByEmail(dto.email);
+    if (existing) {
+      if (existing.isActive) throw new ConflictException('Email already registered');
+
+      // Incomplete registration — verify the password matches before resuming
+      const passwordMatch = await bcrypt.compare(dto.password, existing.passwordHash);
+      if (!passwordMatch) throw new ConflictException('Email already registered');
+
+      const freshUser = await this.prisma.user.findUnique({
+        where: { id: existing.id },
+        include: { company: { include: { kycDocuments: true } } },
+      });
+
+      const otpResult = await this.otpService.sendOtp(dto.email, existing.phone ?? undefined).catch(() => ({ emailSent: false, phoneSent: false }));
+      return {
+        ...this.buildResponse(freshUser ?? existing),
+        otp: otpResult,
+        resumed: true,
+        resumeStep: this.computeResumeStep(freshUser ?? existing),
+      };
+    }
+
     const hash = await bcrypt.hash(dto.password, 10);
     const user = await this.usersService.create({
       email: dto.email,
@@ -47,6 +70,13 @@ export class AuthService {
     // Re-fetch user so companyId is included in the response
     const freshUser = await this.prisma.user.findUnique({ where: { id: user.id }, include: { company: true } });
     return { ...this.buildResponse(freshUser ?? user), otp: otpResult };
+  }
+
+  private computeResumeStep(user: any): number {
+    if (!user?.company) return 1;
+    if (user.company.bankAccountNumber) return 4;
+    if (user.company.kycDocuments?.length > 0) return 3;
+    return 2;
   }
 
   async login(dto: LoginDto) {

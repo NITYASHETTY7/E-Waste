@@ -106,7 +106,7 @@ export default function OnboardingStep1() {
           </h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="md:col-span-2">
-              <label className="label">{effectiveRole === 'consumer' ? 'Full Name *' : 'Company / Organization Name *'}</label>
+              <label className="label">Company Name *</label>
               <input className={`input-base ${errors.companyName ? "ring-2 ring-red-400" : ""}`}
                 value={form.companyName} onChange={e => set("companyName", e.target.value)}
                 placeholder="e.g. Green Solutions Pvt Ltd" />

@@ -1,5 +1,5 @@
 import {
-  Controller, Get, Param, Patch, Body, Query, UseGuards, Request
+  Controller, Get, Param, Patch, Delete, Body, Query, UseGuards, Request
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -28,5 +28,10 @@ export class UsersController {
   @Patch(':id/company')
   linkCompany(@Param('id') id: string, @Body('companyId') companyId: string) {
     return this.usersService.linkToCompany(id, companyId);
+  }
+
+  @Delete('me')
+  deleteMe(@Request() req: any) {
+    return this.usersService.deleteMe(req.user.userId);
   }
 }

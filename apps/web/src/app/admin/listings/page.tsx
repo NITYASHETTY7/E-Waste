@@ -1,18 +1,22 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useApp } from "@/context/AppContext";
 import { useSearchParams } from "next/navigation";
 import DecisionModal from "@/components/admin/DecisionModal";
 import Link from "next/link";
 
 export default function AdminListings() {
-  const { listings, bids, updateListingStatus, users, assignVendor } = useApp();
+  const { listings, bids, updateListingStatus, uploadProcessedSheet } = useApp();
   const searchParams = useSearchParams();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "active" | "completed" | "pending" | "verified" | "live">("all");
+
   const [decisionModal, setDecisionModal] = useState<{ isOpen: boolean; listingId: string | null }>({ isOpen: false, listingId: null });
-  const [assignModal, setAssignModal] = useState<{ isOpen: boolean; listingId: string | null }>({ isOpen: false, listingId: null });
+  const [sheetModal, setSheetModal] = useState<{ isOpen: boolean; listingId: string | null }>({ isOpen: false, listingId: null });
+  const [sheetFile, setSheetFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (searchParams?.get("live") === "1") setFilter("live");
@@ -33,6 +37,18 @@ export default function AdminListings() {
     completed: listings.filter(l => l.status === "completed").length,
     pending: listings.filter(l => l.status === "pending").length,
     live: liveListing.length,
+  };
+
+  const handleSheetUpload = async () => {
+    if (!sheetModal.listingId || !sheetFile) return;
+    setUploading(true);
+    try {
+      await uploadProcessedSheet(sheetModal.listingId, sheetFile);
+    } finally {
+      setSheetModal({ isOpen: false, listingId: null });
+      setSheetFile(null);
+      setUploading(false);
+    }
   };
 
   return (
@@ -94,6 +110,9 @@ export default function AdminListings() {
             {filtered.map(listing => {
               const listingBids = bids.filter(b => b.listingId === listing.id);
               const topBid = listingBids.sort((a, b) => b.amount - a.amount)[0];
+              const needsSheet = listing.status === "pending" && listing.requirementStatus !== "client_review" && listing.requirementStatus !== "finalized";
+              const awaitingClientApproval = listing.requirementStatus === "client_review";
+
               return (
                 <tr key={listing.id} className="hover:bg-slate-50 transition-colors">
                   <td>
@@ -112,12 +131,17 @@ export default function AdminListings() {
                     </div>
                   </td>
                   <td>
-                    <span className={`pill ${listing.status === "active" ? "pill-success" : listing.status === "completed" ? "bg-blue-100 text-blue-700" : "pill-warning"}`}>
-                      {listing.status}
-                    </span>
+                    <div className="flex flex-col gap-1">
+                      <span className={`pill ${listing.status === "active" ? "pill-success" : listing.status === "completed" ? "bg-blue-100 text-blue-700" : "pill-warning"}`}>
+                        {listing.status}
+                      </span>
+                      {awaitingClientApproval && (
+                        <span className="text-[9px] font-bold text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full">Awaiting Client</span>
+                      )}
+                    </div>
                   </td>
                   <td>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
                       {listing.auctionPhase === "live" && (
                         <Link href={`/admin/auctions/${listing.id}/live`}
                           className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-600 hover:text-white transition-colors border border-purple-200" title="Observe Live Auction">
@@ -125,27 +149,43 @@ export default function AdminListings() {
                           Watch
                         </Link>
                       )}
-                      {listing.status === "pending" && (
-                        <button onClick={() => setDecisionModal({ isOpen: true, listingId: listing.id })}
-                          className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center hover:bg-emerald-600 hover:text-white transition-all" title="Review Listing">
+
+                      {/* Step 1 — Admin uploads processed/cleaned material sheet */}
+                      {needsSheet && (
+                        <button
+                          onClick={() => { setSheetModal({ isOpen: true, listingId: listing.id }); setSheetFile(null); }}
+                          className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-600 hover:text-white transition-all border border-blue-200"
+                          title="Upload processed/cleaned material list sheet"
+                        >
+                          <span className="material-symbols-outlined text-sm">upload_file</span>
+                          Upload Sheet
+                        </button>
+                      )}
+
+                      {/* Step 3 — Admin final approval (after client approves sheet) */}
+                      {listing.status === "pending" && listing.requirementStatus === "finalized" && (
+                        <button
+                          onClick={() => setDecisionModal({ isOpen: true, listingId: listing.id })}
+                          className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-600 hover:text-white transition-all border border-emerald-200"
+                          title="Review & Approve — triggers vendor invitation emails"
+                        >
                           <span className="material-symbols-outlined text-sm">fact_check</span>
+                          Review
                         </button>
                       )}
-                      {listing.status === "verified" && (
-                        <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-lg">Assigned</span>
-                      )}
-                      {(listing.status === "pending" || listing.status === "active") && (
-                        <button onClick={() => setAssignModal({ isOpen: true, listingId: listing.id })}
-                          className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all" title="Assign Vendor">
-                          <span className="material-symbols-outlined text-sm">person_add</span>
+
+                      {/* Fallback Review for listings without sheet flow */}
+                      {listing.status === "pending" && !listing.requirementStatus && (
+                        <button
+                          onClick={() => setDecisionModal({ isOpen: true, listingId: listing.id })}
+                          className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg hover:bg-emerald-600 hover:text-white transition-all border border-emerald-200"
+                          title="Review & Approve — triggers vendor invitation emails"
+                        >
+                          <span className="material-symbols-outlined text-sm">fact_check</span>
+                          Review
                         </button>
                       )}
-                      {listing.status === "active" && (
-                        <button onClick={() => updateListingStatus(listing.id, "completed")}
-                          className="text-xs font-bold px-3 py-1.5 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors dark:bg-slate-800 dark:text-slate-300">
-                          Complete
-                        </button>
-                      )}
+
                       {(listing.status !== "cancelled" && listing.status !== "rejected") && (
                         <button onClick={() => updateListingStatus(listing.id, "cancelled")}
                           className="w-8 h-8 rounded-lg bg-slate-50 text-slate-500 flex items-center justify-center hover:bg-red-500 hover:text-white transition-all dark:bg-slate-950" title="Cancel Listing">
@@ -164,15 +204,71 @@ export default function AdminListings() {
         </table>
       </div>
 
-      {/* Decision Modal */}
+      {/* Upload Processed Sheet Modal */}
+      {sheetModal.isOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-5">
+            <div>
+              <h3 className="text-xl font-headline font-extrabold text-slate-900 dark:text-white">Upload Processed Sheet</h3>
+              <p className="text-sm text-slate-500 mt-1">Upload the cleaned & standardised material list. Client will review and set target price.</p>
+            </div>
+
+            <div
+              onClick={() => fileRef.current?.click()}
+              className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${
+                sheetFile ? "border-emerald-400 bg-emerald-50" : "border-slate-200 hover:border-primary hover:bg-slate-50"
+              }`}
+            >
+              <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv,.pdf" className="hidden"
+                onChange={e => setSheetFile(e.target.files?.[0] || null)} />
+              {sheetFile ? (
+                <>
+                  <span className="material-symbols-outlined text-3xl text-emerald-600 block mb-2" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+                  <p className="font-bold text-emerald-700">{sheetFile.name}</p>
+                  <p className="text-xs text-slate-400 mt-1">{(sheetFile.size / 1024).toFixed(0)} KB</p>
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined text-4xl text-slate-300 block mb-2">upload_file</span>
+                  <p className="text-sm font-bold text-slate-500">Click to upload Excel / CSV / PDF</p>
+                  <p className="text-xs text-slate-400 mt-1">Processed material list sheet</p>
+                </>
+              )}
+            </div>
+
+            <div className="flex gap-3">
+              <button onClick={() => setSheetModal({ isOpen: false, listingId: null })}
+                className="flex-1 py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:border-slate-700">
+                Cancel
+              </button>
+              <button
+                onClick={handleSheetUpload}
+                disabled={!sheetFile || uploading}
+                className="flex-1 py-2.5 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {uploading
+                  ? <><span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>Uploading...</>
+                  : <><span className="material-symbols-outlined text-sm">cloud_upload</span>Upload & Notify Client</>
+                }
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Decision Modal — Approving sends sealed bid invitation emails to client-selected vendors */}
       {decisionModal.listingId && (
         <DecisionModal
           isOpen={decisionModal.isOpen}
           onClose={() => setDecisionModal({ isOpen: false, listingId: null })}
-          title="Listing Review"
+          title="Review Listing"
           itemDetails={[
             { label: "Listing", value: listings.find(l => l.id === decisionModal.listingId)?.title || "" },
-            { label: "Proposed Weight", value: `${listings.find(l => l.id === decisionModal.listingId)?.weight || 0} KG` }
+            { label: "Weight", value: `${listings.find(l => l.id === decisionModal.listingId)?.weight || 0} KG` },
+            {
+              label: "Selected Vendors",
+              value: `${listings.find(l => l.id === decisionModal.listingId)?.invitedVendorIds?.length ?? 0} vendor(s) — invitation emails sent automatically on approval`
+            },
           ]}
           onConfirm={(status, reason) => {
             if (decisionModal.listingId) {
@@ -181,55 +277,11 @@ export default function AdminListings() {
             }
           }}
           actions={[
-            { label: "Approve & Go Live", status: "active", color: "#1E8E3E" },
+            { label: "Approve — Send Sealed Bid Invitations", status: "active", color: "#1E8E3E" },
             { label: "Put on Hold", status: "on-hold", color: "#FFC107", requireReason: true },
             { label: "Reject Listing", status: "rejected", color: "#ef4444", requireReason: true }
           ]}
         />
-      )}
-
-      {/* Vendor Assignment Modal */}
-      {assignModal.isOpen && (
-        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setAssignModal({ isOpen: false, listingId: null })} />
-          <div className="relative bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl p-8 space-y-6 dark:bg-slate-900">
-            <div>
-              <h3 className="text-xl font-black text-slate-900 dark:text-white">Assign Vendor</h3>
-              <p className="text-sm text-slate-500 mt-1">Select a verified vendor to handle this request.</p>
-            </div>
-            
-            <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
-              {users.filter(u => u.role === 'vendor' && u.status === 'active').map(vendor => (
-                <button
-                  key={vendor.id}
-                  onClick={() => {
-                    if (assignModal.listingId) assignVendor(assignModal.listingId, vendor.id);
-                    setAssignModal({ isOpen: false, listingId: null });
-                  }}
-                  className="w-full flex items-center gap-4 p-4 rounded-2xl hover:bg-slate-50 border border-transparent hover:border-slate-100 transition-all text-left"
-                >
-                  <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center font-black text-blue-600">
-                    {vendor.name[0]}
-                  </div>
-                  <div>
-                    <p className="font-bold text-slate-900 dark:text-white">{vendor.name}</p>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-none mt-1">CPCB Verified</p>
-                  </div>
-                </button>
-              ))}
-              {users.filter(u => u.role === 'vendor' && u.status === 'active').length === 0 && (
-                <p className="text-center py-8 text-slate-400 italic text-sm">No verified vendors available.</p>
-              )}
-            </div>
-            
-            <button
-              onClick={() => setAssignModal({ isOpen: false, listingId: null })}
-              className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-black text-[10px] uppercase tracking-widest dark:bg-slate-800 dark:text-slate-400"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
       )}
     </div>
   );

@@ -18,7 +18,27 @@ export class RequirementsController {
     @UploadedFile() file: Express.Multer.File,
     @Request() req: any,
   ) {
-    return this.svc.create({ ...body, clientId: body.clientId || req.user.companyId, file });
+    // invitedVendorIds may come as a comma-separated string or a JSON array
+    let invitedVendorIds: string[] = [];
+    if (body.invitedVendorIds) {
+      try {
+        invitedVendorIds = typeof body.invitedVendorIds === 'string'
+          ? JSON.parse(body.invitedVendorIds)
+          : body.invitedVendorIds;
+      } catch {
+        invitedVendorIds = body.invitedVendorIds
+          .split(',')
+          .map((s: string) => s.trim())
+          .filter(Boolean);
+      }
+    }
+
+    return this.svc.create({
+      ...body,
+      clientId: body.clientId || req.user.companyId,
+      invitedVendorIds,
+      file,
+    });
   }
 
   @Get()
@@ -31,15 +51,23 @@ export class RequirementsController {
     return this.svc.findOne(id);
   }
 
+  // Admin uploads cleaned / standardised sheet
   @Post(':id/processed-sheet')
   @UseInterceptors(FileInterceptor('file'))
   uploadProcessed(@Param('id') id: string, @UploadedFile() file: Express.Multer.File) {
     return this.svc.uploadProcessedSheet(id, file);
   }
 
+  // Client approves the processed sheet with target price
   @Patch(':id/approve')
   clientApprove(@Param('id') id: string, @Body() body: any) {
     return this.svc.clientApprove(id, body);
+  }
+
+  // Admin approves the listing → creates auction + sends vendor emails
+  @Patch(':id/admin-approve')
+  adminApprove(@Param('id') id: string, @Request() req: any) {
+    return this.svc.adminApprove(id, req.user?.userId);
   }
 
   @Get(':id/download/:field')

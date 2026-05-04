@@ -13,13 +13,16 @@ exports.AuctionsService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
 const s3_service_1 = require("../s3/s3.service");
+const notification_service_1 = require("../notifications/notification.service");
 const client_1 = require("@prisma/client");
 let AuctionsService = class AuctionsService {
     prisma;
     s3;
-    constructor(prisma, s3) {
+    notifications;
+    constructor(prisma, s3, notifications) {
         this.prisma = prisma;
         this.s3 = s3;
+        this.notifications = notifications;
     }
     async findAllBids(auctionId) {
         return this.prisma.bid.findMany({
@@ -108,10 +111,24 @@ let AuctionsService = class AuctionsService {
         });
     }
     async selectWinner(id, vendorId) {
-        return this.prisma.auction.update({
+        const auction = await this.prisma.auction.update({
             where: { id },
             data: { winnerId: vendorId, status: client_1.AuctionStatus.COMPLETED },
+            include: {
+                client: true,
+                bids: {
+                    where: { vendorId },
+                    orderBy: { amount: 'desc' },
+                    take: 1,
+                    include: { vendor: { select: { id: true, name: true, email: true } } },
+                },
+            },
         });
+        const winningBid = auction.bids[0];
+        if (winningBid?.vendor?.email) {
+            await this.notifications.notifyAuctionWinner(winningBid.vendor.email, winningBid.vendor.name, auction.title, winningBid.amount, auction.client.name, auction.id).catch(() => { });
+        }
+        return auction;
     }
     async uploadFinalQuote(auctionId, file, type) {
         const { key, bucket } = await this.s3.upload(file, `final-quotes/${auctionId}`);
@@ -189,6 +206,7 @@ exports.AuctionsService = AuctionsService;
 exports.AuctionsService = AuctionsService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
-        s3_service_1.S3Service])
+        s3_service_1.S3Service,
+        notification_service_1.NotificationService])
 ], AuctionsService);
 //# sourceMappingURL=auctions.service.js.map

@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { S3Service } from '../s3/s3.service';
+import { NotificationService } from '../notifications/notification.service';
 import { AuctionStatus, BidPhase, DocumentType } from '@prisma/client';
 
 @Injectable()
@@ -8,6 +9,7 @@ export class AuctionsService {
   constructor(
     private prisma: PrismaService,
     private s3: S3Service,
+    private notifications: NotificationService,
   ) {}
 
   async findAllBids(auctionId?: string) {
@@ -132,10 +134,34 @@ export class AuctionsService {
   }
 
   async selectWinner(id: string, vendorId: string) {
-    return this.prisma.auction.update({
+    const auction = await this.prisma.auction.update({
       where: { id },
       data: { winnerId: vendorId, status: AuctionStatus.COMPLETED },
+      include: {
+        client: true,
+        bids: {
+          where: { vendorId },
+          orderBy: { amount: 'desc' },
+          take: 1,
+          include: { vendor: { select: { id: true, name: true, email: true } } },
+        },
+      },
     });
+
+    // Send winner email with full procedure
+    const winningBid = auction.bids[0];
+    if (winningBid?.vendor?.email) {
+      await this.notifications.notifyAuctionWinner(
+        winningBid.vendor.email,
+        winningBid.vendor.name,
+        auction.title,
+        winningBid.amount,
+        auction.client.name,
+        auction.id,
+      ).catch(() => {});
+    }
+
+    return auction;
   }
 
   async uploadFinalQuote(

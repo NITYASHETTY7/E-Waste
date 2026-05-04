@@ -10,11 +10,13 @@ exports.RequirementsModule = void 0;
 const common_1 = require("@nestjs/common");
 const requirements_service_1 = require("./requirements.service");
 const requirements_controller_1 = require("./requirements.controller");
+const notification_module_1 = require("../notifications/notification.module");
 let RequirementsModule = class RequirementsModule {
 };
 exports.RequirementsModule = RequirementsModule;
 exports.RequirementsModule = RequirementsModule = __decorate([
     (0, common_1.Module)({
+        imports: [notification_module_1.NotificationModule],
         controllers: [requirements_controller_1.RequirementsController],
         providers: [requirements_service_1.RequirementsService],
         exports: [requirements_service_1.RequirementsService],

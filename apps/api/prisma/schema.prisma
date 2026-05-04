@@ -33,20 +33,25 @@ model User {
 }
 
 model Company {
-  id               String            @id @default(cuid())
-  name             String
-  type             CompanyType
-  status           CompanyStatus     @default(PENDING)
-  gstNumber        String?
-  panNumber        String?
-  address          String?
-  city             String?
-  state            String?
-  pincode          String?
-  rating           Float?            @default(0)
-  ratingCount      Int               @default(0)
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
+  id                 String            @id @default(cuid())
+  name               String
+  type               CompanyType
+  status             CompanyStatus     @default(PENDING)
+  gstNumber          String?
+  panNumber          String?
+  address            String?
+  city               String?
+  state              String?
+  pincode            String?
+  rating             Float?            @default(0)
+  ratingCount        Int               @default(0)
+  bankAccountHolder  String?
+  bankName           String?
+  bankAccountNumber  String?
+  bankIfscCode       String?
+  bankAccountType    String?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
   auctions         Auction[]         @relation("ClientAuctions")
   wonAuctions      Auction[]         @relation("WinnerAuctions")
   auditInvitations AuditInvitation[] @relation("VendorAuditInvitations")
@@ -68,21 +73,29 @@ model KycDocument {
 }
 
 model Requirement {
-  id               String            @id @default(cuid())
-  title            String
-  description      String?
-  status           RequirementStatus @default(UPLOADED)
-  rawS3Key         String?
-  processedS3Key   String?
-  targetPrice      Float?
-  totalWeight      Float?
-  category         String?
-  clientId         String
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-  auction          Auction?
-  auditInvitations AuditInvitation[]
-  client           Company           @relation("ClientRequirements", fields: [clientId], references: [id])
+  id                String            @id @default(cuid())
+  title             String
+  description       String?
+  status            RequirementStatus @default(UPLOADED)
+  rawS3Key          String?
+  processedS3Key    String?
+  targetPrice       Float?
+  totalWeight       Float?
+  category          String?
+  clientId          String
+  // Vendor IDs (User.id) that the client selected to receive sealed bid invitations
+  invitedVendorIds  String[]          @default([])
+  // Sealed bid window set by client at listing creation
+  sealedPhaseStart  DateTime?
+  sealedPhaseEnd    DateTime?
+  // Admin approval tracking
+  adminApprovedAt   DateTime?
+  adminApprovedById String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  auction           Auction?
+  auditInvitations  AuditInvitation[]
+  client            Company           @relation("ClientRequirements", fields: [clientId], references: [id])
 }
 
 model AuditInvitation {
@@ -114,7 +127,7 @@ model AuditReport {
   updatedAt    DateTime        @updatedAt
   photos       AuditPhoto[]
   invitation   AuditInvitation @relation(fields: [invitationId], references: [id])
-  vendorUser   User?           @relation(fields: [vendorUserId], references: [id])
+  vendorUser   User?           @relation(fields: [vendorUserId], references: [id], onDelete: SetNull)
 }
 
 model AuditPhoto {
@@ -184,7 +197,7 @@ model Bid {
   priceSheetFileName String?
   createdAt          DateTime @default(now())
   auction            Auction  @relation(fields: [auctionId], references: [id])
-  vendor             User     @relation(fields: [vendorId], references: [id])
+  vendor             User     @relation(fields: [vendorId], references: [id], onDelete: Cascade)
 
   @@index([auctionId, amount])
 }
@@ -311,4 +324,22 @@ enum DocumentType {
   RECYCLING_CERTIFICATE
   DISPOSAL_CERTIFICATE
   AUDIT_GEO_PHOTO
+  CERTIFICATE_OF_INCORPORATION
+  COMPANY_PAN
+  DIRECTOR_PAN
+  AUTHORIZED_SIGNATORY_ID
+  BOARD_RESOLUTION
+  KYC_FORM
+  EMD_PROOF
+  TERMS_ACCEPTANCE
+  RECYCLER_LICENSE
+  FACTORY_LICENSE
+  BUSINESS_INSURANCE
+  VENDOR_ONBOARDING_FORM
+  AUTHORIZATION_LETTER
+  ADDRESS_PROOF
+  E_WASTE_DECLARATION
+  AADHAR_CARD
+  CANCELLED_CHEQUE
+  OTHER
 }

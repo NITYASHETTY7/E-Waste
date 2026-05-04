@@ -1,9 +1,11 @@
 import { PrismaService } from '../prisma/prisma.service';
 import { S3Service } from '../s3/s3.service';
+import { NotificationService } from '../notifications/notification.service';
 export declare class RequirementsService {
     private prisma;
     private s3;
-    constructor(prisma: PrismaService, s3: S3Service);
+    private notifications;
+    constructor(prisma: PrismaService, s3: S3Service, notifications: NotificationService);
     create(data: {
         title: string;
         description?: string;
@@ -11,6 +13,9 @@ export declare class RequirementsService {
         category?: string;
         totalWeight?: number;
         location?: string;
+        invitedVendorIds?: string[];
+        sealedPhaseStart?: string;
+        sealedPhaseEnd?: string;
         file?: Express.Multer.File;
     }): Promise<{
         client: {
@@ -28,6 +33,11 @@ export declare class RequirementsService {
             pincode: string | null;
             rating: number | null;
             ratingCount: number;
+            bankAccountHolder: string | null;
+            bankName: string | null;
+            bankAccountNumber: string | null;
+            bankIfscCode: string | null;
+            bankAccountType: string | null;
         };
     } & {
         id: string;
@@ -41,6 +51,11 @@ export declare class RequirementsService {
         targetPrice: number | null;
         totalWeight: number | null;
         category: string | null;
+        invitedVendorIds: string[];
+        sealedPhaseStart: Date | null;
+        sealedPhaseEnd: Date | null;
+        adminApprovedAt: Date | null;
+        adminApprovedById: string | null;
         clientId: string;
     }>;
     findAll(clientId?: string): Promise<({
@@ -65,20 +80,20 @@ export declare class RequirementsService {
             description: string | null;
             targetPrice: number | null;
             category: string;
+            sealedPhaseStart: Date | null;
+            sealedPhaseEnd: Date | null;
             clientId: string;
-            requirementId: string | null;
             basePrice: number;
             tickSize: number;
             maxTicks: number;
             extensionMinutes: number;
-            sealedPhaseStart: Date | null;
-            sealedPhaseEnd: Date | null;
             openPhaseStart: Date | null;
             openPhaseEnd: Date | null;
             extensionCount: number;
+            winnerId: string | null;
+            requirementId: string | null;
             quoteApproved: boolean | null;
             quoteRemarks: string | null;
-            winnerId: string | null;
         } | null;
         client: {
             users: {
@@ -99,6 +114,11 @@ export declare class RequirementsService {
             pincode: string | null;
             rating: number | null;
             ratingCount: number;
+            bankAccountHolder: string | null;
+            bankName: string | null;
+            bankAccountNumber: string | null;
+            bankIfscCode: string | null;
+            bankAccountType: string | null;
         };
     } & {
         id: string;
@@ -112,6 +132,11 @@ export declare class RequirementsService {
         targetPrice: number | null;
         totalWeight: number | null;
         category: string | null;
+        invitedVendorIds: string[];
+        sealedPhaseStart: Date | null;
+        sealedPhaseEnd: Date | null;
+        adminApprovedAt: Date | null;
+        adminApprovedById: string | null;
         clientId: string;
     })[]>;
     findOne(id: string): Promise<{
@@ -131,6 +156,11 @@ export declare class RequirementsService {
                 pincode: string | null;
                 rating: number | null;
                 ratingCount: number;
+                bankAccountHolder: string | null;
+                bankName: string | null;
+                bankAccountNumber: string | null;
+                bankIfscCode: string | null;
+                bankAccountType: string | null;
             };
             report: {
                 id: string;
@@ -163,20 +193,20 @@ export declare class RequirementsService {
             description: string | null;
             targetPrice: number | null;
             category: string;
+            sealedPhaseStart: Date | null;
+            sealedPhaseEnd: Date | null;
             clientId: string;
-            requirementId: string | null;
             basePrice: number;
             tickSize: number;
             maxTicks: number;
             extensionMinutes: number;
-            sealedPhaseStart: Date | null;
-            sealedPhaseEnd: Date | null;
             openPhaseStart: Date | null;
             openPhaseEnd: Date | null;
             extensionCount: number;
+            winnerId: string | null;
+            requirementId: string | null;
             quoteApproved: boolean | null;
             quoteRemarks: string | null;
-            winnerId: string | null;
         } | null;
         client: {
             id: string;
@@ -193,6 +223,11 @@ export declare class RequirementsService {
             pincode: string | null;
             rating: number | null;
             ratingCount: number;
+            bankAccountHolder: string | null;
+            bankName: string | null;
+            bankAccountNumber: string | null;
+            bankIfscCode: string | null;
+            bankAccountType: string | null;
         };
     } & {
         id: string;
@@ -206,6 +241,11 @@ export declare class RequirementsService {
         targetPrice: number | null;
         totalWeight: number | null;
         category: string | null;
+        invitedVendorIds: string[];
+        sealedPhaseStart: Date | null;
+        sealedPhaseEnd: Date | null;
+        adminApprovedAt: Date | null;
+        adminApprovedById: string | null;
         clientId: string;
     }>;
     uploadProcessedSheet(id: string, file: Express.Multer.File): Promise<{
@@ -220,6 +260,11 @@ export declare class RequirementsService {
         targetPrice: number | null;
         totalWeight: number | null;
         category: string | null;
+        invitedVendorIds: string[];
+        sealedPhaseStart: Date | null;
+        sealedPhaseEnd: Date | null;
+        adminApprovedAt: Date | null;
+        adminApprovedById: string | null;
         clientId: string;
     }>;
     clientApprove(id: string, data: {
@@ -238,7 +283,57 @@ export declare class RequirementsService {
         targetPrice: number | null;
         totalWeight: number | null;
         category: string | null;
+        invitedVendorIds: string[];
+        sealedPhaseStart: Date | null;
+        sealedPhaseEnd: Date | null;
+        adminApprovedAt: Date | null;
+        adminApprovedById: string | null;
         clientId: string;
+    }>;
+    adminApprove(id: string, adminUserId?: string): Promise<{
+        requirement: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            status: import("@prisma/client").$Enums.RequirementStatus;
+            title: string;
+            description: string | null;
+            rawS3Key: string | null;
+            processedS3Key: string | null;
+            targetPrice: number | null;
+            totalWeight: number | null;
+            category: string | null;
+            invitedVendorIds: string[];
+            sealedPhaseStart: Date | null;
+            sealedPhaseEnd: Date | null;
+            adminApprovedAt: Date | null;
+            adminApprovedById: string | null;
+            clientId: string;
+        };
+        auction: {
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            status: import("@prisma/client").$Enums.AuctionStatus;
+            title: string;
+            description: string | null;
+            targetPrice: number | null;
+            category: string;
+            sealedPhaseStart: Date | null;
+            sealedPhaseEnd: Date | null;
+            clientId: string;
+            basePrice: number;
+            tickSize: number;
+            maxTicks: number;
+            extensionMinutes: number;
+            openPhaseStart: Date | null;
+            openPhaseEnd: Date | null;
+            extensionCount: number;
+            winnerId: string | null;
+            requirementId: string | null;
+            quoteApproved: boolean | null;
+            quoteRemarks: string | null;
+        };
     }>;
     getSignedUrl(id: string, field: 'raw' | 'processed'): Promise<{
         url: string;

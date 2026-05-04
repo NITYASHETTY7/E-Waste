@@ -15,7 +15,18 @@ export declare class PickupsService {
         paymentId: string | null;
         scheduledDate: Date | null;
     }>;
-    findAll(status?: PickupStatus): Promise<({
+    findAll(status?: PickupStatus): Promise<{
+        pickupDocs: {
+            signedUrl: string;
+            id: string;
+            type: import("@prisma/client").$Enums.DocumentType;
+            s3Key: string;
+            s3Bucket: string;
+            fileName: string;
+            mimeType: string | null;
+            uploadedAt: Date;
+            pickupId: string;
+        }[];
         auction: {
             client: {
                 id: string;
@@ -32,6 +43,11 @@ export declare class PickupsService {
                 pincode: string | null;
                 rating: number | null;
                 ratingCount: number;
+                bankAccountHolder: string | null;
+                bankName: string | null;
+                bankAccountNumber: string | null;
+                bankIfscCode: string | null;
+                bankAccountType: string | null;
             };
             winner: {
                 id: string;
@@ -48,6 +64,11 @@ export declare class PickupsService {
                 pincode: string | null;
                 rating: number | null;
                 ratingCount: number;
+                bankAccountHolder: string | null;
+                bankName: string | null;
+                bankAccountNumber: string | null;
+                bankIfscCode: string | null;
+                bankAccountType: string | null;
             } | null;
         } & {
             id: string;
@@ -58,32 +79,21 @@ export declare class PickupsService {
             description: string | null;
             targetPrice: number | null;
             category: string;
+            sealedPhaseStart: Date | null;
+            sealedPhaseEnd: Date | null;
             clientId: string;
-            requirementId: string | null;
             basePrice: number;
             tickSize: number;
             maxTicks: number;
             extensionMinutes: number;
-            sealedPhaseStart: Date | null;
-            sealedPhaseEnd: Date | null;
             openPhaseStart: Date | null;
             openPhaseEnd: Date | null;
             extensionCount: number;
+            winnerId: string | null;
+            requirementId: string | null;
             quoteApproved: boolean | null;
             quoteRemarks: string | null;
-            winnerId: string | null;
         };
-        pickupDocs: {
-            id: string;
-            type: import("@prisma/client").$Enums.DocumentType;
-            s3Key: string;
-            s3Bucket: string;
-            fileName: string;
-            mimeType: string | null;
-            uploadedAt: Date;
-            pickupId: string;
-        }[];
-    } & {
         id: string;
         createdAt: Date;
         updatedAt: Date;
@@ -92,7 +102,7 @@ export declare class PickupsService {
         adminNotes: string | null;
         paymentId: string | null;
         scheduledDate: Date | null;
-    })[]>;
+    }[]>;
     findOne(id: string): Promise<{
         pickupDocs: {
             signedUrl: string;
@@ -121,6 +131,11 @@ export declare class PickupsService {
                 pincode: string | null;
                 rating: number | null;
                 ratingCount: number;
+                bankAccountHolder: string | null;
+                bankName: string | null;
+                bankAccountNumber: string | null;
+                bankIfscCode: string | null;
+                bankAccountType: string | null;
             };
             winner: {
                 id: string;
@@ -137,6 +152,11 @@ export declare class PickupsService {
                 pincode: string | null;
                 rating: number | null;
                 ratingCount: number;
+                bankAccountHolder: string | null;
+                bankName: string | null;
+                bankAccountNumber: string | null;
+                bankIfscCode: string | null;
+                bankAccountType: string | null;
             } | null;
         } & {
             id: string;
@@ -147,20 +167,20 @@ export declare class PickupsService {
             description: string | null;
             targetPrice: number | null;
             category: string;
+            sealedPhaseStart: Date | null;
+            sealedPhaseEnd: Date | null;
             clientId: string;
-            requirementId: string | null;
             basePrice: number;
             tickSize: number;
             maxTicks: number;
             extensionMinutes: number;
-            sealedPhaseStart: Date | null;
-            sealedPhaseEnd: Date | null;
             openPhaseStart: Date | null;
             openPhaseEnd: Date | null;
             extensionCount: number;
+            winnerId: string | null;
+            requirementId: string | null;
             quoteApproved: boolean | null;
             quoteRemarks: string | null;
-            winnerId: string | null;
         };
         payment: {
             id: string;

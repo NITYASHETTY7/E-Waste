@@ -1,8 +1,9 @@
 "use client";
 
 import { useApp } from "@/context/AppContext";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
+import { useState, useRef, useEffect } from "react";
 
 const PAGE_TITLES: Record<string, string> = {
   "/admin/dashboard": "Master Dashboard",
@@ -29,12 +30,47 @@ const PAGE_TITLES: Record<string, string> = {
 };
 
 export default function TopBar() {
-  const { currentUser, notifications, setIsSidebarOpen, isSidebarCollapsed, setIsSidebarCollapsed } = useApp();
+  const { currentUser, notifications, setIsSidebarOpen, isSidebarCollapsed, setIsSidebarCollapsed, logout, deleteAccount } = useApp();
   const pathname = usePathname();
+  const router = useRouter();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const title = PAGE_TITLES[pathname] || "We Connect";
   const unread = (notifications || []).filter(n => n.userId === currentUser?.id && !n.read).length;
   const role = currentUser?.role || "client";
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setMenuOpen(false);
+        setConfirmDelete(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  const handleLogout = () => {
+    logout();
+    router.push("/get-started");
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeleting(true);
+    try {
+      await deleteAccount();
+      router.push("/get-started");
+    } finally {
+      setDeleting(false);
+      setConfirmDelete(false);
+      setMenuOpen(false);
+    }
+  };
+
+  const profileHref = role === "admin" ? "/admin/settings" : role === "vendor" ? "/vendor/profile" : "/client/profile";
 
   return (
     <header className="h-20 flex items-center justify-between px-4 md:px-8 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800 sticky top-0 z-40 transition-colors duration-300">
@@ -103,18 +139,79 @@ export default function TopBar() {
         </button>
 
         {/* User Profile */}
-        <div className="flex items-center gap-3 pl-2 md:pl-4 border-l border-slate-200 dark:border-slate-800 h-10 ml-2">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-primary to-emerald-400 flex items-center justify-center font-black text-sm text-white shadow-md">
-            {(currentUser?.name || "U")[0]}
-          </div>
-          <div className="hidden lg:block text-left">
-            <p className="text-sm font-bold text-slate-900 dark:text-white leading-none mb-0.5">
-              {currentUser?.name || "Admin"}
-            </p>
-            <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">
-              {role === 'admin' ? 'Super Admin' : role}
-            </p>
-          </div>
+        <div ref={menuRef} className="relative flex items-center gap-3 pl-2 md:pl-4 border-l border-slate-200 dark:border-slate-800 h-10 ml-2">
+          <button
+            onClick={() => { setMenuOpen(o => !o); setConfirmDelete(false); }}
+            className="flex items-center gap-3 rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 px-2 py-1 -mx-2 -my-1 transition-colors"
+          >
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-primary to-emerald-400 flex items-center justify-center font-black text-sm text-white shadow-md">
+              {(currentUser?.name || "U")[0]}
+            </div>
+            <div className="hidden lg:block text-left">
+              <p className="text-sm font-bold text-slate-900 dark:text-white leading-none mb-0.5">
+                {currentUser?.name || "Admin"}
+              </p>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">
+                {role === 'admin' ? 'Super Admin' : role}
+              </p>
+            </div>
+            <span className="material-symbols-outlined text-slate-400 text-base hidden lg:block">expand_more</span>
+          </button>
+
+          {menuOpen && (
+            <div className="absolute right-0 top-14 w-56 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-xl z-50 overflow-hidden">
+              <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800">
+                <p className="text-sm font-bold text-slate-900 dark:text-white truncate">{currentUser?.name}</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{currentUser?.email}</p>
+              </div>
+              <div className="p-2">
+                <Link
+                  href={profileHref}
+                  onClick={() => setMenuOpen(false)}
+                  className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                >
+                  <span className="material-symbols-outlined text-base text-slate-500">manage_accounts</span>
+                  My Profile
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                >
+                  <span className="material-symbols-outlined text-base text-slate-500">logout</span>
+                  Sign Out
+                </button>
+                <div className="my-1 border-t border-slate-100 dark:border-slate-800" />
+                {!confirmDelete ? (
+                  <button
+                    onClick={() => setConfirmDelete(true)}
+                    className="flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-base">delete_forever</span>
+                    Delete Account
+                  </button>
+                ) : (
+                  <div className="px-3 py-2">
+                    <p className="text-xs text-slate-600 dark:text-slate-400 mb-2 font-medium">This is permanent. Are you sure?</p>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setConfirmDelete(false)}
+                        className="flex-1 py-1.5 rounded-lg text-xs font-bold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={handleDeleteAccount}
+                        disabled={deleting}
+                        className="flex-1 py-1.5 rounded-lg text-xs font-bold bg-red-600 text-white hover:bg-red-700 transition-colors disabled:opacity-60"
+                      >
+                        {deleting ? "Deleting..." : "Delete"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </header>

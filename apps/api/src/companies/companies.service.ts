@@ -33,7 +33,7 @@ export class CompaniesService {
   }
 
   async findAll(type?: CompanyType, status?: CompanyStatus) {
-    return this.prisma.company.findMany({
+    const companies = await this.prisma.company.findMany({
       where: {
         ...(type && { type }),
         ...(status && { status }),
@@ -43,6 +43,18 @@ export class CompaniesService {
         kycDocuments: true,
       },
     });
+
+    return Promise.all(
+      companies.map(async (company) => {
+        const docs = await Promise.all(
+          company.kycDocuments.map(async (doc) => ({
+            ...doc,
+            signedUrl: await this.s3.getSignedUrl(doc.s3Key, doc.s3Bucket),
+          })),
+        );
+        return { ...company, kycDocuments: docs };
+      }),
+    );
   }
 
   async findOne(id: string) {
@@ -91,6 +103,11 @@ export class CompaniesService {
         companyId,
       },
     });
+  }
+
+  async getSignedUrl(s3Key: string, s3Bucket?: string) {
+    const url = await this.s3.getSignedUrl(s3Key, s3Bucket);
+    return { url };
   }
 
   async updateRating(vendorId: string, newRating: number) {

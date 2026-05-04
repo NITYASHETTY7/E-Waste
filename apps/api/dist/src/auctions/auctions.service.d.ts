@@ -1,10 +1,12 @@
 import { PrismaService } from '../prisma/prisma.service';
 import { S3Service } from '../s3/s3.service';
+import { NotificationService } from '../notifications/notification.service';
 import { AuctionStatus } from '@prisma/client';
 export declare class AuctionsService {
     private prisma;
     private s3;
-    constructor(prisma: PrismaService, s3: S3Service);
+    private notifications;
+    constructor(prisma: PrismaService, s3: S3Service, notifications: NotificationService);
     findAllBids(auctionId?: string): Promise<({
         vendor: {
             id: string;
@@ -43,20 +45,20 @@ export declare class AuctionsService {
         description: string | null;
         targetPrice: number | null;
         category: string;
+        sealedPhaseStart: Date | null;
+        sealedPhaseEnd: Date | null;
         clientId: string;
-        requirementId: string | null;
         basePrice: number;
         tickSize: number;
         maxTicks: number;
         extensionMinutes: number;
-        sealedPhaseStart: Date | null;
-        sealedPhaseEnd: Date | null;
         openPhaseStart: Date | null;
         openPhaseEnd: Date | null;
         extensionCount: number;
+        winnerId: string | null;
+        requirementId: string | null;
         quoteApproved: boolean | null;
         quoteRemarks: string | null;
-        winnerId: string | null;
     }>;
     findAll(status?: AuctionStatus, clientId?: string): Promise<({
         bids: {
@@ -87,6 +89,11 @@ export declare class AuctionsService {
             pincode: string | null;
             rating: number | null;
             ratingCount: number;
+            bankAccountHolder: string | null;
+            bankName: string | null;
+            bankAccountNumber: string | null;
+            bankIfscCode: string | null;
+            bankAccountType: string | null;
         };
         winner: {
             id: string;
@@ -103,6 +110,11 @@ export declare class AuctionsService {
             pincode: string | null;
             rating: number | null;
             ratingCount: number;
+            bankAccountHolder: string | null;
+            bankName: string | null;
+            bankAccountNumber: string | null;
+            bankIfscCode: string | null;
+            bankAccountType: string | null;
         } | null;
     } & {
         id: string;
@@ -113,20 +125,20 @@ export declare class AuctionsService {
         description: string | null;
         targetPrice: number | null;
         category: string;
+        sealedPhaseStart: Date | null;
+        sealedPhaseEnd: Date | null;
         clientId: string;
-        requirementId: string | null;
         basePrice: number;
         tickSize: number;
         maxTicks: number;
         extensionMinutes: number;
-        sealedPhaseStart: Date | null;
-        sealedPhaseEnd: Date | null;
         openPhaseStart: Date | null;
         openPhaseEnd: Date | null;
         extensionCount: number;
+        winnerId: string | null;
+        requirementId: string | null;
         quoteApproved: boolean | null;
         quoteRemarks: string | null;
-        winnerId: string | null;
     })[]>;
     findOne(id: string): Promise<{
         bids: ({
@@ -172,6 +184,11 @@ export declare class AuctionsService {
             pincode: string | null;
             rating: number | null;
             ratingCount: number;
+            bankAccountHolder: string | null;
+            bankName: string | null;
+            bankAccountNumber: string | null;
+            bankIfscCode: string | null;
+            bankAccountType: string | null;
         };
         winner: {
             id: string;
@@ -188,6 +205,11 @@ export declare class AuctionsService {
             pincode: string | null;
             rating: number | null;
             ratingCount: number;
+            bankAccountHolder: string | null;
+            bankName: string | null;
+            bankAccountNumber: string | null;
+            bankIfscCode: string | null;
+            bankAccountType: string | null;
         } | null;
         auctionDocs: {
             id: string;
@@ -208,20 +230,20 @@ export declare class AuctionsService {
         description: string | null;
         targetPrice: number | null;
         category: string;
+        sealedPhaseStart: Date | null;
+        sealedPhaseEnd: Date | null;
         clientId: string;
-        requirementId: string | null;
         basePrice: number;
         tickSize: number;
         maxTicks: number;
         extensionMinutes: number;
-        sealedPhaseStart: Date | null;
-        sealedPhaseEnd: Date | null;
         openPhaseStart: Date | null;
         openPhaseEnd: Date | null;
         extensionCount: number;
+        winnerId: string | null;
+        requirementId: string | null;
         quoteApproved: boolean | null;
         quoteRemarks: string | null;
-        winnerId: string | null;
     }>;
     schedule(id: string, data: {
         sealedPhaseStart: string;
@@ -240,20 +262,20 @@ export declare class AuctionsService {
         description: string | null;
         targetPrice: number | null;
         category: string;
+        sealedPhaseStart: Date | null;
+        sealedPhaseEnd: Date | null;
         clientId: string;
-        requirementId: string | null;
         basePrice: number;
         tickSize: number;
         maxTicks: number;
         extensionMinutes: number;
-        sealedPhaseStart: Date | null;
-        sealedPhaseEnd: Date | null;
         openPhaseStart: Date | null;
         openPhaseEnd: Date | null;
         extensionCount: number;
+        winnerId: string | null;
+        requirementId: string | null;
         quoteApproved: boolean | null;
         quoteRemarks: string | null;
-        winnerId: string | null;
     }>;
     submitSealedBid(auctionId: string, vendorId: string, amount: number, file?: Express.Multer.File, remarks?: string): Promise<{
         id: string;
@@ -269,6 +291,47 @@ export declare class AuctionsService {
         priceSheetFileName: string | null;
     }>;
     selectWinner(id: string, vendorId: string): Promise<{
+        bids: ({
+            vendor: {
+                id: string;
+                email: string;
+                name: string;
+            };
+        } & {
+            id: string;
+            createdAt: Date;
+            vendorId: string;
+            remarks: string | null;
+            amount: number;
+            phase: import("@prisma/client").$Enums.BidPhase;
+            rank: number | null;
+            auctionId: string;
+            priceSheetS3Key: string | null;
+            priceSheetS3Bucket: string | null;
+            priceSheetFileName: string | null;
+        })[];
+        client: {
+            id: string;
+            name: string;
+            createdAt: Date;
+            updatedAt: Date;
+            type: import("@prisma/client").$Enums.CompanyType;
+            status: import("@prisma/client").$Enums.CompanyStatus;
+            gstNumber: string | null;
+            panNumber: string | null;
+            address: string | null;
+            city: string | null;
+            state: string | null;
+            pincode: string | null;
+            rating: number | null;
+            ratingCount: number;
+            bankAccountHolder: string | null;
+            bankName: string | null;
+            bankAccountNumber: string | null;
+            bankIfscCode: string | null;
+            bankAccountType: string | null;
+        };
+    } & {
         id: string;
         createdAt: Date;
         updatedAt: Date;
@@ -277,20 +340,20 @@ export declare class AuctionsService {
         description: string | null;
         targetPrice: number | null;
         category: string;
+        sealedPhaseStart: Date | null;
+        sealedPhaseEnd: Date | null;
         clientId: string;
-        requirementId: string | null;
         basePrice: number;
         tickSize: number;
         maxTicks: number;
         extensionMinutes: number;
-        sealedPhaseStart: Date | null;
-        sealedPhaseEnd: Date | null;
         openPhaseStart: Date | null;
         openPhaseEnd: Date | null;
         extensionCount: number;
+        winnerId: string | null;
+        requirementId: string | null;
         quoteApproved: boolean | null;
         quoteRemarks: string | null;
-        winnerId: string | null;
     }>;
     uploadFinalQuote(auctionId: string, file: Express.Multer.File, type: 'FINAL_QUOTE' | 'LETTERHEAD_QUOTATION'): Promise<{
         id: string;
@@ -326,19 +389,19 @@ export declare class AuctionsService {
             description: string | null;
             targetPrice: number | null;
             category: string;
+            sealedPhaseStart: Date | null;
+            sealedPhaseEnd: Date | null;
             clientId: string;
-            requirementId: string | null;
             basePrice: number;
             tickSize: number;
             maxTicks: number;
             extensionMinutes: number;
-            sealedPhaseStart: Date | null;
-            sealedPhaseEnd: Date | null;
             openPhaseStart: Date | null;
             openPhaseEnd: Date | null;
             extensionCount: number;
-            quoteRemarks: string | null;
             winnerId: string | null;
+            requirementId: string | null;
+            quoteRemarks: string | null;
         };
         payment: {
             id: string;
@@ -364,20 +427,20 @@ export declare class AuctionsService {
         description: string | null;
         targetPrice: number | null;
         category: string;
+        sealedPhaseStart: Date | null;
+        sealedPhaseEnd: Date | null;
         clientId: string;
-        requirementId: string | null;
         basePrice: number;
         tickSize: number;
         maxTicks: number;
         extensionMinutes: number;
-        sealedPhaseStart: Date | null;
-        sealedPhaseEnd: Date | null;
         openPhaseStart: Date | null;
         openPhaseEnd: Date | null;
         extensionCount: number;
+        winnerId: string | null;
+        requirementId: string | null;
         quoteApproved: boolean | null;
         quoteRemarks: string | null;
-        winnerId: string | null;
     }>;
     updateStatus(id: string, status: AuctionStatus): Promise<{
         id: string;
@@ -388,20 +451,20 @@ export declare class AuctionsService {
         description: string | null;
         targetPrice: number | null;
         category: string;
+        sealedPhaseStart: Date | null;
+        sealedPhaseEnd: Date | null;
         clientId: string;
-        requirementId: string | null;
         basePrice: number;
         tickSize: number;
         maxTicks: number;
         extensionMinutes: number;
-        sealedPhaseStart: Date | null;
-        sealedPhaseEnd: Date | null;
         openPhaseStart: Date | null;
         openPhaseEnd: Date | null;
         extensionCount: number;
+        winnerId: string | null;
+        requirementId: string | null;
         quoteApproved: boolean | null;
         quoteRemarks: string | null;
-        winnerId: string | null;
     }>;
     transitionPhases(): Promise<void>;
     extendTimer(id: string): Promise<{
@@ -413,19 +476,19 @@ export declare class AuctionsService {
         description: string | null;
         targetPrice: number | null;
         category: string;
+        sealedPhaseStart: Date | null;
+        sealedPhaseEnd: Date | null;
         clientId: string;
-        requirementId: string | null;
         basePrice: number;
         tickSize: number;
         maxTicks: number;
         extensionMinutes: number;
-        sealedPhaseStart: Date | null;
-        sealedPhaseEnd: Date | null;
         openPhaseStart: Date | null;
         openPhaseEnd: Date | null;
         extensionCount: number;
+        winnerId: string | null;
+        requirementId: string | null;
         quoteApproved: boolean | null;
         quoteRemarks: string | null;
-        winnerId: string | null;
     }>;
 }

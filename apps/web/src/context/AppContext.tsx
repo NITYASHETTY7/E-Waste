@@ -8,16 +8,16 @@ import axios from 'axios';
 interface AppContextType extends AppState {
   login: (role: UserRole, email: string, password?: string) => Promise<void>;
   logout: () => void;
-  register: (role: UserRole, name: string, email: string, password?: string, phone?: string) => Promise<{ devEmailOtp?: string; devPhoneOtp?: string }>;
+  register: (role: UserRole, name: string, email: string, password?: string, phone?: string) => Promise<{ devEmailOtp?: string; devPhoneOtp?: string; resumed?: boolean; resumeStep?: number }>;
   startOnboarding: (role: 'client' | 'vendor' | 'consumer', email: string, password: string) => void;
   saveOnboardingProfile: (profile: OnboardingProfile) => Promise<void>;
-  saveOnboardingDocuments: (docs: UploadedDoc[]) => void;
-  saveOnboardingBankDetails: (bank: BankDetails) => void;
+  saveOnboardingDocuments: (docs: UploadedDoc[]) => Promise<void>;
+  saveOnboardingBankDetails: (bank: BankDetails, chequeFile?: File) => Promise<void>;
   completeOnboarding: () => Promise<void>;
   addListing: (listing: Omit<Listing, 'id' | 'createdAt' | 'status'>) => void;
   addBid: (listingId: string, amount: number, remarks?: string) => Promise<void>;
-  updateListingStatus: (id: string, status: Listing['status'], reason?: string) => void;
-  updateAuctionPhase: (id: string, phase: Listing['auctionPhase']) => void;
+  updateListingStatus: (id: string, status: Listing['status'], reason?: string) => Promise<void>;
+  updateAuctionPhase: (id: string, phase: Listing['auctionPhase']) => Promise<void>;
   updateBidStatus: (id: string, status: Bid['status'], reason?: string) => void;
   updateUserStatus: (id: string, status: User['status'], reason?: string) => Promise<void>;
   assignVendor: (listingId: string, vendorId: string) => void;
@@ -27,7 +27,7 @@ interface AppContextType extends AppState {
   editListing: (id: string, updates: Partial<Listing>) => void;
   editBid: (id: string, updates: Partial<Bid>) => void;
   respondToInvitation: (invitationId: string, status: 'ACCEPTED' | 'REJECTED') => Promise<void>;
-  transitionAuctionPhase: (listingId: string, nextPhase: Listing['auctionPhase']) => void;
+  transitionAuctionPhase: (listingId: string, nextPhase: Listing['auctionPhase']) => Promise<void>;
   addClosingDocument: (listingId: string, doc: { name: string; url: string; type: string; timestamp: string }) => void;
   updateUserProfile: (updates: Partial<User>) => void;
   // Audit flow
@@ -39,17 +39,20 @@ interface AppContextType extends AppState {
   submitFinalQuote: (listingId: string, productQuoteUrl: string, letterheadUrl: string) => void;
   approveFinalQuote: (listingId: string) => void;
   rejectFinalQuote: (listingId: string, remarks: string) => void;
+  // Requirement sheet flow
+  uploadProcessedSheet: (listingId: string, file: File) => Promise<void>;
+  approveRequirement: (listingId: string, targetPrice: number, totalWeight?: number) => Promise<void>;
   // Payment flow
-  submitPaymentProof: (listingId: string, proofUrl: string, utrNumber: string) => void;
+  submitPaymentProof: (listingId: string, file: File, utrNumber: string) => Promise<void>;
   confirmPayment: (listingId: string) => void;
   // Compliance flow
-  submitComplianceDocs: (listingId: string, docs: Partial<Listing>) => void;
+  submitComplianceDocs: (listingId: string, files: Record<string, File | null>, pickupDate?: string) => Promise<void>;
   verifyCompliance: (listingId: string) => void;
   // Rating flow
   vendorRatings: VendorRating[];
   rateVendor: (listingId: string, vendorId: string, vendorName: string, rating: number, auditR: number, timelinessR: number, complianceR: number, comment: string) => void;
   changePassword: (newPassword: string) => void;
-  deleteAccount: () => void;
+  deleteAccount: () => Promise<void>;
   isSidebarOpen: boolean;
   setIsSidebarOpen: (open: boolean) => void;
   isSidebarCollapsed: boolean;
@@ -526,6 +529,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       auctionPhase = rawPhase;
     }
 
+    const statusMap: Record<string, Listing['requirementStatus']> = {
+      UPLOADED: 'pending',
+      PROCESSING: 'processing',
+      CLIENT_REVIEW: 'client_review',
+      FINALIZED: 'finalized',
+    };
+
     return {
       id: req.id,
       title: req.title,
@@ -533,7 +543,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       category: req.category || req.auction?.category || 'General',
       weight: req.totalWeight || req.auction?.totalWeight || 0,
       location: req.client?.city || 'Unknown',
-      // userId: use the first user in the company, or fall back to clientId so client's own listings appear
       userId: req.client?.users?.[0]?.id || req.clientId,
       userName: req.client?.name,
       createdAt: req.createdAt,
@@ -541,6 +550,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       status: req.status === 'FINALIZED' ? 'active' : 'pending',
       targetPrice: req.targetPrice,
       basePrice: req.auction?.basePrice,
+      requirementId: req.id,
+      requirementStatus: statusMap[req.status] ?? undefined,
+      processedSheetUrl: req.processedS3Key ? undefined : undefined, // signed URL fetched on demand
+      invitedVendorIds: req.invitedVendorIds ?? [],
+      sealedBidStartDate: req.sealedPhaseStart,
+      sealedBidEndDate: req.sealedPhaseEnd,
     } as Listing;
   };
 
@@ -648,10 +663,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const register = async (role: UserRole, name: string, email: string, password?: string, phone?: string): Promise<{ devEmailOtp?: string; devPhoneOtp?: string }> => {
+  const register = async (role: UserRole, name: string, email: string, password?: string, phone?: string): Promise<{ devEmailOtp?: string; devPhoneOtp?: string; resumed?: boolean; resumeStep?: number }> => {
     try {
       const res = await api.post('/auth/register', { name, email, password, role, phone });
-      const { access_token, otp } = res.data;
+      const { access_token, otp, resumed, resumeStep } = res.data;
       localStorage.setItem('ecoloop_token', access_token);
 
       const profileRes = await api.get('/auth/profile');
@@ -660,11 +675,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setState(prev => ({
         ...prev,
         currentUser: user,
-        users: [...prev.users, user]
+        users: resumed ? prev.users.map(u => u.id === user.id ? user : u) : [...prev.users, user],
       }));
 
       await fetchAllData();
-      return { devEmailOtp: otp?.devEmailOtp, devPhoneOtp: otp?.devPhoneOtp };
+      return { devEmailOtp: otp?.devEmailOtp, devPhoneOtp: otp?.devPhoneOtp, resumed, resumeStep };
     } catch (error) {
       console.error('Registration failed', error);
       throw error;
@@ -735,9 +750,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const saveOnboardingDocuments = async (docs: UploadedDoc[]) => {
-    // In a real app, we'd upload these one by one or as a batch.
-    // For now, we'll assume they're already uploaded to S3 via some other mechanism or just update state.
-    // Actually, I should probably implement the S3 upload here if I want it to be "complete".
+    const companyId = state.currentUser?.companyId;
+    if (companyId) {
+      await Promise.allSettled(
+        docs.filter(d => d._rawFile).map(async (doc) => {
+          const { DOC_KEY_TO_TYPE } = await import('@/types');
+          const docType = DOC_KEY_TO_TYPE[doc.name] || 'OTHER';
+          const fd = new FormData();
+          fd.append('file', doc._rawFile!);
+          fd.append('type', docType);
+          await api.post(`/companies/${companyId}/documents`, fd, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+          });
+        }),
+      );
+    }
     setState(prev => {
       if (!prev.currentUser) return prev;
       const updated = { ...prev.currentUser, documents: docs, onboardingStep: 3 };
@@ -745,7 +772,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
-  const saveOnboardingBankDetails = (bank: BankDetails) => {
+  const saveOnboardingBankDetails = async (bank: BankDetails, chequeFile?: File) => {
+    const companyId = state.currentUser?.companyId;
+    if (companyId) {
+      try {
+        await api.patch(`/companies/${companyId}`, {
+          bankAccountHolder: bank.accountHolderName,
+          bankName: bank.bankName,
+          bankAccountNumber: bank.accountNumber,
+          bankIfscCode: bank.ifscCode,
+          bankAccountType: bank.accountType,
+        });
+        if (chequeFile) {
+          const fd = new FormData();
+          fd.append('file', chequeFile);
+          fd.append('type', 'CANCELLED_CHEQUE');
+          await api.post(`/companies/${companyId}/documents`, fd, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+          });
+        }
+      } catch (e) {
+        console.error('Failed to persist bank details to API', e);
+      }
+    }
     setState(prev => {
       if (!prev.currentUser) return prev;
       const updated = { ...prev.currentUser, bankDetails: bank, onboardingStep: 4 };
@@ -792,14 +841,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setState(prev => ({ ...prev, currentUser: null }));
   };
 
-  const addListing = async (listing: Omit<Listing, 'id' | 'createdAt' | 'status'>) => {
+  const addListing = async (listing: Omit<Listing, 'id' | 'createdAt' | 'status'> & {
+    _rawFiles?: Record<string, File>;
+  }) => {
     try {
-      await api.post('/requirements', {
-        title: listing.title,
-        description: listing.description,
-        category: listing.category,
-        totalWeight: listing.weight,
-        location: listing.location,
+      const formData = new FormData();
+      formData.append('title', listing.title);
+      formData.append('description', listing.description);
+      formData.append('category', listing.category);
+      formData.append('totalWeight', String(listing.weight));
+      formData.append('location', listing.location || '');
+      if (listing.pickupAddress) formData.append('pickupAddress', listing.pickupAddress);
+      if (listing.sealedBidStartDate) formData.append('sealedPhaseStart', listing.sealedBidStartDate);
+      if (listing.sealedBidEndDate) formData.append('sealedPhaseEnd', listing.sealedBidEndDate);
+      if (listing.invitedVendorIds?.length) {
+        formData.append('invitedVendorIds', JSON.stringify(listing.invitedVendorIds));
+      }
+
+      // Attach raw File objects for each document if provided
+      if (listing._rawFiles) {
+        const materialListFile = listing._rawFiles['material_list'];
+        if (materialListFile) formData.append('file', materialListFile);
+      }
+
+      await api.post('/requirements', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
       });
       await fetchAllData();
     } catch (error) {
@@ -817,7 +883,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const transitionAuctionPhase = (listingId: string, nextPhase: Listing['auctionPhase']) => {
+  const PHASE_TO_STATUS: Record<string, string> = {
+    draft: 'DRAFT',
+    invitation_window: 'UPCOMING',
+    sealed_bid: 'SEALED_PHASE',
+    live: 'OPEN_PHASE',
+    completed: 'COMPLETED',
+    open_configuration: 'UPCOMING',
+  };
+
+  const transitionAuctionPhase = async (listingId: string, nextPhase: Listing['auctionPhase']) => {
+    const backendStatus = PHASE_TO_STATUS[nextPhase ?? ''];
+    if (backendStatus) {
+      try {
+        await api.patch(`/auctions/${listingId}/status`, { status: backendStatus });
+        await fetchAllData();
+        return;
+      } catch (error) {
+        console.error('Failed to transition auction phase via API, updating locally', error);
+      }
+    }
     setState(prev => ({
       ...prev,
       listings: prev.listings.map(l => l.id === listingId ? { ...l, auctionPhase: nextPhase } : l)
@@ -851,9 +936,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const updateListingStatus = (id: string, status: Listing['status'], reason?: string) => {
-    setState(prev => ({ 
-      ...prev, 
+  const updateListingStatus = async (id: string, status: Listing['status'], reason?: string) => {
+    // When admin approves a listing → call admin-approve endpoint which creates
+    // the auction and sends sealed bid invitation emails to selected vendors
+    if (status === 'active') {
+      try {
+        await api.patch(`/requirements/${id}/admin-approve`);
+        await fetchAllData();
+      } catch (error) {
+        console.error('Admin approve API failed, updating locally', error);
+      }
+    }
+    setState(prev => ({
+      ...prev,
       listings: prev.listings.map(l => l.id === id ? { ...l, status, statusReason: reason } : l),
       notifications: status !== 'pending' ? [...prev.notifications, {
         id: `N${Date.now()}`, userId: prev.listings.find(l => l.id === id)?.userId || '', type: 'general' as const, title: `Listing ${status.charAt(0).toUpperCase() + status.slice(1)}`, message: `Your listing status has been updated to ${status}. ${reason || ''}`, read: false, createdAt: new Date().toISOString()
@@ -861,7 +956,47 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }));
   };
 
-  const updateAuctionPhase = (id: string, phase: Listing['auctionPhase']) => {
+  const uploadProcessedSheet = async (listingId: string, file: File) => {
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      await api.post(`/requirements/${listingId}/processed-sheet`, fd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      await fetchAllData();
+    } catch (error) {
+      console.error('Failed to upload processed sheet', error);
+    }
+    setState(prev => ({
+      ...prev,
+      listings: prev.listings.map(l => l.id === listingId ? { ...l, requirementStatus: 'client_review' } : l),
+    }));
+  };
+
+  const approveRequirement = async (listingId: string, targetPrice: number, totalWeight?: number) => {
+    try {
+      await api.patch(`/requirements/${listingId}/approve`, { targetPrice, ...(totalWeight && { totalWeight }) });
+      await fetchAllData();
+    } catch (error) {
+      console.error('Failed to approve requirement', error);
+    }
+    setState(prev => ({
+      ...prev,
+      listings: prev.listings.map(l => l.id === listingId ? { ...l, requirementStatus: 'finalized', targetPrice } : l),
+    }));
+  };
+
+  const updateAuctionPhase = async (id: string, phase: Listing['auctionPhase']) => {
+    const backendStatus = PHASE_TO_STATUS[phase ?? ''];
+    if (backendStatus) {
+      try {
+        await api.patch(`/auctions/${id}/status`, { status: backendStatus });
+        await fetchAllData();
+        return;
+      } catch (error) {
+        console.error('Failed to update auction phase via API, updating locally', error);
+      }
+    }
     setState(prev => ({ ...prev, listings: prev.listings.map(l => l.id === id ? { ...l, auctionPhase: phase } : l) }));
   };
 
@@ -938,7 +1073,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     });
   };
 
-  const deleteAccount = () => {
+  const deleteAccount = async () => {
+    await api.delete('/users/me');
+    localStorage.removeItem('ecoloop_token');
     setState(prev => {
       if (!prev.currentUser) return prev;
       const userId = prev.currentUser.id;
@@ -1121,17 +1258,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const submitPaymentProof = async (listingId: string, proofUrl: string, utrNumber: string) => {
+  const submitPaymentProof = async (listingId: string, file: File, utrNumber: string) => {
     try {
-      // Create a minimal file-like payload for the API; in production use real file upload
-      await api.post(`/payments/auction/${listingId}/proof`, { utrNumber });
+      const fd = new FormData();
+      fd.append('file', file);
+      if (utrNumber) fd.append('utrNumber', utrNumber);
+      await api.post(`/payments/auction/${listingId}/proof`, fd, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
       await fetchAllData();
     } catch (error) {
       console.error('Failed to submit payment proof via API, updating locally', error);
       setState(prev => ({
         ...prev,
         listings: prev.listings.map(l => l.id === listingId ? {
-          ...l, paymentStatus: 'proof_uploaded', paymentProofUrl: proofUrl,
+          ...l, paymentStatus: 'proof_uploaded',
           paymentUTR: utrNumber, paymentSubmittedAt: new Date().toISOString(),
         } : l),
       }));
@@ -1153,11 +1294,42 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const submitComplianceDocs = (listingId: string, docs: Partial<Listing>) => {
+  const COMP_TYPE_MAP: Record<string, string> = {
+    form6: 'FORM_6',
+    weightEmpty: 'WEIGHT_SLIP_EMPTY',
+    weightLoaded: 'WEIGHT_SLIP_LOADED',
+    recycling: 'RECYCLING_CERTIFICATE',
+    disposal: 'DISPOSAL_CERTIFICATE',
+  };
+
+  const submitComplianceDocs = async (listingId: string, files: Record<string, File | null>, pickupDate?: string) => {
+    try {
+      const pickupsRes = await api.get('/pickups');
+      const pickup = (pickupsRes.data || []).find((p: any) => p.auctionId === listingId);
+      if (pickup) {
+        await Promise.allSettled(
+          Object.entries(files).map(async ([key, file]) => {
+            if (!file || !COMP_TYPE_MAP[key]) return;
+            const fd = new FormData();
+            fd.append('file', file);
+            fd.append('type', COMP_TYPE_MAP[key]);
+            await api.post(`/pickups/${pickup.id}/documents`, fd, {
+              headers: { 'Content-Type': 'multipart/form-data' },
+            });
+          }),
+        );
+        if (pickupDate) {
+          await api.patch(`/pickups/${pickup.id}/schedule`, { scheduledDate: pickupDate });
+        }
+      }
+      await fetchAllData();
+    } catch (error) {
+      console.error('Failed to submit compliance docs via API, updating locally', error);
+    }
     setState(prev => ({
       ...prev,
       listings: prev.listings.map(l => l.id === listingId ? {
-        ...l, ...docs, complianceStatus: 'documents_uploaded',
+        ...l, complianceStatus: 'documents_uploaded',
       } : l),
     }));
   };
@@ -1213,6 +1385,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       login, logout, register, startOnboarding,
       saveOnboardingProfile, saveOnboardingDocuments, saveOnboardingBankDetails, completeOnboarding,
       addListing, addBid, updateListingStatus, updateAuctionPhase, updateBidStatus, updateUserStatus, assignVendor,
+      uploadProcessedSheet, approveRequirement,
       acceptBid, addNotification, markNotificationRead, editListing, editBid,
       respondToInvitation, transitionAuctionPhase, addClosingDocument,
       updateUserProfile, changePassword, deleteAccount,

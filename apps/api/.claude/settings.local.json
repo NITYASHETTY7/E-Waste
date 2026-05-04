@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs grep *)",
+      "Bash(npx prisma *)",
+      "Bash(node -e ' *)",
+      "Bash(netstat -ano)",
+      "Bash(findstr :4000)",
+      "Bash(taskkill *)",
+      "Bash(cmd *)",
+      "PowerShell(Stop-Process *)",
+      "Bash(npm run *)"
+    ]
+  }
+}

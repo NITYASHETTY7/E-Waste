@@ -1,0 +1,1296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>WeConnect / EcoLoop — Full Platform Flow</title>
+<style>
+  /* ─────────────────────────────────────────────
+     BASE
+  ───────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #0f172a;
+    color: #e2e8f0;
+    line-height: 1.5;
+  }
+  a { color: #60a5fa; }
+
+  /* ─────────────────────────────────────────────
+     HEADER
+  ───────────────────────────────────────────── */
+  header {
+    background: #1e293b;
+    border-bottom: 2px solid #334155;
+    padding: 20px 32px;
+    position: sticky; top: 0; z-index: 100;
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  }
+  header h1 { font-size: 1.25rem; font-weight: 700; color: #f1f5f9; }
+  header p  { font-size: 0.8rem; color: #94a3b8; flex: 1; }
+
+  /* ─────────────────────────────────────────────
+     LEGEND
+  ───────────────────────────────────────────── */
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 10px;
+    padding: 14px 32px;
+    background: #1e293b;
+    border-bottom: 1px solid #334155;
+  }
+  .legend-item {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 0.75rem; color: #94a3b8;
+  }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .actor-admin   { background: #1e40af; color: #bfdbfe; }
+  .actor-client  { background: #065f46; color: #a7f3d0; }
+  .actor-vendor  { background: #7c2d12; color: #fed7aa; }
+  .actor-system  { background: #4c1d95; color: #ddd6fe; }
+
+  .status-ok      { background: #14532d; color: #86efac; }
+  .status-partial { background: #78350f; color: #fde68a; }
+  .status-gap     { background: #7f1d1d; color: #fca5a5; }
+
+  /* ─────────────────────────────────────────────
+     MAIN LAYOUT
+  ───────────────────────────────────────────── */
+  main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 32px 24px 80px;
+  }
+
+  /* ─────────────────────────────────────────────
+     PHASE BLOCK
+  ───────────────────────────────────────────── */
+  .phase {
+    margin-bottom: 40px;
+  }
+  .phase-header {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 16px;
+    padding: 12px 20px;
+    background: #1e293b;
+    border-left: 4px solid #3b82f6;
+    border-radius: 0 8px 8px 0;
+  }
+  .phase-number {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    background: #3b82f6;
+    color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 0.9rem;
+    flex-shrink: 0;
+  }
+  .phase-title { font-size: 1rem; font-weight: 700; color: #f1f5f9; }
+  .phase-subtitle { font-size: 0.78rem; color: #94a3b8; margin-top: 2px; }
+
+  /* ─────────────────────────────────────────────
+     STEPS GRID
+  ───────────────────────────────────────────── */
+  .steps {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding-left: 20px;
+    border-left: 2px dashed #334155;
+    margin-left: 15px;
+  }
+
+  /* connector dot */
+  .step-wrap { position: relative; }
+  .step-wrap::before {
+    content: '';
+    position: absolute;
+    left: -26px; top: 20px;
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: #475569;
+    border: 2px solid #0f172a;
+  }
+  .step-wrap.ok::before    { background: #22c55e; }
+  .step-wrap.partial::before { background: #f59e0b; }
+  .step-wrap.gap::before   { background: #ef4444; }
+
+  /* vertical arrow between steps */
+  .arrow {
+    width: 2px;
+    height: 20px;
+    background: #334155;
+    margin-left: -1px;
+  }
+
+  /* ─────────────────────────────────────────────
+     STEP CARD
+  ───────────────────────────────────────────── */
+  .step {
+    background: #1e293b;
+    border: 1px solid #334155;
+    border-radius: 8px;
+    padding: 14px 16px;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    margin-bottom: 2px;
+  }
+  .step:hover { border-color: #4b6baa; background: #243047; }
+  .step.expanded { border-color: #3b82f6; background: #1e2e4a; }
+
+  .step-top {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  }
+  .step-num {
+    font-size: 0.7rem; color: #64748b; font-weight: 600;
+    min-width: 28px;
+  }
+  .step-action {
+    font-size: 0.88rem; font-weight: 600; color: #e2e8f0;
+    flex: 1;
+  }
+  .step-expand-icon {
+    font-size: 0.75rem; color: #64748b; margin-left: auto;
+    transition: transform 0.15s;
+  }
+  .step.expanded .step-expand-icon { transform: rotate(180deg); }
+
+  /* detail panel — hidden by default */
+  .step-detail {
+    display: none;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #334155;
+    font-size: 0.8rem;
+    color: #94a3b8;
+  }
+  .step.expanded .step-detail { display: block; }
+
+  .detail-row {
+    display: grid;
+    grid-template-columns: 130px 1fr;
+    gap: 4px 12px;
+    margin-bottom: 6px;
+    align-items: start;
+  }
+  .detail-label { color: #64748b; font-weight: 600; font-size: 0.73rem; text-transform: uppercase; }
+  .detail-val   { color: #cbd5e1; font-family: 'Cascadia Code', 'Fira Mono', monospace; font-size: 0.77rem; }
+  .detail-val.url { color: #60a5fa; }
+  .detail-val.gap-note { color: #f87171; }
+  .detail-val.ok-note  { color: #4ade80; }
+  .detail-val.partial-note { color: #fbbf24; }
+
+  /* ─────────────────────────────────────────────
+     DECISION DIAMOND  (for branch points)
+  ───────────────────────────────────────────── */
+  .decision {
+    display: flex; align-items: center; justify-content: center;
+    margin: 8px 0 8px 0;
+    gap: 12px;
+  }
+  .diamond {
+    width: 70px; height: 40px;
+    background: #334155;
+    clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.65rem; font-weight: 700; color: #94a3b8;
+    text-align: center;
+  }
+  .branch-label {
+    font-size: 0.72rem; color: #94a3b8;
+    padding: 3px 8px; border-radius: 4px;
+    background: #0f172a;
+  }
+
+  /* ─────────────────────────────────────────────
+     GAPS SUMMARY TABLE
+  ───────────────────────────────────────────── */
+  .gap-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+    margin-top: 12px;
+  }
+  .gap-table th {
+    background: #1e293b;
+    color: #94a3b8;
+    padding: 8px 12px;
+    text-align: left;
+    border-bottom: 1px solid #334155;
+    font-size: 0.73rem;
+    text-transform: uppercase;
+  }
+  .gap-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid #1e293b;
+    vertical-align: top;
+  }
+  .gap-table tr:nth-child(even) td { background: #1a2438; }
+  .gap-table code {
+    font-family: monospace;
+    background: #0f172a;
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: #93c5fd;
+    font-size: 0.75rem;
+  }
+
+  /* ─────────────────────────────────────────────
+     SECTION DIVIDER
+  ───────────────────────────────────────────── */
+  .section-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #f1f5f9;
+    margin: 40px 0 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #334155;
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     HEADER
+═══════════════════════════════════════════════════════════════════ -->
+<header>
+  <h1>WeConnect / EcoLoop — Full Platform Flow</h1>
+  <p>Click any step to expand frontend page + API endpoint + implementation status</p>
+</header>
+
+<!-- ─── LEGEND ─── -->
+<div class="legend">
+  <div class="legend-item"><span class="badge actor-admin">Admin</span> We Connect operator</div>
+  <div class="legend-item"><span class="badge actor-client">Client</span> Corporate e-waste owner</div>
+  <div class="legend-item"><span class="badge actor-vendor">Vendor</span> Authorised recycler</div>
+  <div class="legend-item"><span class="badge actor-system">System</span> Automated / WebSocket</div>
+  <div class="legend-item" style="margin-left:16px"><span class="badge status-ok">✅ Done</span> API wired end-to-end</div>
+  <div class="legend-item"><span class="badge status-partial">⚠ Partial</span> Has fallback / incomplete</div>
+  <div class="legend-item"><span class="badge status-gap">❌ Gap</span> Not hitting API — local state only</div>
+</div>
+
+<main>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+  PHASE 1 — ONBOARDING
+  COMMENT: Both client and vendor go through /onboarding/[role]/step1-4.
+  Admin manually approves from /admin/users page.
+  GAP: saveOnboardingDocuments() does NOT upload files to S3/backend.
+  It only stores them in local state. Fix: call POST /companies/{id}/documents.
+═══════════════════════════════════════════════════════════════════ -->
+<div class="phase">
+  <div class="phase-header">
+    <div class="phase-number">1</div>
+    <div>
+      <div class="phase-title">Onboarding Flow</div>
+      <div class="phase-subtitle">Client + Vendor register → Admin manually approves</div>
+    </div>
+  </div>
+  <div class="steps">
+
+    <!-- STEP 1.1 -->
+    <!-- COMMENT: User hits /get-started → picks role → routed to /onboarding/[role]/step1 (email+password) -->
+    <div class="step-wrap ok">
+      <div class="step" onclick="toggle(this)">
+        <div class="step-top">
+          <span class="step-num">1.1</span>
+          <span class="badge actor-client">Client</span>
+          <span class="badge actor-vendor">Vendor</span>
+          <span class="step-action">Register account (email + password)</span>
+          <span class="badge status-ok">✅</span>
+          <span class="step-expand-icon">▼</span>
+        </div>
+        <div class="step-detail">
+          <div class="detail-row"><span class="detail-label">Page</span><span class="detail-val url">/get-started → /onboarding/[role]/step1</span></div>
+          <div class="detail-row"><span class="detail-label">API Call</span><span class="detail-val">POST /api/auth/register</span></div>
+          <div class="detail-row"><span class="detail-label">Payload</span><span class="detail-val">{ name, email, password, role, phone }</span></div>
+          <div class="detail-row"><span class="detail-label">Response</span><span class="detail-val">{ access_token, otp } — JWT stored in localStorage</span></div>
+          <div class="detail-row"><span class="detail-label">Status</span><span class="detail-val ok-note">✅ Fully wired. OTP verification also wired via POST /auth/verify-otp</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="arrow"></div>
+
+    <!-- STEP 1.2 -->
+    <!-- COMMENT: step2 — company profile form. Calls POST /companies (if no companyId) or PATCH /companies/{id} -->
+    <div class="step-wrap ok">
+      <div class="step" onclick="toggle(this)">
+        <div class="step-top">
+          <span class="step-num">1.2</span>
+          <span class="badge actor-client">Client</span>
+          <span class="badge actor-vendor">Vendor</span>
+          <span class="step-action">Fill company profile (address, GST, CPCB etc.)</span>
+          <span class="badge status-ok">✅</span>
+          <span class="step-expand-icon">▼</span>
+        </div>
+        <div class="step-detail">
+          <div class="detail-row"><span class="detail-label">Page</span><span class="detail-val url">/onboarding/[role]/step2</span></div>
+          <div class="detail-row"><span class="detail-label">API Call</span><span class="detail-val">POST /api/companies  (first time)<br/>PATCH /api/companies/{id}  (subsequent)</span></div>
+          <div class="detail-row"><span class="detail-label">Payload</span><span class="detail-val">{ name, type, address, city, state, pincode, gstNumber }</span></div>
+          <div class="detail-row"><span class="detail-label">Status</span><span class="detail-val ok-note">✅ Fully wired.</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="arrow"></div>
+
+    <!-- STEP 1.3 -->
+    <!-- COMMENT: step3 — KYC document upload (License, GST cert, Pollution/CPCB cert).
+         BUG: saveOnboardingDocuments() in AppContext.tsx only sets LOCAL STATE.
+         It does NOT call POST /api/companies/{id}/documents.
+         FIX NEEDED: For each uploaded file, call POST /companies/{companyId}/documents
+         with FormData { file, type: 'CPCB_CERT' | 'GST_CERT' | 'COMPANY_REG' | 'CANCELLED_CHEQUE' }.
+         Until this is fixed, documents visible in admin panel come from local state only. -->
+    <div class="step-wrap gap">
+      <div class="step" onclick="toggle(this)">
+        <div class="step-top">
+          <span class="step-num">1.3</span>
+          <span class="badge actor-vendor">Vendor</span>
+          <span class="step-action">Upload KYC documents (License, GST, CPCB cert)</span>
+          <span class="badge status-gap">❌ Gap</span>
+          <span class="step-expand-icon">▼</span>
+        </div>
+        <div class="step-detail">
+          <div class="detail-row"><span class="detail-label">Page</span><span class="detail-val url">/onboarding/vendor/step3</span></div>
+          <div class="detail-row"><span class="detail-label">API (exists)</span><span class="detail-val">POST /api/companies/{id}/documents  (FileInterceptor)</span></div>
+          <div class="detail-row"><span class="detail-label">Current code</span><span class="detail-val gap-note">saveOnboardingDocuments() only calls setState() — no API call</span></div>
+          <div class="detail-row"><span class="detail-label">Fix</span><span class="detail-val gap-note">AppContext.tsx:737 — loop docs array, call POST /companies/{companyId}/documents for each file</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="arrow"></div>
+
+    <!-- STEP 1.4 -->
+    <!-- COMMENT: step4 — bank details form. saveOnboardingBankDetails() is local state only.
+         No dedicated bank-details endpoint exists on backend currently.
+         Either add PATCH /companies/{id}/bank or include bank fields in PATCH /companies/{id}. -->
+    <div class="step-wrap gap">
+      <div class="step" onclick="toggle(this)">
+        <div class="step-top">
+          <span class="step-num">1.4</span>
+          <span class="badge actor-client">Client</span>
+          <span class="badge actor-vendor">Vendor</span>
+          <span class="step-action">Enter bank details (for payment settlement)</span>
+          <span class="badge status-gap">❌ Gap</span>
+          <span class="step-expand-icon">▼</span>
+        </div>
+        <div class="step-detail">
+          <div class="detail-row"><span class="detail-label">Page</span><span class="detail-val url">/onboarding/[role]/step4</span></div>
+          <div class="detail-row"><span class="detail-label">API (exists)</span><span class="detail-val">No dedicated endpoint — needs PATCH /api/companies/{id} with bank fields</span></div>
+          <div class="detail-row"><span class="detail-label">Current code</span><span class="detail-val gap-note">saveOnboardingBankDetails() — local setState() only, nothing persisted to DB</span></div>
+          <div class="detail-row"><span class="detail-label">Fix</span><span class="detail-val gap-note">AppContext.tsx:748 — call PATCH /companies/{companyId} with bank details fields</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="arrow"></div>
+
+    <!-- STEP 1.5 -->
+    <!-- COMMENT: After step4 completes, vendor lands on /pending page, client can proceed.
+         completeOnboarding() calls GET /auth/profile to re-validate role/status from backend. -->
+    <div class="step-wrap ok">
+      <div class="step" onclick="toggle(this)">
+        <div class="step-top">
+          <span class="step-num">1.5</span>
+          <span class="badge actor-admin">Admin</span>
+          <span class="step-action">Admin reviews vendor docs and approves / rejects</span>
+          <span class="badge status-ok">✅</span>
+          <span class="step-expand-icon">▼</span>
+        </div>
+        <div class="step-detail">
+          <div class="detail-row"><span class="detail-label">Page</span><span class="detail-val url">/admin/users  or  /admin/vendors</span></div>
+          <div class="detail-row"><span class="detail-label">API Call</span><span class="detail-val">PATCH /api/companies/{companyId}/status</span></div>
+          <div class="detail-row"><span class="detail-label">Payload</span><span class="detail-val">{ status: 'APPROVED' | 'REJECTED' | 'BLOCKED' }</span></div>
+          <div class="detail-row"><span class="detail-label">Status</span><span class="detail-val ok-note">✅ Wired. Admin uses updateUserStatus() → maps to backend APPROVED/REJECTED/BLOCKED.</span></div>
+          <div class="detail-row"><span class="detail-label">Note</span><span class="detail-val partial-note">⚠ Document review is visual only — no per-doc approve/reject API call yet</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /steps -->
+</div><!-- /phase 1 -->
+
+
+<!-- ═══════════════════════════════════════════════════════════════════
+  PHASE 2 — CLIENT REQUIREMENT UPLOAD
+  COMMENT: Client uploads Excel product list. Admin cleans it. Client approves.
+  GAP 1: addListing() sends JSON, not multipart — Excel file NOT uploaded to backend.
+  GAP 2: Admin "processing" step has a backend endpoint but frontend doesn't call it.
+  GAP 3: Client "approval" of finalized sheet calls editListing() (local state), not PATCH /requirements/{id}/approve.
+═══════════════════════════════════════════════════════════════════ -->
+<div class="phase">
+  <div class="phase-header">
+    <div class="phase-number">2</div>
+    <div>
+      <div class="phase-title">Client Requirement Upload</div>
+      <div class="phase-subtitle">Excel upload → Admin cleans → Client approves → Status: Requirement Finalized</div>
+    </div>
+  </div>
+  <div class="steps">
+
+    <!-- STEP 2.1 -->
+    <!-- COMMENT: Client uploads product list as Excel (.xlsx/.xls/.csv).
+         BUG: addListing() in AppContext.tsx sends JSON body { title, description, category, totalWeight, location }.
+         The backend POST /requirements has FileInterceptor but AppContext never attaches the file.
+         FIX: Change addListing() to use FormData and append 'file' key with the Excel file. -->
+    <div class="step-wrap gap">
+      <div class="step" onclick="toggle(this)">
+        <div class="step-top">
+          <span class="step-num">2.1</span>
+          <span class="badge actor-client">Client</span>
+          <span class="step-action">Upload product list Excel + fill requirement form</span>
+          <span class="badge status-gap">❌ Gap</span>
+          <span class="step-expand-icon">▼</span>
+        </div>
+        <div class="step-detail">
+          <div class="detail-row"><span class="detail-label">Page</span><span class="detail-val url">/client/post</span></div>
+          <div class="detail-row"><span class="detail-label">API Call</span><span class="detail-val">POST /api/requirements  (multipart/form-data)</span></div>
+          <div class="detail-row"><span class="detail-label">Payload</span><span class="detail-val">{ title, description, category, totalWeight, location, file: Excel }</span></div>
+          <div class="detail-row"><span class="detail-label">Current code</span><span class="detail-val gap-note">AppContext.tsx:797 — sends JSON body, no file. Excel never reaches backend.</span></div>
+          <div class="detail-row"><span class="detail-label">Fix</span><span class="detail-val gap-note">Rewrite addListing() to use FormData, append all fields + file.</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="arrow"></div>
+
+    <!-- STEP 2.2 -->
+    <!-- COMMENT: Admin cleans the raw Excel sheet, adds categories/weight/base format.
+         Backend endpoint exists: POST /requirements/{id}/processed-sheet (FileInterceptor).
+         Frontend: /admin/listings page shows requirements but has no "upload processed sheet" UI. -->
+    <div class="step-wrap gap">
+      <div class="step" onclick="toggle(this)">
+        <div class="step-top">
+          <span class="step-num">2.2</span>
+          <span class="badge actor-admin">Admin</span>
+          <span class="step-action">Clean & standardise sheet, upload processed version</span>
+          <span class="badge status-gap">❌ Gap</span>
+          <span class="step-expand-icon">▼</span>
+        </div>
+        <div class="step-detail">
+          <div class="detail-row"><span class="detail-label">Page</span><span class="detail-val url">/admin/listings  (missing UI button)</span></div>
+          <div class="detail-row"><span class="detail-label">API (exists)</span><span class="detail-val">POST /api/requirements/{id}/processed-sheet  (FileInterceptor)</span></div>
+          <div class="detail-row"><span class="detail-label">Current code</span><span class="detail-val gap-note">No frontend UI to upload processed sheet. Endpoint exists but is unused.</span></div>
+          <div class="detail-row"><span class="detail-label">Fix</span><span class="detail-val gap-note">Add "Upload Processed Sheet" button + file input in /admin/listings page. Call POST endpoint.</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="arrow"></div>
+
+    <!-- STEP 2.3 -->
+    <!-- COMMENT: Client reviews the processed sheet and confirms product list + target price.
+         Backend endpoint exists: PATCH /requirements/{id}/approve — body: { targetPrice }.
+         Current code: editListing() is local setState() only. -->
+    <div class="step-wrap gap">
+      <div class="step" onclick="toggle(this)">
+        <div class="step-top">
+          <span class="step-num">2.3</span>
+          <span class="badge actor-client">Client</span>
+          <span class="step-action">Review processed sheet, confirm list + target price</span>
+          <span class="badge status-gap">❌ Gap</span>
+          <span class="step-expand-icon">▼</span>
+        </div>
+        <div class="step-detail">
+          <div class="detail-row"><span class="detail-label">Page</span><span class="detail-val url">/client/listings  (needs "Approve" button)</span></div>
+          <div class="detail-row"><span class="detail-label">API (exists)</span><span class="detail-val">PATCH /api/requirements/{id}/approve  + GET /requirements/{id}/download/:field</span></div>
+          <div class="detail-row"><span class="detail-label">Payload</span><span class="detail-val">{ targetPrice: number }</span></div>
+          <div class="detail-row"><span class="detail-label">Current code</span><span class="detail-val gap-note">editListing() — local state only. PATCH /approve never called.</span></div>
+          <div class="detail-row"><span class="detail-label">Fix</span><span class="detail-val gap-note">Client listings page needs: download processed sheet button (GET /download/processed) + "Confirm & Set Target Price" form → PATCH /approve.</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div><!-- /phase 2 -->
+
+
+<!-- ═══════════════════════════════════════════════════════════════════
+  PHASE 3 — VENDOR AUDIT FLOW
+  COMMENT: Admin invites vendors → vendors accept/reject → SPOC shared → vendors complete audit.
+  All four API endpoints (invite, respond, spoc, report) exist on backend and are called.
+  This phase is the most complete end-to-end.
+═══════════════════════════════════════════════════════════════════ -->
+<div class="phase">
+  <div class="phase-header">
+    <div class="phase-number">3</div>
+    <div>
+      <div class="phase-title">Vendor Audit Flow</div>
+      <div class="phase-subtitle">Admin invites → Vendor Accept/Reject → SPOC shared → Audit report submitted</div>
+    </div>
+  </div>
+  <div class="steps">
+
+    <!-- STEP 3.1 -->
+    <!-- COMMENT: Admin selects vendors to invite for site audit on a specific requirement.
+         sendAuditInvitations() calls POST /audits/invite then immediately patches SPOC via PATCH /audits/invitations/{id}/spoc. -->
+    <div class="step-wrap ok">
+      <div class="step" onclick="toggle(this)">
+        <div class="step-top">
+          <span class="step-num">3.1</span>
+          <span class="badge actor-admin">Admin</span>
+          <span class="step-action">Send audit invitations to selected vendors (with SPOC + site address)</span>
+          <span class="badge status-ok">✅</span>
+          <span class="step-expand-icon">▼</span>
+        </div>
+        <div class="step-detail">
+          <div class="detail-row"><span class="detail-label">Page</span><span class="detail-val url">/admin/audits</span></div>
+          <div class="detail-row"><span class="detail-label">API Call 1</span><span class="detail-val">POST /api/audits/invite  { requirementId, vendorIds[] }</span></div>
+          <div class="detail-row"><span class="detail-label">API Call 2</span><span class="detail-val">PATCH /api/audits/invitations/{id}/spoc  { siteAddress, spocName, spocPhone, scheduledAt }</span></div>
+          <div class="detail-row"><span class="detail-label">Status</span><span class="detail-val ok-note">✅ Both calls made in sendAuditInvitations(). Local fallback if API down.</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="arrow"></div>
+
+    <!-- decision: vendor accept or reject -->
+    <div class="step-wrap ok" style="margin-left:-20px; border:none;">
+      <div style="display:flex;gap:16px;align-items:center;padding:8px 0;">
+        <div class="diamond">Accept / Reject?</div>
+        <div style="display:flex;gap:8px;">
+          <span class="branch-label">✅ Accept → step 3.3</span>
+          <span class="branch-label">❌ Reject → ignored</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- STEP 3.2 -->
+    <!-- COMMENT: Vendor sees invitation on /vendor/invitations or /vendor/audits.
+         Clicks Accept or Reject. respondToAuditInvitation() calls PATCH /audits/invitations/{id}/respond. -->
+    <div class="step-wrap ok">
+      <div class="step" onclick="toggle(this)">
+        <div class="step-top">
+          <span class="step-num">3.2</span>
+          <span class="badge actor-vendor">Vendor</span>
+          <span class="step-action">Accept or Reject audit invitation</span>
+          <span class="badge status-ok">✅</span>
+          <span class="step-expand-icon">▼</span>
+        </div>
+        <div class="step-detail">
+          <div class="detail-row"><span class="detail-label">Page</span><span class="detail-val url">/vendor/invitations  or  /vendor/audits</span></div>
+          <div class="detail-row"><span class="detail-label">API Call</span><span class="detail-val">PATCH /api/audits/invitations/{id}/respond  { status: 'ACCEPTED' | 'REJECTED' }</span></div>
+          <div class="detail-row"><span class="detail-label">Status</span><span class="detail-val ok-note">✅ Wired. SPOC + site address auto-visible after acceptance (pre-shared at step 3.1).</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="arrow"></div>
+
+    <!-- STEP 3.3 -->
+    <!-- COMMENT: Vendor visits the site, verifies the product list matches description.
+         completeAudit() calls POST /audits/invitations/{id}/report.
+         Body: { productMatch: 'true'/'false', remarks }. Photos upload also supported. -->
+    <div class="step-wrap ok">
+      <div class="step" onclick="toggle(this)">
+        <div class="step-top">
+          <span class="step-num">3.3</span>
+          <span class="badge actor-vendor">Vendor</span>
+          <span class="step-action">Submit audit report (product match + remarks)</span>
+          <span class="badge status-ok">✅</span>
+          <span class="step-expand-icon">▼</span>
+        </div>
+        <div class="step-detail">
+          <div class="detail-row"><span class="detail-label">Page</span><span class="detail-val url">/vendor/audits</span></div>
+          <div class="detail-row"><span class="detail-label">API Call</span><span class="detail-val">POST /api/audits/invitations/{id}/report</span></div>
+          <div class="detail-row"><span class="detail-label">Payload</span><span class="detail-val">{ productMatch: 'true'|'false', remarks, photos[] } (multipart)</span></div>
+          <div class="detail-row"><span class="detail-label">Status</span><span class="detail-val ok-note">✅ Wired. productMatch sent as string 'true'/'false' (backend parses it).</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div><!-- /phase 3 -->
+
+
+<!-- ═══════════════════════════════════════════════════════════════════
+  PHASE 4 — SEALED BID FLOW
+  COMMENT: Admin creates auction (sealed phase). Vendors submit price + Excel sheet.
+  Admin reviews and shortlists. Client views shortlisted bids.
+  GAP: Admin "shortlisting" / comparison table is only local state (updateBidStatus / acceptBid locally).
+  After accepting a sealed bid the transition to open_configuration phase is also local state.
+═══════════════════════════════════════════════════════════════════ -->
+<div class="phase">
+  <div class="phase-header">
+    <div class="phase-number">4</div>
+    <div>
+      <div class="phase-title">Sealed Bid Flow</div>
+      <div class="phase-subtitle">Admin creates bid window → Vendors submit → Admin shortlists → Client reviews</div>
+    </div>
+  </div>
+  <div class="steps">
+
+    <!-- STEP 4.1 -->
+    <!-- COMMENT: Admin creates the sealed bid event (sets basePrice, sealedBidStart/End dates).
+         This calls POST /auctions or PATCH /auctions/{id}/schedule.
+         transitionAuctionPhase() is LOCAL STATE — needs to call PATCH /auctions/{id}/status. -->
+    <div class="step-wrap partial">
+      <div class="step" onclick="toggle(this)">
+        <div class="step-top">
+          <span class="step-num">4.1</span>
+          <span class="badge actor-admin">Admin</span>
+          <span class="step-action">Create sealed bid event, notify vendors</span>
+          <span class="badge status-partial">⚠ Partial</span>
+          <span class="step-expand-icon">▼</span>
+        </div>
+        <div class="step-detail">
+          <div class="detail-row"><span class="detail-label">Page</span><span class="detail-val url">/admin/auctions</span></div>
+          <div class="detail-row"><span class="detail-label">API Call</span><span class="detail-val">POST /api/auctions  OR  PATCH /api/auctions/{id}/schedule</span></div>
+          <div class="detail-row"><span class="detail-label">Phase change</span><span class="detail-val partial-note">⚠ transitionAuctionPhase() is local setState only. Should call PATCH /auctions/{id}/status { status: 'SEALED_PHASE' }</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="arrow"></div>
+
+    <!-- STEP 4.2 -->
+    <!-- COMMENT: Vendor sees sealed bid listing and submits price sheet + remarks.
+         addBid() calls POST /auctions/{id}/sealed-bid with { amount, remarks }.
+         The Excel price sheet upload is supported by the backend (FileInterceptor) but frontend
+         currently only sends JSON — need to add file upload in vendor/bids page. -->
+    <div class="step-wrap partial">
+      <div class="step" onclick="toggle(this)">
+        <div class="step-top">
+          <span class="step-num">4.2</span>
+          <span class="badge actor-vendor">Vendor</span>
+          <span class="step-action">Submit price sheet (Excel) + remarks</span>
+          <span class="badge status-partial">⚠ Partial</span>
+          <span class="step-expand-icon">▼</span>
+        </div>
+        <div class="step-detail">
+          <div class="detail-row"><span class="detail-label">Page</span><span class="detail-val url">/vendor/bids  or  /vendor/marketplace/[id]</span></div>
+          <div class="detail-row"><span class="detail-label">API Call</span><span class="detail-val">POST /api/auctions/{id}/sealed-bid  (FileInterceptor available)</span></div>
+          <div class="detail-row"><span class="detail-label">Payload sent</span><span class="detail-val partial-note">{ amount, remarks } — JSON body. Excel file NOT attached.</span></div>
+          <div class="detail-row"><span class="detail-label">Fix</span><span class="detail-val partial-note">addBid() at AppContext.tsx:827 — use FormData to attach price sheet Excel + remarks.</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="arrow"></div>
+
+    <!-- STEP 4.3 -->
+    <!-- COMMENT: Admin reviews all submitted bids, shortlists top vendors.
+         acceptBid() calls PATCH /auctions/{listingId}/winner — but this selects the FINAL winner,
+         not just a shortlist for sealed phase. For sealed phase shortlisting there's no separate
+         backend route — all done via local state (updateBidStatus). -->
+    <div class="step-wrap partial">
+      <div class="step" onclick="toggle(this)">
+        <div class="step-top">
+          <span class="step-num">4.3</span>
+          <span class="badge actor-admin">Admin</span>
+          <span class="step-action">Review all bids, shortlist vendors for open auction</span>
+          <span class="badge status-partial">⚠ Partial</span>
+          <span class="step-expand-icon">▼</span>
+        </div>
+        <div class="step-detail">
+          <div class="detail-row"><span class="detail-label">Page</span><span class="detail-val url">/admin/auctions</span></div>
+          <div class="detail-row"><span class="detail-label">Current code</span><span class="detail-val partial-note">updateBidStatus() — local setState only. No API endpoint for sealed bid shortlisting.</span></div>
+          <div class="detail-row"><span class="detail-label">Note</span><span class="detail-val partial-note">Sealed bid comparison table not auto-generated. Admin reviews manually.</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="arrow"></div>
+
+    <!-- STEP 4.4 -->
+    <!-- COMMENT: Client views shortlisted bids on portal. Read-only view of vendor bids. -->
+    <div class="step-wrap ok">
+      <div class="step" onclick="toggle(this)">
+        <div class="step-top">
+          <span class="step-num">4.4</span>
+          <span class="badge actor-client">Client</span>
+          <span class="step-action">View sealed bids on portal</span>
+          <span class="badge status-ok">✅</span>
+          <span class="step-expand-icon">▼</span>
+        </div>
+        <div class="step-detail">
+          <div class="detail-row"><span class="detail-label">Page</span><span class="detail-val url">/client/sealed-bids</span></div>
+          <div class="detail-row"><span class="detail-label">Data source</span><span class="detail-val">fetchAllData() → GET /api/auctions/bids (filtered by listingId)</span></div>
+          <div class="detail-row"><span class="detail-label">Status</span><span class="detail-val ok-note">✅ Read-only view works via bids loaded in AppContext.</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div><!-- /phase 4 -->
+
+
+<!-- ═══════════════════════════════════════════════════════════════════
+  PHASE 5 — OPEN BID / LIVE AUCTION
+  COMMENT: Client configures auction parameters. Live WebSocket auction runs.
+  Phase transition to 'live' is local state only — should hit PATCH /auctions/{id}/status.
+  WebSocket gateway (auction.gateway.ts) handles real-time bidding.
+  Auto-extension logic is implemented in LiveAuctionEmbed component.
+═══════════════════════════════════════════════════════════════════ -->
+<div class="phase">
+  <div class="phase-header">
+    <div class="phase-number">5</div>
+    <div>
+      <div class="phase-title">Open Bid — Live Auction</div>
+      <div class="phase-subtitle">Client configures params → Live WebSocket auction → Auto-extension → Winner selected</div>
+    </div>
+  </div>
+  <div class="steps">
+
+    <!-- STEP 5.1 -->
+    <!-- COMMENT: Client fills: Base Price, Target Price, Tick Size, Max Tick, Extension Time, Start/End Time.
+         The page /client/listings/[id]/configure-live exists. It calls PATCH /auctions/{id}/schedule.
+         This is the open_configuration phase. -->
+    <div class="step-wrap ok">
+      <div class="step" onclick="toggle(this)">
+        <div class="step-top">
+          <span class="step-num">5.1</span>
+          <span class="badge actor-client">Client</span>
+          <span class="badge actor-admin">Admin</span>
+          <span class="step-action">Configure auction (Base Price, Tick Size, Max Tick, Extension Time, Start/End)</span>
+          <span class="badge status-ok">✅</span>
+          <span class="step-expand-icon">▼</span>
+        </div>
+        <div class="step-detail">
+          <div class="detail-row"><span class="detail-label">Page</span><span class="detail-val url">/client/listings/[id]/configure-live</span></div>
+          <div class="detail-row"><span class="detail-label">API Call</span><span class="detail-val">PATCH /api/auctions/{id}/schedule</span></div>
+          <div class="detail-row"><span class="detail-label">Payload</span><span class="detail-val">{ basePrice, targetPrice, bidIncrement (tickSize), maxTickSize, extensionTime, startDate, endDate }</span></div>
+          <div class="detail-row"><span class="detail-label">Status</span><span class="detail-val ok-note">✅ Fully wired.</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="arrow"></div>
+
+    <!-- STEP 5.2 -->
+    <!-- COMMENT: Auction goes live. Vendors bid in real-time via WebSocket.
+         auction.gateway.ts handles 'place-bid' events. Frontend uses useAuctionSocket.ts hook.
+         Auto-extension: if bid placed within last 3 mins, timer extended. Rank visible.
+         GAP: Phase transition from open_configuration → live should call PATCH /auctions/{id}/status.
+         Currently transitionAuctionPhase() is local setState only. -->
+    <div class="step-wrap partial">
+      <div class="step" onclick="toggle(this)">
+        <div class="step-top">
+          <span class="step-num">5.2</span>
+          <span class="badge actor-vendor">Vendor</span>
+          <span class="badge actor-system">System</span>
+          <span class="step-action">Live auction — real-time bidding, rank display, auto-extension</span>
+          <span class="badge status-partial">⚠ Partial</span>
+          <span class="step-expand-icon">▼</span>
+        </div>
+        <div class="step-detail">
+          <div class="detail-row"><span class="detail-label">Page (vendor)</span><span class="detail-val url">/vendor/auctions/[id]/live  or  /vendor/live-auction</span></div>
+          <div class="detail-row"><span class="detail-label">Page (admin)</span><span class="detail-val url">/admin/auctions/[id]/live</span></div>
+          <div class="detail-row"><span class="detail-label">Page (client)</span><span class="detail-val url">/client/live-auction</span></div>
+          <div class="detail-row"><span class="detail-label">Transport</span><span class="detail-val">WebSocket via useAuctionSocket.ts → auction.gateway.ts</span></div>
+          <div class="detail-row"><span class="detail-label">Phase transition</span><span class="detail-val partial-note">⚠ transitionAuctionPhase() is local setState. Should call PATCH /auctions/{id}/status { status: 'OPEN_PHASE' }</span></div>
+          <div class="detail-row"><span class="detail-label">Auto-extension</span><span class="detail-val ok-note">✅ Implemented in LiveAuctionEmbed.tsx</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="arrow"></div>
+
+    <!-- STEP 5.3 -->
+    <!-- COMMENT: Auction ends. Admin/System selects rank-1 vendor.
+         acceptBid() → PATCH /auctions/{id}/winner { vendorId }.
+         This transitions auction to 'completed' and marks winning bid as 'accepted'. -->
+    <div class="step-wrap ok">
+      <div class="step" onclick="toggle(this)">
+        <div class="step-top">
+          <span class="step-num">5.3</span>
+          <span class="badge actor-admin">Admin</span>
+          <span class="step-action">Select rank-1 vendor as winner</span>
+          <span class="badge status-ok">✅</span>
+          <span class="step-expand-icon">▼</span>
+        </div>
+        <div class="step-detail">
+          <div class="detail-row"><span class="detail-label">Page</span><span class="detail-val url">/admin/auctions  or  /admin/auctions/[id]/live</span></div>
+          <div class="detail-row"><span class="detail-label">API Call</span><span class="detail-val">PATCH /api/auctions/{id}/winner  { vendorId }</span></div>
+          <div class="detail-row"><span class="detail-label">Status</span><span class="detail-val ok-note">✅ acceptBid() calls this. Falls back to local state if API fails.</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div><!-- /phase 5 -->
+
+
+<!-- ═══════════════════════════════════════════════════════════════════
+  PHASE 6 — FINAL QUOTE & CLIENT APPROVAL
+  COMMENT: Winning vendor uploads product-wise quote + letterhead.
+  Client reviews and approves or rejects.
+  File upload works via FormData. approveQuote backend auto-creates Payment record with 5% split.
+═══════════════════════════════════════════════════════════════════ -->
+<div class="phase">
+  <div class="phase-header">
+    <div class="phase-number">6</div>
+    <div>
+      <div class="phase-title">Final Quote & Client Approval</div>
+      <div class="phase-subtitle">Vendor uploads quote + letterhead → Client approves → Deal Closed</div>
+    </div>
+  </div>
+  <div class="steps">
+
+    <!-- STEP 6.1 -->
+    <!-- COMMENT: Vendor uploads two files: product-wise quote PDF and letterhead quotation PDF.
+         submitFinalQuote() converts data URLs to blobs and posts as FormData to POST /auctions/{id}/final-quote.
+         Two separate POST calls — one per file, with 'type' field. -->
+    <div class="step-wrap ok">
+      <div class="step" onclick="toggle(this)">
+        <div class="step-top">
+          <span class="step-num">6.1</span>
+          <span class="badge actor-vendor">Vendor</span>
+          <span class="step-action">Upload product-wise quote PDF + letterhead quotation</span>
+          <span class="badge status-ok">✅</span>
+          <span class="step-expand-icon">▼</span>
+        </div>
+        <div class="step-detail">
+          <div class="detail-row"><span class="detail-label">Page</span><span class="detail-val url">/vendor/final-quote</span></div>
+          <div class="detail-row"><span class="detail-label">API Call 1</span><span class="detail-val">POST /api/auctions/{id}/final-quote  { file, type: 'FINAL_QUOTE' }</span></div>
+          <div class="detail-row"><span class="detail-label">API Call 2</span><span class="detail-val">POST /api/auctions/{id}/final-quote  { file, type: 'LETTERHEAD_QUOTATION' }</span></div>
+          <div class="detail-row"><span class="detail-label">Status</span><span class="detail-val ok-note">✅ Wired. Converts data URL → blob → FormData before posting.</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="arrow"></div>
+
+    <!-- STEP 6.2 -->
+    <!-- COMMENT: Client reviews the final quote docs and approves or rejects.
+         approveFinalQuote() → PATCH /auctions/{id}/approve-quote.
+         Backend automatically creates a Payment record with 5% commission split at this point.
+         rejectFinalQuote() → PATCH /auctions/{id}/reject-quote { remarks }. -->
+    <div class="step-wrap ok">
+      <div class="step" onclick="toggle(this)">
+        <div class="step-top">
+          <span class="step-num">6.2</span>
+          <span class="badge actor-client">Client</span>
+          <span class="step-action">Review quote → Approve or Reject</span>
+          <span class="badge status-ok">✅</span>
+          <span class="step-expand-icon">▼</span>
+        </div>
+        <div class="step-detail">
+          <div class="detail-row"><span class="detail-label">Page</span><span class="detail-val url">/client/final-quote</span></div>
+          <div class="detail-row"><span class="detail-label">Approve API</span><span class="detail-val">PATCH /api/auctions/{id}/approve-quote  (auto-creates Payment with 5% split)</span></div>
+          <div class="detail-row"><span class="detail-label">Reject API</span><span class="detail-val">PATCH /api/auctions/{id}/reject-quote  { remarks }</span></div>
+          <div class="detail-row"><span class="detail-label">Status</span><span class="detail-val ok-note">✅ Both wired. On approval, backend Payment record created automatically.</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div><!-- /phase 6 -->
+
+
+<!-- ═══════════════════════════════════════════════════════════════════
+  PHASE 7 — PAYMENT FLOW
+  COMMENT: Vendor pays client + 5% commission to WeConnect.
+  BUG: submitPaymentProof() sends { utrNumber } as JSON — does NOT upload the proof file/screenshot.
+  Backend endpoint has FileInterceptor but frontend never attaches the file.
+  Also: WeConnect bank details are hardcoded in vendor/payments/page.tsx (WECONNECT_BANK constant).
+  Should come from backend config or admin-configurable settings.
+═══════════════════════════════════════════════════════════════════ -->
+<div class="phase">
+  <div class="phase-header">
+    <div class="phase-number">7</div>
+    <div>
+      <div class="phase-title">Payment Flow</div>
+      <div class="phase-subtitle">Vendor pays client + 5% WeConnect commission → Upload proof → Admin confirms</div>
+    </div>
+  </div>
+  <div class="steps">
+
+    <!-- STEP 7.1 -->
+    <!-- COMMENT: Vendor sees payment page with client bank details + WeConnect bank details.
+         Client bank details come from users[] in state (from backend via GET /users).
+         WeConnect bank details are HARDCODED in vendor/payments/page.tsx:56 (WECONNECT_BANK const).
+         This needs to come from a config endpoint or admin settings. -->
+    <div class="step-wrap partial">
+      <div class="step" onclick="toggle(this)">
+        <div class="step-top">
+          <span class="step-num">7.1</span>
+          <span class="badge actor-vendor">Vendor</span>
+          <span class="step-action">View payment details (client account + WeConnect 5% account)</span>
+          <span class="badge status-partial">⚠ Partial</span>
+          <span class="step-expand-icon">▼</span>
+        </div>
+        <div class="step-detail">
+          <div class="detail-row"><span class="detail-label">Page</span><span class="detail-val url">/vendor/payments</span></div>
+          <div class="detail-row"><span class="detail-label">Client bank details</span><span class="detail-val ok-note">✅ Loaded from users[] → client bankDetails object</span></div>
+          <div class="detail-row"><span class="detail-label">WeConnect bank</span><span class="detail-val gap-note">❌ HARDCODED in vendor/payments/page.tsx:56 — WECONNECT_BANK constant</span></div>
+          <div class="detail-row"><span class="detail-label">Fix</span><span class="detail-val gap-note">Fetch from GET /api/settings/bank or store in env variable / admin config.</span></div>
+          <div class="detail-row"><span class="detail-label">5% amount</span><span class="detail-val ok-note">✅ paymentCommissionAmount stored on listing (set by backend at quote approval)</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="arrow"></div>
+
+    <!-- STEP 7.2 -->
+    <!-- COMMENT: Vendor uploads payment screenshot / UTR number.
+         BUG: submitPaymentProof() at AppContext.tsx:1127 calls:
+           api.post('/payments/auction/{id}/proof', { utrNumber })
+         This sends JSON — no file attached. Backend has FileInterceptor but never receives the file.
+         FIX: Use FormData in submitPaymentProof(). Append file + utrNumber. -->
+    <div class="step-wrap gap">
+      <div class="step" onclick="toggle(this)">
+        <div class="step-top">
+          <span class="step-num">7.2</span>
+          <span class="badge actor-vendor">Vendor</span>
+          <span class="step-action">Upload payment proof (screenshot + UTR number)</span>
+          <span class="badge status-gap">❌ Gap</span>
+          <span class="step-expand-icon">▼</span>
+        </div>
+        <div class="step-detail">
+          <div class="detail-row"><span class="detail-label">Page</span><span class="detail-val url">/vendor/payments</span></div>
+          <div class="detail-row"><span class="detail-label">API Call</span><span class="detail-val">POST /api/payments/auction/{id}/proof  (FileInterceptor + utrNumber)</span></div>
+          <div class="detail-row"><span class="detail-label">Current code</span><span class="detail-val gap-note">AppContext.tsx:1127 — sends { utrNumber } as JSON. File never uploaded.</span></div>
+          <div class="detail-row"><span class="detail-label">File in state</span><span class="detail-val gap-note">proofUrl saved as base64 data URL in local state only. Not in S3/DB.</span></div>
+          <div class="detail-row"><span class="detail-label">Fix</span><span class="detail-val gap-note">Use FormData: formData.append('file', blob); formData.append('utrNumber', utr); POST with multipart header.</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="arrow"></div>
+
+    <!-- STEP 7.3 -->
+    <!-- COMMENT: Admin verifies payment proof and confirms.
+         confirmPayment() calls PATCH /payments/auction/{id}/confirm — fully wired. -->
+    <div class="step-wrap ok">
+      <div class="step" onclick="toggle(this)">
+        <div class="step-top">
+          <span class="step-num">7.3</span>
+          <span class="badge actor-admin">Admin</span>
+          <span class="step-action">Verify payment proof and confirm payment</span>
+          <span class="badge status-ok">✅</span>
+          <span class="step-expand-icon">▼</span>
+        </div>
+        <div class="step-detail">
+          <div class="detail-row"><span class="detail-label">Page</span><span class="detail-val url">/admin/payments</span></div>
+          <div class="detail-row"><span class="detail-label">API Call</span><span class="detail-val">PATCH /api/payments/auction/{id}/confirm  { adminNotes? }</span></div>
+          <div class="detail-row"><span class="detail-label">Status</span><span class="detail-val ok-note">✅ Fully wired. On confirm, complianceStatus set to 'pending'.</span></div>
+          <div class="detail-row"><span class="detail-label">Note</span><span class="detail-val partial-note">⚠ Admin can't actually VIEW the proof screenshot (it was never uploaded — see step 7.2)</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div><!-- /phase 7 -->
+
+
+<!-- ═══════════════════════════════════════════════════════════════════
+  PHASE 8 — PICKUP & COMPLIANCE FLOW
+  COMMENT: After payment confirmed, vendor schedules pickup and uploads compliance docs.
+  BIG GAP: submitComplianceDocs() is entirely local state — never calls /pickups API.
+  The pickup record itself is never created in backend (POST /pickups never called from frontend).
+  FIX SEQUENCE:
+    1. After payment confirmed → auto-create pickup: POST /pickups { auctionId }
+    2. Vendor schedules date: PATCH /pickups/{id}/schedule { scheduledDate }
+    3. Vendor uploads each doc: POST /pickups/{id}/documents { file, type }
+    4. Admin verifies: PATCH /pickups/{id}/complete
+═══════════════════════════════════════════════════════════════════ -->
+<div class="phase">
+  <div class="phase-header">
+    <div class="phase-number">8</div>
+    <div>
+      <div class="phase-title">Pickup &amp; Compliance Flow</div>
+      <div class="phase-subtitle">Vendor schedules pickup → Uploads Form6/Weight Slips/Certs → Admin verifies → Client downloads</div>
+    </div>
+  </div>
+  <div class="steps">
+
+    <!-- STEP 8.1 -->
+    <!-- COMMENT: After payment confirmed, a Pickup record should be created in backend.
+         BUG: No frontend call to POST /pickups after confirmPayment().
+         FIX: In confirmPayment() or in a follow-up effect, call POST /api/pickups { auctionId } to create the pickup record. -->
+    <div class="step-wrap gap">
+      <div class="step" onclick="toggle(this)">
+        <div class="step-top">
+          <span class="step-num">8.1</span>
+          <span class="badge actor-system">System</span>
+          <span class="step-action">Create Pickup record after payment confirmed</span>
+          <span class="badge status-gap">❌ Gap</span>
+          <span class="step-expand-icon">▼</span>
+        </div>
+        <div class="step-detail">
+          <div class="detail-row"><span class="detail-label">API (exists)</span><span class="detail-val">POST /api/pickups  { auctionId, paymentId? }</span></div>
+          <div class="detail-row"><span class="detail-label">Current code</span><span class="detail-val gap-note">Never called. Pickup records don't exist in DB after payment confirmed.</span></div>
+          <div class="detail-row"><span class="detail-label">Fix</span><span class="detail-val gap-note">In confirmPayment() (AppContext.tsx:1141) after successful PATCH /confirm, call POST /pickups { auctionId: listingId }.</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="arrow"></div>
+
+    <!-- STEP 8.2 -->
+    <!-- COMMENT: Vendor schedules pickup date.
+         BUG: pickupScheduledDate is saved in local listing state only.
+         Should call PATCH /pickups/{id}/schedule { scheduledDate }. -->
+    <div class="step-wrap gap">
+      <div class="step" onclick="toggle(this)">
+        <div class="step-top">
+          <span class="step-num">8.2</span>
+          <span class="badge actor-vendor">Vendor</span>
+          <span class="step-action">Schedule pickup date</span>
+          <span class="badge status-gap">❌ Gap</span>
+          <span class="step-expand-icon">▼</span>
+        </div>
+        <div class="step-detail">
+          <div class="detail-row"><span class="detail-label">Page</span><span class="detail-val url">/vendor/pickups</span></div>
+          <div class="detail-row"><span class="detail-label">API (exists)</span><span class="detail-val">PATCH /api/pickups/{id}/schedule  { scheduledDate }</span></div>
+          <div class="detail-row"><span class="detail-label">Current code</span><span class="detail-val gap-note">submitComplianceDocs() saves pickupScheduledDate to local listing state. API never called.</span></div>
+          <div class="detail-row"><span class="detail-label">Fix</span><span class="detail-val gap-note">Separate the schedule step: fetch pickup record by auctionId, then PATCH /pickups/{id}/schedule.</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="arrow"></div>
+
+    <!-- STEP 8.3 -->
+    <!-- COMMENT: Vendor uploads 5 compliance documents on pickup day:
+           Form 6, Weight Slip (Empty), Weight Slip (Loaded), Recycling Certificate, Disposal Certificate.
+         BUG: submitComplianceDocs() at AppContext.tsx:1156 is PURE LOCAL STATE — setState only.
+         Backend has POST /pickups/{id}/documents { file, type: DocumentType }.
+         DocumentType enum values: FORM_6, WEIGHT_SLIP_EMPTY, WEIGHT_SLIP_LOADED, RECYCLING_CERT, DISPOSAL_CERT.
+         FIX: Loop each doc, convert to blob if needed, POST to /pickups/{id}/documents per file. -->
+    <div class="step-wrap gap">
+      <div class="step" onclick="toggle(this)">
+        <div class="step-top">
+          <span class="step-num">8.3</span>
+          <span class="badge actor-vendor">Vendor</span>
+          <span class="step-action">Upload Form 6, Weight Slips, Recycling Cert, Disposal Cert</span>
+          <span class="badge status-gap">❌ Gap</span>
+          <span class="step-expand-icon">▼</span>
+        </div>
+        <div class="step-detail">
+          <div class="detail-row"><span class="detail-label">Page</span><span class="detail-val url">/vendor/pickups</span></div>
+          <div class="detail-row"><span class="detail-label">API (exists)</span><span class="detail-val">POST /api/pickups/{id}/documents  { file, type: 'FORM_6' | 'WEIGHT_SLIP_EMPTY' | 'WEIGHT_SLIP_LOADED' | 'RECYCLING_CERT' | 'DISPOSAL_CERT' }</span></div>
+          <div class="detail-row"><span class="detail-label">Current code</span><span class="detail-val gap-note">AppContext.tsx:1156 — submitComplianceDocs() only calls setState(). Docs stored as data URLs in listing object. Nothing hits backend.</span></div>
+          <div class="detail-row"><span class="detail-label">Fix</span><span class="detail-val gap-note">Rewrite submitComplianceDocs() to: 1) GET /pickups (find by auctionId), 2) POST /pickups/{id}/documents for each file with correct type enum.</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="arrow"></div>
+
+    <!-- STEP 8.4 -->
+    <!-- COMMENT: Admin verifies all compliance docs.
+         verifyCompliance() at AppContext.tsx:1165 calls GET /pickups then PATCH /pickups/{id}/complete.
+         This is wired BUT only works if pickup record exists (depends on step 8.1 gap being fixed).
+         Once 8.1 is fixed, this step will work. -->
+    <div class="step-wrap partial">
+      <div class="step" onclick="toggle(this)">
+        <div class="step-top">
+          <span class="step-num">8.4</span>
+          <span class="badge actor-admin">Admin</span>
+          <span class="step-action">Verify compliance documents and mark pickup complete</span>
+          <span class="badge status-partial">⚠ Partial</span>
+          <span class="step-expand-icon">▼</span>
+        </div>
+        <div class="step-detail">
+          <div class="detail-row"><span class="detail-label">Page</span><span class="detail-val url">/admin/compliance</span></div>
+          <div class="detail-row"><span class="detail-label">API Call</span><span class="detail-val">GET /api/pickups → find by auctionId → PATCH /pickups/{id}/complete</span></div>
+          <div class="detail-row"><span class="detail-label">Status</span><span class="detail-val partial-note">⚠ Logic is wired in verifyCompliance(). Blocked by: pickup record may not exist (step 8.1 gap) and docs may not be in S3 (step 8.3 gap).</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="arrow"></div>
+
+    <!-- STEP 8.5 -->
+    <!-- COMMENT: Client downloads all compliance documents from portal.
+         Page: /client/documents. Shows all closingDocuments on completed listings.
+         These come from local listing state (closingDocuments array) —
+         once backend is fixed, should fetch from GET /pickups/{id} signed S3 URLs. -->
+    <div class="step-wrap partial">
+      <div class="step" onclick="toggle(this)">
+        <div class="step-top">
+          <span class="step-num">8.5</span>
+          <span class="badge actor-client">Client</span>
+          <span class="step-action">Download all compliance documents → Status: COMPLETED</span>
+          <span class="badge status-partial">⚠ Partial</span>
+          <span class="step-expand-icon">▼</span>
+        </div>
+        <div class="step-detail">
+          <div class="detail-row"><span class="detail-label">Page</span><span class="detail-val url">/client/documents</span></div>
+          <div class="detail-row"><span class="detail-label">Current data source</span><span class="detail-val partial-note">listing.form6Url / recyclingCertUrl etc — local state data URLs</span></div>
+          <div class="detail-row"><span class="detail-label">Should be</span><span class="detail-val partial-note">GET /api/pickups/{id} → pickupDocs[].signedUrl (S3 signed URLs)</span></div>
+          <div class="detail-row"><span class="detail-label">Fix</span><span class="detail-val partial-note">Fetch pickup doc signed URLs from API and render download links for client.</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div><!-- /phase 8 -->
+
+
+<!-- ═══════════════════════════════════════════════════════════════════
+  PHASE 9 — VENDOR RATING (Post-completion)
+  COMMENT: Client rates vendor after completed deal.
+  rateVendor() calls PATCH /companies/{vendorId}/rating { rating } — endpoint exists.
+  Local state also updated immediately for UI feedback.
+═══════════════════════════════════════════════════════════════════ -->
+<div class="phase">
+  <div class="phase-header">
+    <div class="phase-number">9</div>
+    <div>
+      <div class="phase-title">Vendor Rating (Post-Completion)</div>
+      <div class="phase-subtitle">Client rates vendor on audit accuracy, timeliness, compliance</div>
+    </div>
+  </div>
+  <div class="steps">
+    <!-- STEP 9.1 -->
+    <!-- COMMENT: Client submits star rating + breakdown (audit, timeliness, compliance) + comment.
+         rateVendor() calls PATCH /companies/{vendorId}/rating { rating: overallRating }.
+         Only overall rating sent to backend — sub-ratings stored in local state only.
+         FIX: Backend rating endpoint should accept all sub-ratings. -->
+    <div class="step-wrap partial">
+      <div class="step" onclick="toggle(this)">
+        <div class="step-top">
+          <span class="step-num">9.1</span>
+          <span class="badge actor-client">Client</span>
+          <span class="step-action">Rate vendor (overall + audit/timeliness/compliance breakdown)</span>
+          <span class="badge status-partial">⚠ Partial</span>
+          <span class="step-expand-icon">▼</span>
+        </div>
+        <div class="step-detail">
+          <div class="detail-row"><span class="detail-label">API Call</span><span class="detail-val">PATCH /api/companies/{vendorId}/rating  { rating: number }</span></div>
+          <div class="detail-row"><span class="detail-label">Sub-ratings</span><span class="detail-val partial-note">⚠ auditRating, timelinessRating, complianceRating only in local state — not sent to backend</span></div>
+          <div class="detail-row"><span class="detail-label">Fix</span><span class="detail-val partial-note">Extend backend endpoint to accept { rating, auditRating, timelinessRating, complianceRating, comment }</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div><!-- /phase 9 -->
+
+
+<!-- ═══════════════════════════════════════════════════════════════════
+  GAPS SUMMARY TABLE
+═══════════════════════════════════════════════════════════════════ -->
+<div class="section-title">🔴 Priority Gaps — Must Fix for Production</div>
+<table class="gap-table">
+  <thead>
+    <tr>
+      <th>Step</th>
+      <th>Function / File</th>
+      <th>Issue</th>
+      <th>API Endpoint to Call</th>
+      <th>Priority</th>
+    </tr>
+  </thead>
+  <tbody>
+    <!-- GAP 1 -->
+    <!-- COMMENT: This is the highest priority — without real Excel files in S3, the requirement flow is broken -->
+    <tr>
+      <td>2.1</td>
+      <td><code>addListing()</code><br/>AppContext.tsx:795</td>
+      <td>Sends JSON body — Excel file never uploaded to backend/S3</td>
+      <td><code>POST /requirements</code> (multipart)</td>
+      <td><span class="badge status-gap">P1 Critical</span></td>
+    </tr>
+    <!-- GAP 2 -->
+    <tr>
+      <td>1.3</td>
+      <td><code>saveOnboardingDocuments()</code><br/>AppContext.tsx:737</td>
+      <td>Only setState() — KYC docs never reach S3 or DB</td>
+      <td><code>POST /companies/{id}/documents</code></td>
+      <td><span class="badge status-gap">P1 Critical</span></td>
+    </tr>
+    <!-- GAP 3 -->
+    <tr>
+      <td>8.3</td>
+      <td><code>submitComplianceDocs()</code><br/>AppContext.tsx:1156</td>
+      <td>Pure local state — Form6/certs never go to backend</td>
+      <td><code>POST /pickups/{id}/documents</code></td>
+      <td><span class="badge status-gap">P1 Critical</span></td>
+    </tr>
+    <!-- GAP 4 -->
+    <tr>
+      <td>7.2</td>
+      <td><code>submitPaymentProof()</code><br/>AppContext.tsx:1124</td>
+      <td>Sends JSON — proof screenshot not uploaded, admin can't view it</td>
+      <td><code>POST /payments/auction/{id}/proof</code> (multipart)</td>
+      <td><span class="badge status-gap">P1 Critical</span></td>
+    </tr>
+    <!-- GAP 5 -->
+    <tr>
+      <td>8.1</td>
+      <td><code>confirmPayment()</code><br/>AppContext.tsx:1141</td>
+      <td>No <code>POST /pickups</code> called after payment confirmed — pickup record never created</td>
+      <td><code>POST /pickups  { auctionId }</code></td>
+      <td><span class="badge status-gap">P1 Critical</span></td>
+    </tr>
+    <!-- GAP 6 -->
+    <tr>
+      <td>2.2</td>
+      <td><code>/admin/listings</code> page</td>
+      <td>No UI to upload processed sheet — endpoint exists but unused</td>
+      <td><code>POST /requirements/{id}/processed-sheet</code></td>
+      <td><span class="badge status-partial">P2 High</span></td>
+    </tr>
+    <!-- GAP 7 -->
+    <tr>
+      <td>2.3</td>
+      <td><code>editListing()</code><br/>AppContext.tsx:868</td>
+      <td>Client requirement approval is local state — PATCH /approve never called</td>
+      <td><code>PATCH /requirements/{id}/approve</code></td>
+      <td><span class="badge status-partial">P2 High</span></td>
+    </tr>
+    <!-- GAP 8 -->
+    <tr>
+      <td>5.2</td>
+      <td><code>transitionAuctionPhase()</code><br/>AppContext.tsx:820</td>
+      <td>Phase transitions (draft→sealed→live→completed) are local only</td>
+      <td><code>PATCH /auctions/{id}/status  { status }</code></td>
+      <td><span class="badge status-partial">P2 High</span></td>
+    </tr>
+    <!-- GAP 9 -->
+    <tr>
+      <td>1.4</td>
+      <td><code>saveOnboardingBankDetails()</code><br/>AppContext.tsx:748</td>
+      <td>Bank details never persisted to backend</td>
+      <td><code>PATCH /companies/{id}</code> with bank fields</td>
+      <td><span class="badge status-partial">P2 High</span></td>
+    </tr>
+    <!-- GAP 10 -->
+    <tr>
+      <td>7.1</td>
+      <td><code>vendor/payments/page.tsx:56</code></td>
+      <td>WeConnect bank details hardcoded — WECONNECT_BANK constant</td>
+      <td>Fetch from <code>GET /settings/bank</code> or env config</td>
+      <td><span class="badge status-partial">P3 Medium</span></td>
+    </tr>
+    <!-- GAP 11 -->
+    <tr>
+      <td>9.1</td>
+      <td><code>rateVendor()</code><br/>AppContext.tsx:1185</td>
+      <td>Only overall rating sent to API — sub-ratings lost</td>
+      <td><code>PATCH /companies/{id}/rating</code> with full payload</td>
+      <td><span class="badge status-partial">P3 Medium</span></td>
+    </tr>
+  </tbody>
+</table>
+
+</main>
+
+<script>
+  /* ─── Toggle step detail ─── */
+  function toggle(el) {
+    el.classList.toggle('expanded');
+  }
+
+  /* ─── Keyboard: press 'e' to expand all, 'c' to collapse all ─── */
+  document.addEventListener('keydown', e => {
+    if (e.key === 'e') document.querySelectorAll('.step').forEach(s => s.classList.add('expanded'));
+    if (e.key === 'c') document.querySelectorAll('.step').forEach(s => s.classList.remove('expanded'));
+  });
+</script>
+
+<!--
+  ═══════════════════════════════════════════════════════════════
+  HOW TO USE THIS FILE AS A REFERENCE WHILE FIXING CODE
+  ═══════════════════════════════════════════════════════════════
+
+  Each step block above has an HTML comment immediately before it.
+  Search for "COMMENT:" in this file to find the fix notes.
+
+  STATUS KEY (in comments):
+    BUG:  describes what's wrong
+    FIX:  exact code change needed (file:line)
+    GAP:  missing feature entirely
+
+  QUICK SEARCH GUIDE:
+    - "GAP" in comments → functionality missing
+    - "BUG" in comments → code exists but broken
+    - "FIX" in comments → what to change and where
+
+  ═══════════════════════════════════════════════════════════════
+-->
+</body>
+</html>

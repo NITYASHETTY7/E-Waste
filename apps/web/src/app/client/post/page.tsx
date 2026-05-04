@@ -43,6 +43,8 @@ export default function ClientPost() {
   });
   const [images, setImages] = useState<string[]>([]);
   const [documents, setDocuments] = useState<{name: string, url: string, type: string}[]>([]);
+  // Stores the actual File objects for server upload (keyed by doc type)
+  const [rawFiles, setRawFiles] = useState<Record<string, File>>({});
 
   const [success, setSuccess] = useState(false);
   const [step, setStep] = useState<"category" | "details" | "auction" | "media" | "invites">("category");
@@ -76,22 +78,28 @@ export default function ClientPost() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (images.length === 0) { setErrors({ media: "Please upload at least one image." }); return; }
-    
-    addListing({
-      title: form.title, category: selectedCategory, weight: Number(form.weight),
-      location: form.location, userId: currentUser?.id || "", userName: currentUser?.name || "",
-      description: form.description, urgency: form.urgency,
-      pickupAddress: form.pickupAddress,
-      sealedBidStartDate: new Date(form.sealedBidStartDate).toISOString(),
-      sealedBidEndDate: new Date(form.sealedBidEndDate).toISOString(),
-      invitationDeadline: form.invitationDeadline ? new Date(form.invitationDeadline).toISOString() : undefined,
-      invitedVendorIds: selectedVendors,
-      images, documents
-    });
-    setSuccess(true);
+    if (selectedVendors.length === 0) { setErrors({ invites: "Please select at least one vendor." }); return; }
+
+    try {
+      await addListing({
+        title: form.title, category: selectedCategory, weight: Number(form.weight),
+        location: form.location, userId: currentUser?.id || "", userName: currentUser?.name || "",
+        description: form.description, urgency: form.urgency,
+        pickupAddress: form.pickupAddress,
+        sealedBidStartDate: new Date(form.sealedBidStartDate).toISOString(),
+        sealedBidEndDate: new Date(form.sealedBidEndDate).toISOString(),
+        invitationDeadline: form.invitationDeadline ? new Date(form.invitationDeadline).toISOString() : undefined,
+        invitedVendorIds: selectedVendors,
+        images, documents,
+        _rawFiles: rawFiles,
+      } as any);
+      setSuccess(true);
+    } catch {
+      setErrors({ submit: "Failed to submit listing. Please try again." });
+    }
   };
 
   if (success) {
@@ -100,8 +108,11 @@ export default function ClientPost() {
         <div className="w-24 h-24 rounded-full bg-[color:var(--color-primary-fixed)] flex items-center justify-center mx-auto mb-6 animate-bounce">
           <span className="material-symbols-outlined text-5xl text-[color:var(--color-on-primary-fixed)]" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
         </div>
-        <h2 className="text-3xl font-headline font-extrabold text-[color:var(--color-on-surface)] mb-3">Auction Scheduled!</h2>
-        <p className="text-[color:var(--color-on-surface-variant)] mb-6">Your e-waste auction is verified and scheduled. Vendors will be notified.</p>
+        <h2 className="text-3xl font-headline font-extrabold text-[color:var(--color-on-surface)] mb-3">Listing Submitted!</h2>
+        <p className="text-[color:var(--color-on-surface-variant)] mb-6">
+          Your listing is pending admin review. Once approved, the selected vendors will
+          automatically receive an email invitation to place their sealed bids.
+        </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <Link href="/client/listings" className="btn-primary">View My Auctions</Link>
           <a href="/client/post" className="btn-outline">Post Another</a>
@@ -345,9 +356,14 @@ export default function ClientPost() {
                                  onChange={(e) => {
                                   if (e.target.files?.length) {
                                      const file = e.target.files[0];
+                                     // Store raw File for server upload
+                                     setRawFiles(prev => ({ ...prev, [docReq.id]: file }));
                                      const reader = new FileReader();
                                      reader.onloadend = () => {
-                                        setDocuments([...documents, { name: file.name, url: reader.result as string, type: docReq.id }]);
+                                        setDocuments(prev => [
+                                          ...prev.filter(d => d.type !== docReq.id),
+                                          { name: file.name, url: reader.result as string, type: docReq.id }
+                                        ]);
                                      };
                                      reader.readAsDataURL(file);
                                   }
@@ -399,11 +415,13 @@ export default function ClientPost() {
              </div>
           </div>
 
+          {errors.invites && <p className="text-red-500 text-xs text-center font-bold">{errors.invites}</p>}
+          {errors.submit && <p className="text-red-500 text-xs text-center font-bold">{errors.submit}</p>}
           <div className="flex flex-col-reverse sm:flex-row gap-4 justify-between mt-8">
             <button type="button" onClick={() => setStep("media")} className="btn-outline w-full sm:w-auto px-8 py-4 rounded-xl font-bold">← Back</button>
             <button type="submit" className="btn-tertiary w-full sm:flex-1 py-4 rounded-xl font-black text-sm uppercase tracking-widest shadow-lg flex items-center justify-center gap-2">
               <span className="material-symbols-outlined">send</span>
-              Submit & Send Invitations
+              Submit for Admin Approval
             </button>
           </div>
         </form>

@@ -24,22 +24,17 @@ export default function VendorPayments() {
     return client?.bankDetails;
   };
 
-  const handleFileRead = (file: File): Promise<string> =>
-    new Promise(resolve => {
-      const reader = new FileReader();
-      reader.onload = e => resolve(e.target?.result as string);
-      reader.readAsDataURL(file);
-    });
-
   const handleUpload = async () => {
     if (!proofModal.listingId || !proofFile || !utr) return;
     setUploading(true);
-    const url = await handleFileRead(proofFile);
-    submitPaymentProof(proofModal.listingId, url, utr);
-    setProofModal({ open: false, listingId: null });
-    setProofFile(null);
-    setUtr("");
-    setUploading(false);
+    try {
+      await submitPaymentProof(proofModal.listingId, proofFile, utr);
+    } finally {
+      setProofModal({ open: false, listingId: null });
+      setProofFile(null);
+      setUtr("");
+      setUploading(false);
+    }
   };
 
   const statusMeta = (status?: string) => {

@@ -12,11 +12,13 @@ const auctions_service_1 = require("./auctions.service");
 const auctions_controller_1 = require("./auctions.controller");
 const auction_gateway_1 = require("./auction.gateway");
 const auction_scheduler_1 = require("./auction.scheduler");
+const notification_module_1 = require("../notifications/notification.module");
 let AuctionsModule = class AuctionsModule {
 };
 exports.AuctionsModule = AuctionsModule;
 exports.AuctionsModule = AuctionsModule = __decorate([
     (0, common_1.Module)({
+        imports: [notification_module_1.NotificationModule],
         controllers: [auctions_controller_1.AuctionsController],
         providers: [auctions_service_1.AuctionsService, auction_gateway_1.AuctionGateway, auction_scheduler_1.AuctionScheduler],
         exports: [auctions_service_1.AuctionsService],

@@ -15,6 +15,20 @@ export declare class AuthController {
             emailSent: boolean;
             phoneSent: boolean;
         };
+        resumed: boolean;
+        resumeStep: number;
+        access_token: string;
+        user: any;
+    } | {
+        otp: {
+            emailSent: boolean;
+            phoneSent: boolean;
+            devEmailOtp?: string;
+            devPhoneOtp?: string;
+        } | {
+            emailSent: boolean;
+            phoneSent: boolean;
+        };
         access_token: string;
         user: any;
     }>;

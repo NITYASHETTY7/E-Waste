@@ -23,7 +23,26 @@ let RequirementsController = class RequirementsController {
         this.svc = svc;
     }
     create(body, file, req) {
-        return this.svc.create({ ...body, clientId: body.clientId || req.user.companyId, file });
+        let invitedVendorIds = [];
+        if (body.invitedVendorIds) {
+            try {
+                invitedVendorIds = typeof body.invitedVendorIds === 'string'
+                    ? JSON.parse(body.invitedVendorIds)
+                    : body.invitedVendorIds;
+            }
+            catch {
+                invitedVendorIds = body.invitedVendorIds
+                    .split(',')
+                    .map((s) => s.trim())
+                    .filter(Boolean);
+            }
+        }
+        return this.svc.create({
+            ...body,
+            clientId: body.clientId || req.user.companyId,
+            invitedVendorIds,
+            file,
+        });
     }
     findAll(clientId) {
         return this.svc.findAll(clientId);
@@ -36,6 +55,9 @@ let RequirementsController = class RequirementsController {
     }
     clientApprove(id, body) {
         return this.svc.clientApprove(id, body);
+    }
+    adminApprove(id, req) {
+        return this.svc.adminApprove(id, req.user?.userId);
     }
     getSignedUrl(id, field) {
         return this.svc.getSignedUrl(id, field);
@@ -83,6 +105,14 @@ __decorate([
     __metadata("design:paramtypes", [String, Object]),
     __metadata("design:returntype", void 0)
 ], RequirementsController.prototype, "clientApprove", null);
+__decorate([
+    (0, common_1.Patch)(':id/admin-approve'),
+    __param(0, (0, common_1.Param)('id')),
+    __param(1, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", void 0)
+], RequirementsController.prototype, "adminApprove", null);
 __decorate([
     (0, common_1.Get)(':id/download/:field'),
     __param(0, (0, common_1.Param)('id')),

@@ -39,8 +39,13 @@ export default function GetStartedPage() {
 
     try {
       if (tab === "login") {
-        await login(role as UserRole, email, password);
-        if (role === "client") router.push("/client/dashboard");
+        const user = await login(role as UserRole, email, password);
+        if (user.role !== role && (role !== "client" || user.role !== "consumer")) {
+          setError(`You are registered as a ${user.role.toUpperCase()}. Please sign in from the correct portal.`);
+          return;
+        }
+        if (user.role === "client") router.push("/client/dashboard");
+        else if (user.role === "consumer") router.push("/consumer/dashboard");
         else router.push("/vendor/dashboard");
       } else {
         // Register: create user in backend first, then start onboarding
@@ -337,7 +342,7 @@ export default function GetStartedPage() {
                 {[
                   { label: "Client", email: "client@weconnect.com", role: "client", password: "password" },
                   { label: "Vendor", email: "vendor@weconnect.com", role: "vendor", password: "password" },
-                  { label: "Admin", email: "admin@weconnect.com", role: "admin", password: "password" }
+                  { label: "Admin", email: process.env.ADMIN_EMAIL as string, role: "admin", password: "password" }
                 ].map((demo, i) => (
                   <button
                     key={i}
@@ -353,7 +358,7 @@ export default function GetStartedPage() {
               <div className="text-center pt-2">
                 <p className="text-[10px] font-bold text-slate-400">
                   Admin portal: <button
-                    onClick={() => quickLogin("admin" as UserRole, "admin@weconnect.com")}
+                    onClick={() => quickLogin("admin" as UserRole, process.env.ADMIN_EMAIL as string)}
                     className="text-emerald-600 font-black hover:underline cursor-pointer"
                   >
                     We Connect Console

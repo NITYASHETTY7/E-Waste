@@ -1,18 +1,21 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import {
   S3Client,
-  PutObjectCommand,
   GetObjectCommand,
   DeleteObjectCommand,
+  PutObjectCommand,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { randomUUID } from 'crypto';
+import { Readable } from 'stream';
 
 @Injectable()
 export class S3Service {
   private s3: S3Client;
-  private privateBucket = process.env.S3_PRIVATE_BUCKET || 'traventions-private-s3';
-  private publicBucket = process.env.S3_PUBLIC_BUCKET || 'traventions-public-s3';
+  private privateBucket =
+    process.env.S3_PRIVATE_BUCKET || 'traventions-private-s3';
+  private publicBucket =
+    process.env.S3_PUBLIC_BUCKET || 'traventions-public-s3';
 
   constructor() {
     this.s3 = new S3Client({
@@ -51,10 +54,21 @@ export class S3Service {
     return { key, bucket, url };
   }
 
-  async getSignedUrl(key: string, bucket?: string, expiresIn = 3600): Promise<string> {
+  async getSignedUrl(
+    key: string,
+    bucket?: string,
+    expiresIn = 3600,
+  ): Promise<string> {
     const b = bucket || this.privateBucket;
     const command = new GetObjectCommand({ Bucket: b, Key: key });
     return getSignedUrl(this.s3, command, { expiresIn });
+  }
+
+  async getFileStream(key: string, bucket?: string): Promise<Readable> {
+    const b = bucket || this.privateBucket;
+    const command = new GetObjectCommand({ Bucket: b, Key: key });
+    const response = await this.s3.send(command);
+    return response.Body as Readable;
   }
 
   async delete(key: string, bucket?: string): Promise<void> {

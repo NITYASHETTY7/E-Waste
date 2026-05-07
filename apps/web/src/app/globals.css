@@ -678,6 +678,46 @@ h1, h2, h3, h4, h5, h6,
 }
 
 /* ──────────────────────────────────────────────────────────────
+   FIX 5 - Calendar/Date Picker Color Fix
+ ────────────────────────────────────────────────────────────── */
+
+/* Force light color scheme for date/time pickers to ensure visibility of the popup */
+input[type="date"],
+input[type="datetime-local"],
+input[type="month"],
+input[type="week"] {
+  color-scheme: light;
+  background-color: #ffffff !important;
+  color: #1a1a1a !important;
+}
+
+.dark input[type="date"],
+.dark input[type="datetime-local"],
+.dark input[type="month"],
+.dark input[type="week"] {
+  color-scheme: light;
+  background-color: #ffffff !important;
+  color: #1a1a1a !important;
+}
+
+/* Style the calendar picker indicator (the icon) */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  filter: none; /* Keep original color since we forced light background */
+  padding: 4px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  background-color: rgba(22, 163, 74, 0.1); /* Light green hover */
+}
+
+/* Green accent for selected date is browser-dependent for native pickers,
+   but we can at least ensure the input itself looks correct. */
+
+
+/* ──────────────────────────────────────────────────────────────
    War Room / Glassmorphism Extras (Ref: ARCHITECTURE-PLAN.md)
  ────────────────────────────────────────────────────────────── */
 

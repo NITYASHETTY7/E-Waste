@@ -12,11 +12,15 @@ import { JwtStrategy } from './jwt.strategy';
     UsersModule,
     PassportModule,
     JwtModule.register({
-      privateKey: process.env.JWT_PRIVATE_KEY ? process.env.JWT_PRIVATE_KEY.replace(/\\n/g, '\n') : 'super-secret',
-      publicKey: process.env.JWT_PUBLIC_KEY ? process.env.JWT_PUBLIC_KEY.replace(/\\n/g, '\n') : undefined,
-      signOptions: { 
+      privateKey: process.env.JWT_PRIVATE_KEY
+        ? process.env.JWT_PRIVATE_KEY.replace(/\\n/g, '\n')
+        : 'super-secret',
+      publicKey: process.env.JWT_PUBLIC_KEY
+        ? process.env.JWT_PUBLIC_KEY.replace(/\\n/g, '\n')
+        : undefined,
+      signOptions: {
         expiresIn: '24h',
-        algorithm: 'RS256'
+        algorithm: 'RS256',
       },
     }),
   ],

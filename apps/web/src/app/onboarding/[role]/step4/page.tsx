@@ -55,12 +55,21 @@ export default function OnboardingStep4() {
     try {
       const res = await api.post('/auth/send-otp', { email: userEmail, phone: userPhone || undefined });
       setOtpSent(true);
+      
+      // Handle the case where AWS returns 200 but sending actually failed 
+      // (due to dev fallback or sandbox limits)
+      if (res.data.emailSent === false || res.data.phoneSent === false) {
+        console.warn("AWS SES/SNS might be in sandbox mode or hit limits. Using dev fallbacks if available.");
+      }
+
       // Surface dev OTP codes when AWS delivery is unavailable
       if (res.data?.devEmailOtp || res.data?.devPhoneOtp) {
         setDevOtp({ email: res.data.devEmailOtp, phone: res.data.devPhoneOtp });
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error('Failed to send OTP via API', e);
+      // We still set otpSent to true so the UI proceeds to the input boxes, 
+      // where the user can see the dev fallback codes.
       setOtpSent(true);
     } finally {
       setSendingOtp(false);
@@ -184,10 +193,22 @@ export default function OnboardingStep4() {
 
   const handleComplete = async () => {
     if (!emailVerified || (userPhone && !phoneVerified)) return;
-    setCompleted(true);
-    await new Promise(r => setTimeout(r, 1500));
-    await completeOnboarding();
-    router.push(effectiveRole === "vendor" ? "/vendor/dashboard" : effectiveRole === "consumer" ? "/consumer/dashboard" : "/client/dashboard");
+
+    setVerifying(true);
+    setEmailError("");
+    setPhoneError("");
+
+    try {
+      await api.post('/auth/complete-verification', { email: userEmail });
+      setCompleted(true);
+      await completeOnboarding();
+      router.push(`/pending-approval?email=${encodeURIComponent(userEmail || '')}`);
+    } catch (err: any) {
+      console.error(err);
+      setEmailError(err.response?.data?.message || "Failed to complete registration.");
+    } finally {
+      setVerifying(false);
+    }
   };
 
   const renderOTPBox = ({
@@ -268,12 +289,10 @@ export default function OnboardingStep4() {
           <span className="material-symbols-outlined text-5xl text-[color:var(--color-on-primary-fixed)]" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
         </div>
         <h2 className="text-3xl font-headline font-extrabold text-[color:var(--color-on-surface)] mb-3">
-          {effectiveRole === "vendor" ? "Application Submitted!" : "Welcome to WeConnect!"}
+          Application Submitted!
         </h2>
         <p className="text-[color:var(--color-on-surface-variant)]">
-          {effectiveRole === "vendor"
-            ? "Your application is under review. We'll notify you within 2–3 business days."
-            : "Your account is set up. Redirecting to your dashboard..."}
+          Redirecting to the review status page...
         </p>
         <div className="mt-6 flex justify-center">
           <span className="material-symbols-outlined text-3xl text-[color:var(--color-primary)] animate-spin">progress_activity</span>
@@ -343,17 +362,24 @@ export default function OnboardingStep4() {
         </button>
         <button
           onClick={handleComplete}
-          disabled={!emailVerified || (!!userPhone && !phoneVerified)}
+          disabled={!emailVerified || (!!userPhone && !phoneVerified) || verifying}
           className={`flex-1 py-4 rounded-xl text-sm font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg transition-all ${
             emailVerified && (!userPhone || phoneVerified)
-              ? "btn-tertiary"
-              : "bg-[color:var(--color-surface-dim)] text-[color:var(--color-on-surface-variant)] cursor-not-allowed"
+              ? "bg-[#16a34a] text-white hover:bg-emerald-700"
+              : "bg-slate-200 text-slate-400 cursor-not-allowed dark:bg-slate-800 dark:text-slate-600"
           }`}
         >
-          <span className="material-symbols-outlined">
-            {effectiveRole === "vendor" ? "send" : "rocket_launch"}
-          </span>
-          {effectiveRole === "vendor" ? "Submit Application" : "Enter Dashboard"}
+          {verifying ? (
+            <span className="flex items-center justify-center gap-2">
+              <span className="material-symbols-outlined animate-spin text-lg">progress_activity</span>
+              Completing...
+            </span>
+          ) : (
+            <>
+              <span className="material-symbols-outlined font-bold">check</span>
+              COMPLETE REGISTRATION
+            </>
+          )}
         </button>
       </div>
     </div>

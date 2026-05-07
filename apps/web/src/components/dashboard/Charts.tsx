@@ -31,6 +31,7 @@ export const InteractiveLineChart: React.FC<DashboardChartProps> = ({ title, sub
   const [mounted, setMounted] = useState(false);
   const [view, setView] = useState<'Monthly' | 'Weekly'>('Monthly');
   
+  // eslint-disable-next-line
   useEffect(() => { setMounted(true); }, []);
 
   if (!mounted) return (
@@ -108,6 +109,7 @@ export const InteractiveDonutChart: React.FC<DashboardChartProps & { percentage:
   title, percentage, color = "#1E8E3E", label1 = "Success", label2 = "Pending" 
 }) => {
   const [mounted, setMounted] = useState(false);
+  // eslint-disable-next-line
   useEffect(() => { setMounted(true); }, []);
 
   const data = [
@@ -176,6 +178,7 @@ export const InteractiveDonutChart: React.FC<DashboardChartProps & { percentage:
 
 export const InteractiveBarChart: React.FC<DashboardChartProps & { data: any[] }> = ({ title, data }) => {
   const [mounted, setMounted] = useState(false);
+  // eslint-disable-next-line
   useEffect(() => { setMounted(true); }, []);
 
   if (!mounted) return (

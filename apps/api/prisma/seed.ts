@@ -9,12 +9,13 @@ async function main() {
   const hash = (pw: string) => bcrypt.hash(pw, 10);
 
   // Admin
+  const adminEmail = process.env.ADMIN_EMAIL!;
   const adminHash = await hash('password');
   await prisma.user.upsert({
-    where: { email: 'admin@weconnect.com' },
+    where: { email: adminEmail },
     update: { passwordHash: adminHash, isActive: true, emailVerified: true },
     create: {
-      email: 'admin@weconnect.com',
+      email: adminEmail,
       name: 'Super Admin',
       passwordHash: adminHash,
       role: 'ADMIN',
@@ -22,7 +23,7 @@ async function main() {
       emailVerified: true,
     },
   });
-  console.log('✅ Admin seeded: admin@weconnect.com / password');
+  console.log(`✅ Admin seeded: ${adminEmail} / password`);
 
   // Vendor company
   let vendorCompany = await prisma.company.findFirst({ where: { name: 'Green Recyclers Pvt Ltd' } });

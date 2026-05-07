@@ -1,11 +1,22 @@
 import {
-  Controller, Get, Post, Patch, Body, Param, Query,
-  UseGuards, UploadedFile, UseInterceptors, Request
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Body,
+  Param,
+  Query,
+  UseGuards,
+  UploadedFile,
+  UseInterceptors,
+  Request,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { CompaniesService } from './companies.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { CompanyStatus, CompanyType, DocumentType } from '@prisma/client';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { CompanyStatus, CompanyType, DocumentType, UserRole } from '@prisma/client';
 
 @UseGuards(JwtAuthGuard)
 @Controller('companies')
@@ -62,5 +73,28 @@ export class CompaniesController {
   @Patch(':id/rating')
   updateRating(@Param('id') id: string, @Body('rating') rating: number) {
     return this.companiesService.updateRating(id, rating);
+  }
+
+  // --- Admin Risk Control Endpoints ---
+
+  @Patch('admin/:id/lock')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  lockVendor(@Param('id') id: string, @Body('reason') reason: string) {
+    return this.companiesService.lockCompany(id, reason);
+  }
+
+  @Patch('admin/:id/unlock')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  unlockVendor(@Param('id') id: string) {
+    return this.companiesService.unlockCompany(id);
+  }
+
+  @Post('admin/:id/penalty')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  applyPenalty(@Param('id') id: string, @Body('amount') amount: number, @Body('reason') reason: string) {
+    return this.companiesService.applyPenalty(id, amount, reason);
   }
 }

@@ -480,7 +480,7 @@ ecoloop-app/
 
 | Role | Email | What You'll See |
 |---|---|---|
-| **Admin** | `admin@weconnect.com` | Full platform — all modules with mock data |
+| **Admin** | `process.env.ADMIN_EMAIL` | Full platform — all modules with mock data |
 | **Client** | `client@weconnect.com` | Listings, sealed bids, final quote approval, docs |
 | **Vendor** | `vendor@weconnect.com` | Audits, bidding, final quote upload, payments |
 | **Consumer** | `consumer@weconnect.com` | Individual pickup dashboard |

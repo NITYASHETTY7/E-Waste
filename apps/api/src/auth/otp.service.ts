@@ -16,7 +16,11 @@ export class OtpService {
    * Stores both email and phone codes as "emailCode|phoneCode" in otpCode,
    * and the expiry + type in dedicated fields.
    */
-  private async storeOtp(email: string, emailCode: string, phoneCode: string): Promise<void> {
+  private async storeOtp(
+    email: string,
+    emailCode: string,
+    phoneCode: string,
+  ): Promise<void> {
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 min
     await this.prisma.user.update({
       where: { email },
@@ -36,7 +40,12 @@ export class OtpService {
   async sendOtp(
     email: string,
     phone?: string,
-  ): Promise<{ emailSent: boolean; phoneSent: boolean; devEmailOtp?: string; devPhoneOtp?: string }> {
+  ): Promise<{
+    emailSent: boolean;
+    phoneSent: boolean;
+    devEmailOtp?: string;
+    devPhoneOtp?: string;
+  }> {
     if (!email || !email.includes('@')) {
       this.logger.error(`sendOtp called with invalid email: "${email}"`);
       return { emailSent: false, phoneSent: false };
@@ -63,7 +72,8 @@ export class OtpService {
     // Send email OTP via SES
     if (accessKeyId && accessKeyId !== 'your_aws_access_key' && fromEmail) {
       try {
-        const { SESClient, SendEmailCommand } = await import('@aws-sdk/client-ses');
+        const { SESClient, SendEmailCommand } =
+          await import('@aws-sdk/client-ses');
         const ses = new SESClient({
           region,
           credentials: { accessKeyId, secretAccessKey: secretAccessKey! },
@@ -95,18 +105,24 @@ export class OtpService {
         emailSent = true;
         this.logger.log(`✉️ Email OTP sent to ${email}`);
       } catch (error) {
-        this.logger.error(`Failed to send email OTP to ${email}. Check AWS Sandbox limits.`, error);
+        this.logger.error(
+          `Failed to send email OTP to ${email}. Check AWS Sandbox limits.`,
+          error,
+        );
         this.logger.warn(`[DEV FALLBACK] Email OTP for ${email}: ${emailCode}`);
       }
     } else {
-      this.logger.warn(`[SES NOT CONFIGURED] Email OTP for ${email}: ${emailCode}`);
+      this.logger.warn(
+        `[SES NOT CONFIGURED] Email OTP for ${email}: ${emailCode}`,
+      );
     }
 
     // Send phone OTP via SNS
     if (phone) {
       if (accessKeyId && accessKeyId !== 'your_aws_access_key') {
         try {
-          const { SNSClient, PublishCommand } = await import('@aws-sdk/client-sns');
+          const { SNSClient, PublishCommand } =
+            await import('@aws-sdk/client-sns');
           const sns = new SNSClient({
             region,
             credentials: { accessKeyId, secretAccessKey: secretAccessKey! },
@@ -125,19 +141,32 @@ export class OtpService {
               PhoneNumber: normalizedPhone,
               Message: `Your WeConnect verification code is: ${phoneCode}. Valid for 10 minutes.`,
               MessageAttributes: {
-                'AWS.SNS.SMS.SenderID': { DataType: 'String', StringValue: 'WeConnect' },
-                'AWS.SNS.SMS.SMSType': { DataType: 'String', StringValue: 'Transactional' },
+                'AWS.SNS.SMS.SenderID': {
+                  DataType: 'String',
+                  StringValue: 'WeConnect',
+                },
+                'AWS.SNS.SMS.SMSType': {
+                  DataType: 'String',
+                  StringValue: 'Transactional',
+                },
               },
             }),
           );
           phoneSent = true;
           this.logger.log(`📱 Phone OTP sent to ${phone}`);
         } catch (error) {
-          this.logger.error(`Failed to send phone OTP to ${phone}. Check AWS Sandbox limits.`, error);
-          this.logger.warn(`[DEV FALLBACK] Phone OTP for ${phone}: ${phoneCode}`);
+          this.logger.error(
+            `Failed to send phone OTP to ${phone}. Check AWS Sandbox limits.`,
+            error,
+          );
+          this.logger.warn(
+            `[DEV FALLBACK] Phone OTP for ${phone}: ${phoneCode}`,
+          );
         }
       } else {
-        this.logger.warn(`[SNS NOT CONFIGURED] Phone OTP for ${phone}: ${phoneCode}`);
+        this.logger.warn(
+          `[SNS NOT CONFIGURED] Phone OTP for ${phone}: ${phoneCode}`,
+        );
       }
     }
 
@@ -153,14 +182,24 @@ export class OtpService {
   /**
    * Verify an OTP code against the DB-stored value and persist the result.
    */
-  async verifyOtp(email: string, code: string, type: 'email' | 'phone'): Promise<{ verified: boolean; message: string }> {
+  async verifyOtp(
+    email: string,
+    code: string,
+    type: 'email' | 'phone',
+  ): Promise<{ verified: boolean; message: string }> {
     const user = await this.prisma.user.findUnique({ where: { email } });
     if (!user || !user.otpCode || !user.otpExpiresAt) {
-      return { verified: false, message: 'No OTP found. Please request a new code.' };
+      return {
+        verified: false,
+        message: 'No OTP found. Please request a new code.',
+      };
     }
 
     if (new Date() > user.otpExpiresAt) {
-      return { verified: false, message: 'OTP has expired. Please request a new code.' };
+      return {
+        verified: false,
+        message: 'OTP has expired. Please request a new code.',
+      };
     }
 
     // otpCode stored as "emailCode|phoneCode"
@@ -168,7 +207,10 @@ export class OtpService {
     const expectedCode = type === 'email' ? emailCode : phoneCode;
 
     if (!expectedCode) {
-      return { verified: false, message: `No ${type} OTP found. Please request a new code.` };
+      return {
+        verified: false,
+        message: `No ${type} OTP found. Please request a new code.`,
+      };
     }
 
     if (expectedCode !== code) {
@@ -208,9 +250,15 @@ export class OtpService {
       await this.prisma.user.update({ where: { email }, data: updateData });
       this.logger.log(`✅ ${type} verified and saved to DB for ${email}`);
     } catch (err) {
-      this.logger.error(`Failed to persist ${type} verification for ${email}`, err);
+      this.logger.error(
+        `Failed to persist ${type} verification for ${email}`,
+        err,
+      );
     }
 
-    return { verified: true, message: `${type === 'email' ? 'Email' : 'Phone'} verified successfully.` };
+    return {
+      verified: true,
+      message: `${type === 'email' ? 'Email' : 'Phone'} verified successfully.`,
+    };
   }
 }

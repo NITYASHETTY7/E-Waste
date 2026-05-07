@@ -1,4 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
+import type { Queue } from 'bull';
+import { InjectQueue } from '@nestjs/bull';
 
 export interface EmailPayload {
   to: string;
@@ -10,11 +12,31 @@ export interface EmailPayload {
 export class NotificationService {
   private readonly logger = new Logger(NotificationService.name);
 
+  constructor(
+    @Optional() @InjectQueue('email') private emailQueue?: Queue
+  ) {}
+
   /**
-   * Send email notification via AWS SES.
-   * Falls back to logging when SES is not configured.
+   * Send email notification by pushing to background queue.
    */
   async sendEmail(payload: EmailPayload): Promise<void> {
+    if (this.emailQueue) {
+      await this.emailQueue.add('send', payload, {
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 5000 },
+      });
+      this.logger.log(`Queued email to ${payload.to}`);
+    } else {
+      // Fallback if queue isn't injected
+      this.logger.warn(`Queue not available, sending email synchronously to ${payload.to}`);
+      await this.executeSendEmail(payload);
+    }
+  }
+
+  /**
+   * Actual execution logic (called by EmailProcessor)
+   */
+  async executeSendEmail(payload: EmailPayload): Promise<void> {
     const fromEmail = process.env.AWS_SES_FROM_EMAIL;
     const region = process.env.AWS_REGION;
     const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
@@ -22,14 +44,17 @@ export class NotificationService {
 
     // If AWS credentials are not configured, log instead of sending
     if (!fromEmail || !accessKeyId || accessKeyId === 'your_aws_access_key') {
-      this.logger.warn(`[EMAIL SKIPPED — SES NOT CONFIGURED] To: ${payload.to} | Subject: ${payload.subject}`);
+      this.logger.warn(
+        `[EMAIL SKIPPED — SES NOT CONFIGURED] To: ${payload.to} | Subject: ${payload.subject}`,
+      );
       this.logger.debug(`Body: ${payload.body}`);
       return;
     }
 
     try {
       // Dynamic import to avoid breaking if @aws-sdk/client-ses is not installed
-      const { SESClient, SendEmailCommand } = await import('@aws-sdk/client-ses');
+      const { SESClient, SendEmailCommand } =
+        await import('@aws-sdk/client-ses');
       const ses = new SESClient({
         region,
         credentials: { accessKeyId, secretAccessKey: secretAccessKey! },
@@ -54,7 +79,11 @@ export class NotificationService {
 
   // ─── Pre-built notification templates ────────────────────
 
-  async notifyAuditInvitation(vendorEmail: string, vendorName: string, requirementTitle: string) {
+  async notifyAuditInvitation(
+    vendorEmail: string,
+    vendorName: string,
+    requirementTitle: string,
+  ) {
     return this.sendEmail({
       to: vendorEmail,
       subject: `[WeConnect] You've been invited to conduct a site audit`,
@@ -69,7 +98,12 @@ export class NotificationService {
     });
   }
 
-  async notifyBidClosingSoon(vendorEmail: string, vendorName: string, auctionTitle: string, minutesLeft: number) {
+  async notifyBidClosingSoon(
+    vendorEmail: string,
+    vendorName: string,
+    auctionTitle: string,
+    minutesLeft: number,
+  ) {
     return this.sendEmail({
       to: vendorEmail,
       subject: `[WeConnect] Auction closing in ${minutesLeft} minutes — ${auctionTitle}`,
@@ -84,7 +118,12 @@ export class NotificationService {
     });
   }
 
-  async notifyPaymentPending(vendorEmail: string, vendorName: string, auctionTitle: string, amount: number) {
+  async notifyPaymentPending(
+    vendorEmail: string,
+    vendorName: string,
+    auctionTitle: string,
+    amount: number,
+  ) {
     return this.sendEmail({
       to: vendorEmail,
       subject: `[WeConnect] Payment required — ${auctionTitle}`,
@@ -98,7 +137,53 @@ export class NotificationService {
     });
   }
 
-  async notifyCompliancePending(vendorEmail: string, vendorName: string, auctionTitle: string) {
+  async notifyPaymentVerified(
+    email: string,
+    name: string,
+    auctionTitle: string,
+    role: 'CLIENT' | 'VENDOR',
+  ) {
+    const nextSteps = role === 'VENDOR' 
+      ? 'You may now proceed to schedule the pickup and upload compliance documents.' 
+      : 'The vendor will now schedule the pickup and provide compliance documentation.';
+      
+    return this.sendEmail({
+      to: email,
+      subject: `Payment Confirmed - ${auctionTitle}`,
+      body: `
+        <h2>Payment Confirmed</h2>
+        <p>Hello ${name},</p>
+        <p>We are pleased to inform you that the payment for <strong>${auctionTitle}</strong> has been successfully verified.</p>
+        <p>${nextSteps}</p>
+        <br/><p>— WeConnect Platform</p>
+      `,
+    });
+  }
+
+  async notifyComplianceVerified(
+    clientEmail: string,
+    clientName: string,
+    auctionTitle: string,
+  ) {
+    return this.sendEmail({
+      to: clientEmail,
+      subject: `Compliance Verified - ${auctionTitle}`,
+      body: `
+        <h2>Compliance Verified</h2>
+        <p>Hello ${clientName},</p>
+        <p>All compliance documents for the pickup related to <strong>${auctionTitle}</strong> have been uploaded by the vendor and successfully verified by our admins.</p>
+        <p>You can now download the final document bundle from your dashboard.</p>
+        <p><a href="${process.env.WEB_URL || 'http://localhost:3000'}/client/dashboard">Go to Dashboard →</a></p>
+        <br/><p>— WeConnect Platform</p>
+      `,
+    });
+  }
+
+  async notifyCompliancePending(
+    vendorEmail: string,
+    vendorName: string,
+    auctionTitle: string,
+  ) {
     return this.sendEmail({
       to: vendorEmail,
       subject: `[WeConnect] Compliance documents required — ${auctionTitle}`,
@@ -115,13 +200,98 @@ export class NotificationService {
   async notifyAccountApproved(userEmail: string, userName: string) {
     return this.sendEmail({
       to: userEmail,
-      subject: `[WeConnect] Your account has been approved!`,
+      subject: 'Your account has been approved - WeConnect',
       body: `
-        <h2>Account Approved</h2>
-        <p>Hello ${userName},</p>
-        <p>Your WeConnect account has been approved. You can now access the full platform.</p>
-        <p><a href="${process.env.WEB_URL || 'http://localhost:3000'}">Go to Dashboard →</a></p>
-        <br/><p>— WeConnect Platform</p>
+        <p>Dear ${userName},</p>
+        <p>Your account has been approved! You can now login at 
+        <a href="${process.env.WEB_URL || 'http://localhost:3000'}">
+        WeConnect Portal</a> and access your dashboard.</p>
+      `,
+    });
+  }
+
+  async notifyAccountRejected(userEmail: string, userName: string) {
+    return this.sendEmail({
+      to: userEmail,
+      subject: 'Your account application - WeConnect',
+      body: `
+        <p>Dear ${userName},</p>
+        <p>We regret to inform you that your account application 
+        has not been approved at this time.</p>
+        <p>Please contact support for more information.</p>
+      `,
+    });
+  }
+
+  async notifyAccountOnHold(userEmail: string, userName: string) {
+    return this.sendEmail({
+      to: userEmail,
+      subject: 'Your account is on hold - WeConnect',
+      body: `
+        <p>Dear ${userName},</p>
+        <p>Your account application is currently on hold pending 
+        additional review. Our team will contact you shortly.</p>
+      `,
+    });
+  }
+
+  async notifyPendingApproval(userEmail: string, userName: string) {
+    return this.sendEmail({
+      to: userEmail,
+      subject: `Your account is under review`,
+      body: `
+        <p>Thank you for registering on EcoLoop. Your account is currently under review by our admin team. You will receive an email within 24-72 hours about the updates</p>
+      `,
+    });
+  }
+
+  async notifyAdminNewRegistration(
+    adminEmail: string,
+    userName: string,
+    userEmail: string,
+    role: string,
+    companyName: string,
+    registrationDate: Date,
+  ) {
+    return this.sendEmail({
+      to: adminEmail,
+      subject: `New user registration pending approval - ${companyName}`,
+      body: `
+        <h2>New Registration Pending Review</h2>
+        <ul>
+          <li><strong>Name:</strong> ${userName}</li>
+          <li><strong>Email:</strong> ${userEmail}</li>
+          <li><strong>Role:</strong> ${role}</li>
+          <li><strong>Company:</strong> ${companyName}</li>
+          <li><strong>Date:</strong> ${registrationDate.toLocaleString()}</li>
+        </ul>
+        <p>Please log in to the admin dashboard to review and approve this user.</p>
+      `,
+    });
+  }
+
+  async notifyAuditSpocDetails(
+    vendorEmail: string,
+    vendorName: string,
+    clientName: string,
+    spocName: string,
+    spocPhone: string,
+    siteAddress: string,
+  ) {
+    return this.sendEmail({
+      to: vendorEmail,
+      subject: `Audit Scheduled - SPOC Details for ${clientName}`,
+      body: `
+        <h2>Audit Accepted</h2>
+        <p>Hello ${vendorName},</p>
+        <p>You have successfully accepted the audit for <strong>${clientName}</strong>.</p>
+        <h3>Site & Contact Details:</h3>
+        <ul>
+          <li><strong>Site Address:</strong> ${siteAddress}</li>
+          <li><strong>SPOC Name:</strong> ${spocName}</li>
+          <li><strong>SPOC Phone:</strong> ${spocPhone}</li>
+        </ul>
+        <p>Please coordinate directly with the SPOC to complete your on-site audit.</p>
       `,
     });
   }
@@ -190,12 +360,36 @@ export class NotificationService {
     const portalUrl = `${process.env.WEB_URL || 'http://localhost:3000'}/vendor/final-quote`;
 
     const steps = [
-      ['Upload Final Quote', `Log in and upload your <strong>product-wise quotation</strong> (PDF) and <strong>company letterhead quotation</strong>.`, '/vendor/final-quote'],
-      ['Await Client Approval', 'Client reviews your quote. You will be notified by email.', null],
-      ['Make Payment', `Pay <strong>&#8377;${clientAmount.toLocaleString('en-IN')}</strong> to client + <strong>&#8377;${commissionAmount.toLocaleString('en-IN')}</strong> (5%) to WeConnect. Bank details on payments page.`, '/vendor/payments'],
-      ['Upload Payment Proof', 'Upload screenshot + UTR number for both transfers.', '/vendor/payments'],
-      ['Schedule Pickup', 'Schedule pickup date. SPOC contact details provided on portal.', '/vendor/pickups'],
-      ['Upload Compliance Docs', 'On pickup day: Form 6, Weight Slip (Empty), Weight Slip (Loaded), Recycling Certificate, Disposal Certificate.', '/vendor/pickups'],
+      [
+        'Upload Final Quote',
+        `Log in and upload your <strong>product-wise quotation</strong> (PDF) and <strong>company letterhead quotation</strong>.`,
+        '/vendor/final-quote',
+      ],
+      [
+        'Await Client Approval',
+        'Client reviews your quote. You will be notified by email.',
+        null,
+      ],
+      [
+        'Make Payment',
+        `Pay <strong>&#8377;${clientAmount.toLocaleString('en-IN')}</strong> to client + <strong>&#8377;${commissionAmount.toLocaleString('en-IN')}</strong> (5%) to WeConnect. Bank details on payments page.`,
+        '/vendor/payments',
+      ],
+      [
+        'Upload Payment Proof',
+        'Upload screenshot + UTR number for both transfers.',
+        '/vendor/payments',
+      ],
+      [
+        'Schedule Pickup',
+        'Schedule pickup date. SPOC contact details provided on portal.',
+        '/vendor/pickups',
+      ],
+      [
+        'Upload Compliance Docs',
+        'On pickup day: Form 6, Weight Slip (Empty), Weight Slip (Loaded), Recycling Certificate, Disposal Certificate.',
+        '/vendor/pickups',
+      ],
     ];
 
     return this.sendEmail({
@@ -227,7 +421,9 @@ export class NotificationService {
               </tr>
             </table>
             <h3 style="border-top:1px solid #e2e8f0;padding-top:20px;margin:0 0 16px">&#128203; Your Next Steps</h3>
-            ${steps.map(([title, desc, url], i) => `
+            ${steps
+              .map(
+                ([title, desc, url], i) => `
               <div style="display:flex;gap:14px;margin-bottom:16px;align-items:flex-start">
                 <div style="min-width:28px;height:28px;background:#1e40af;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;text-align:center;line-height:28px">${i + 1}</div>
                 <div>
@@ -236,7 +432,9 @@ export class NotificationService {
                   ${url ? `<a href="${process.env.WEB_URL || 'http://localhost:3000'}${url}" style="font-size:12px;color:#3b82f6">Go to portal &rarr;</a>` : ''}
                 </div>
               </div>
-            `).join('')}
+            `,
+              )
+              .join('')}
             <div style="background:#fff7ed;border:1px solid #fdba74;padding:14px 18px;border-radius:6px;margin:24px 0">
               <p style="margin:0;font-size:13px;color:#9a3412">&#9888;&#65039; Failure to upload the final quote within 48 hours or make payment within 5 business days may result in disqualification.</p>
             </div>

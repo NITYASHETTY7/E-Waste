@@ -1,142 +1,122 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useApp } from "@/context/AppContext";
+import api from "@/lib/api";
 import Link from "next/link";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function ClientSealedBids() {
-  const { listings, bids, currentUser } = useApp();
+  const { currentUser } = useApp();
+  const [auctions, setAuctions] = useState<any[]>([]);
+  const [bidsMap, setBidsMap] = useState<Record<string, any[]>>({});
+  const [loading, setLoading] = useState(true);
 
-  // Client's listings that are in sealed_bid or open_configuration phase
-  const sealedBidListings = listings.filter(l =>
-    l.userId === currentUser?.id &&
-    (l.auctionPhase === "sealed_bid" || l.auctionPhase === "open_configuration")
-  );
+  const fetchClientAuctions = async () => {
+    if (!currentUser?.companyId) return;
+    try {
+      setLoading(true);
+      const res = await api.get(`/auctions?clientId=${currentUser.companyId}`);
+      const filtered = res.data.filter((a: any) => 
+        a.status === "SEALED_PHASE" || a.status === "OPEN_PHASE" || a.status === "PENDING_SELECTION" || a.status === "UPCOMING"
+      );
+      setAuctions(filtered);
 
-  const getSealedBids = (listingId: string) =>
-    bids.filter(b => b.listingId === listingId && b.type === "sealed")
-      .sort((a, b) => b.amount - a.amount);
+      // Fetch bids for each auction and filter for shortlisted
+      const bMap: Record<string, any[]> = {};
+      for (const auction of filtered) {
+        const bidRes = await api.get(`/auctions/bids?auctionId=${auction.id}`);
+        // Client only sees SHORTLISTED sealed bids
+        const shortlistedBids = bidRes.data.filter((b: any) => b.phase === "SEALED" && b.isShortlisted);
+        shortlistedBids.sort((a: any, b: any) => b.amount - a.amount);
+        shortlistedBids.forEach((b: any, i: number) => b.calculatedRank = i + 1);
+        bMap[auction.id] = shortlistedBids;
+      }
+      setBidsMap(bMap);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchClientAuctions();
+  }, [currentUser?.companyId]);
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-20">
       <div>
-        <h2 className="text-3xl font-headline font-extrabold tracking-tight text-[color:var(--color-on-surface)]">Sealed Bid Review</h2>
-        <p className="text-[color:var(--color-on-surface-variant)] mt-1">View vendor sealed bids for your listings. Bids are revealed after the window closes.</p>
+        <h2 className="text-3xl font-headline font-extrabold tracking-tight text-[color:var(--color-on-surface)]">Shortlisted Sealed Bids</h2>
+        <p className="text-[color:var(--color-on-surface-variant)] mt-1">Review the top sealed bids shortlisted by the admin team.</p>
       </div>
 
-      {sealedBidListings.length === 0 ? (
+      {loading ? (
+        <div className="flex justify-center p-20">
+          <div className="w-8 h-8 border-4 border-[#1E8E3E] border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : auctions.length === 0 ? (
         <div className="card p-20 text-center border-2 border-dashed border-slate-200 dark:border-slate-700">
           <span className="material-symbols-outlined text-6xl text-slate-300 mb-4 block">lock</span>
-          <h3 className="text-xl font-bold text-slate-900 dark:text-white">No Sealed Bid Listings</h3>
-          <p className="text-slate-500 mt-2">Sealed bid submissions appear here once vendors respond to your listing.</p>
-          <Link href="/client/post" className="inline-flex items-center gap-2 mt-6 px-6 py-3 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary/90">
-            <span className="material-symbols-outlined text-sm">add</span>Post New Listing
-          </Link>
+          <h3 className="text-xl font-bold text-slate-900 dark:text-white">No Active Auctions Found</h3>
+          <p className="text-slate-500 mt-2">Shortlisted bids will appear here once the admin shares them.</p>
         </div>
       ) : (
         <div className="space-y-5">
-          {sealedBidListings.map(listing => {
-            const listingBids = getSealedBids(listing.id);
-            const topBid = listingBids[0];
-            const avgBid = listingBids.length > 0
-              ? Math.round(listingBids.reduce((s, b) => s + b.amount, 0) / listingBids.length)
-              : 0;
+          {auctions.map(auction => {
+            const shortlistedBids = bidsMap[auction.id] || [];
+            if (shortlistedBids.length === 0) return null; // Don't show if no shortlisted bids
 
             return (
-              <div key={listing.id} className="card p-0 overflow-hidden border border-slate-100 dark:border-slate-800">
-                <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex items-start justify-between gap-4 dark:border-slate-800">
+              <div key={auction.id} className="card p-0 overflow-hidden border border-slate-100 dark:border-slate-800">
+                <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex items-start justify-between gap-4 dark:border-slate-800 dark:bg-slate-900/50">
                   <div>
                     <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-black text-slate-400">{listing.id}</span>
-                      <span className="text-[9px] px-2.5 py-0.5 rounded-full font-black uppercase bg-amber-100 text-amber-700">
-                        {listing.auctionPhase === "sealed_bid" ? "Bids Open" : "Configuring Auction"}
+                      <span className="text-xs font-black text-slate-400 uppercase tracking-widest">{auction.id.substring(0,8)}</span>     
+                      <span className="text-[9px] px-2.5 py-0.5 rounded-full font-black uppercase bg-blue-100 text-blue-700">
+                        {auction.status}
                       </span>
                     </div>
-                    <h3 className="font-bold text-slate-900 dark:text-white">{listing.title}</h3>
-                    <p className="text-xs text-slate-500 mt-0.5">{listing.location} · {listing.weight} KG · Base: ₹{listing.basePrice?.toLocaleString()}</p>
-                  </div>
-
-                  <div className="grid grid-cols-3 gap-4 shrink-0 text-right">
-                    <div>
-                      <p className="text-[9px] font-black text-slate-400 uppercase">Total Bids</p>
-                      <p className="text-xl font-black text-slate-900 dark:text-white">{listingBids.length}</p>
-                    </div>
-                    <div>
-                      <p className="text-[9px] font-black text-slate-400 uppercase">Highest Bid</p>
-                      <p className="text-xl font-black text-primary">{topBid ? `₹${topBid.amount.toLocaleString()}` : "—"}</p>
-                    </div>
-                    <div>
-                      <p className="text-[9px] font-black text-slate-400 uppercase">Avg Bid</p>
-                      <p className="text-xl font-black text-slate-900 dark:text-white">{avgBid ? `₹${avgBid.toLocaleString()}` : "—"}</p>
-                    </div>
+                    <h3 className="font-bold text-slate-900 dark:text-white">{auction.title}</h3> 
+                    <p className="text-xs text-slate-500 mt-0.5">Base: ₹{auction.basePrice?.toLocaleString()}</p>
                   </div>
                 </div>
 
-                {listingBids.length === 0 ? (
-                  <div className="p-8 text-center text-slate-400">
-                    <span className="material-symbols-outlined text-3xl block mb-2">hourglass_empty</span>
-                    <p className="text-sm">Waiting for vendor submissions</p>
-                  </div>
-                ) : (
-                  <div>
-                    {/* Bid comparison table */}
-                    <div className="divide-y divide-slate-100">
-                      <div className="px-5 py-3 grid grid-cols-4 gap-4 bg-slate-50 text-[9px] font-black text-slate-400 uppercase tracking-widest dark:bg-slate-950">
-                        <span>Rank</span>
-                        <span>Vendor</span>
-                        <span className="text-right">Bid Amount</span>
-                        <span className="text-right">vs Base</span>
-                      </div>
-                      {listingBids.map((bid, idx) => {
-                        const diff = listing.basePrice ? bid.amount - listing.basePrice : 0;
-                        const pct = listing.basePrice ? ((diff / listing.basePrice) * 100).toFixed(1) : "—";
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-sm whitespace-nowrap">
+                    <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider text-[10px] dark:bg-slate-800/50 dark:text-slate-400">
+                      <tr>
+                        <th className="px-6 py-4">Rank</th>
+                        <th className="px-6 py-4">Vendor Name</th>
+                        <th className="px-6 py-4 text-right">Bid Amount</th>
+                        <th className="px-6 py-4">Remarks</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                      {shortlistedBids.map((bid, idx) => {
+                        const isRank1 = bid.calculatedRank === 1;
                         return (
-                          <div key={bid.id} className={`px-5 py-4 grid grid-cols-4 gap-4 items-center ${idx === 0 ? "bg-primary/5" : "hover:bg-slate-50/50"}`}>
-                            <div className="flex items-center gap-2">
-                              <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-black ${idx === 0 ? "bg-primary text-white" : "bg-slate-100 text-slate-500"}`}>
-                                {idx + 1}
-                              </span>
-                              {idx === 0 && <span className="text-[9px] font-black text-primary uppercase">Top</span>}
-                            </div>
-                            <div>
-                              <p className="font-bold text-sm text-slate-900 dark:text-white">{bid.vendorName}</p>
-                              <p className="text-xs text-slate-400">{new Date(bid.createdAt).toLocaleDateString("en-IN")}</p>
-                            </div>
-                            <p className={`text-right font-black ${idx === 0 ? "text-primary text-lg" : "text-slate-900"}`}>₹{bid.amount.toLocaleString()}</p>
-                            <p className={`text-right text-sm font-bold ${diff >= 0 ? "text-emerald-600" : "text-red-600"}`}>
-                              {diff >= 0 ? "+" : ""}{pct}%
-                            </p>
-                          </div>
+                          <tr key={bid.id} className={`transition-colors ${isRank1 ? "bg-emerald-50/50 dark:bg-emerald-900/10" : "hover:bg-slate-50 dark:hover:bg-slate-800/20"}`}>
+                            <td className="px-6 py-4">
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-black ${isRank1 ? "bg-[#1E8E3E] text-white shadow-md shadow-emerald-500/20" : "bg-slate-100 text-slate-500 dark:bg-slate-800"}`}>
+                                {bid.calculatedRank}
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 font-bold text-slate-900 dark:text-white">
+                              {bid.vendor?.name || "Unknown"}
+                            </td>
+                            <td className="px-6 py-4 font-bold text-[#1E8E3E] dark:text-emerald-500 text-right">
+                              ₹{bid.amount.toLocaleString('en-IN')}
+                            </td>
+                            <td className="px-6 py-4 text-slate-500 truncate max-w-[200px]" title={bid.remarks}>
+                              {bid.remarks || "—"}
+                            </td>
+                          </tr>
                         );
                       })}
-                    </div>
-
-                    {listing.auctionPhase === "sealed_bid" && listingBids.length > 0 && (
-                      <div className="p-4 bg-emerald-50 border-t border-emerald-100 flex items-center gap-3">
-                        <span className="material-symbols-outlined text-emerald-600">visibility</span>
-                        <p className="text-xs text-emerald-700">
-                          <span className="font-bold">{listingBids.length} sealed bids</span> received. Review bids above, then configure the open bidding session.
-                        </p>
-                        <Link href={`/client/listings/${listing.id}/configure-live`}
-                          className="ml-auto px-4 py-2 rounded-xl bg-primary text-white text-xs font-black uppercase hover:bg-primary/90 shrink-0">
-                          Configure Open Bidding
-                        </Link>
-                      </div>
-                    )}
-
-                    {listing.auctionPhase === "open_configuration" && (
-                      <div className="p-4 bg-blue-50 border-t border-blue-100 flex items-center gap-3">
-                        <span className="material-symbols-outlined text-blue-600">info</span>
-                        <p className="text-xs text-blue-700">
-                          Sealed bid phase complete. Configure the live auction to proceed.
-                        </p>
-                        <Link href={`/client/listings/${listing.id}/configure-live`}
-                          className="ml-auto px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-black uppercase hover:bg-blue-700 shrink-0">
-                          Configure Live Auction
-                        </Link>
-                      </div>
-                    )}
-                  </div>
-                )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             );
           })}

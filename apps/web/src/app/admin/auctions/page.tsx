@@ -19,6 +19,8 @@ export default function AdminAuctions() {
   const { listings, bids, updateAuctionPhase, editListing } = useApp();
   const [filter, setFilter] = useState<Phase | "all">("all");
   const [search, setSearch] = useState("");
+  const [configModal, setConfigModal] = useState<{isOpen: boolean, listingId: string | null}>({isOpen: false, listingId: null});
+  const [configForm, setConfigForm] = useState({ tickSize: "", maxTick: "", extensionTime: "3" });
 
   const auctionListings = listings.filter(l => l.auctionPhase && l.auctionPhase !== "draft");
 
@@ -103,7 +105,18 @@ export default function AdminAuctions() {
                         View Live
                       </Link>
                     )}
-                    {meta.next && (
+                    {meta.next && phase === "open_configuration" && (
+                      <button
+                        onClick={() => {
+                          setConfigModal({ isOpen: true, listingId: listing.id });
+                          setConfigForm({ tickSize: "", maxTick: "", extensionTime: "3" });
+                        }}
+                        className="px-4 py-2 rounded-xl bg-orange-600 text-white text-xs font-black uppercase hover:bg-orange-700 transition-colors"
+                      >
+                        Configure & Launch →
+                      </button>
+                    )}
+                    {meta.next && phase !== "open_configuration" && (
                       <button
                         onClick={() => updateAuctionPhase(listing.id, meta.next!)}
                         className="px-4 py-2 rounded-xl bg-primary text-white text-xs font-black uppercase hover:bg-primary/90 transition-colors"
@@ -118,6 +131,56 @@ export default function AdminAuctions() {
           </div>
         )}
       </div>
+
+      {configModal.isOpen && configModal.listingId && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-5 animate-fade-in">
+            <div>
+              <h3 className="text-xl font-headline font-extrabold text-slate-900 dark:text-white">Admin Auction Setup</h3>
+              <p className="text-sm text-slate-500 mt-1">Set the final parameters to launch the live auction.</p>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="label">Tick Size / Increment (₹) *</label>
+                <input type="number" className="input-base" value={configForm.tickSize} onChange={e => setConfigForm({...configForm, tickSize: e.target.value})} placeholder="e.g. 500" />
+              </div>
+              <div>
+                <label className="label">Max Tick Size (₹)</label>
+                <input type="number" className="input-base" value={configForm.maxTick} onChange={e => setConfigForm({...configForm, maxTick: e.target.value})} placeholder="Optional max jump" />
+              </div>
+              <div>
+                <label className="label">Auto-Extension (Mins) *</label>
+                <select className="input-base" value={configForm.extensionTime} onChange={e => setConfigForm({...configForm, extensionTime: e.target.value})}>
+                  <option value="1">1 Minute</option>
+                  <option value="3">3 Minutes</option>
+                  <option value="5">5 Minutes</option>
+                  <option value="10">10 Minutes</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button onClick={() => setConfigModal({isOpen: false, listingId: null})} className="flex-1 py-3 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:border-slate-700">Cancel</button>
+              <button 
+                onClick={() => {
+                  editListing(configModal.listingId!, {
+                    bidIncrement: Number(configForm.tickSize),
+                    maximumTickSize: Number(configForm.maxTick) || Number(configForm.tickSize) * 10,
+                    extensionTime: Number(configForm.extensionTime)
+                  });
+                  updateAuctionPhase(configModal.listingId!, "live");
+                  setConfigModal({isOpen: false, listingId: null});
+                }}
+                disabled={!configForm.tickSize}
+                className="flex-1 py-3 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary/90 disabled:opacity-50"
+              >
+                Launch Auction
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

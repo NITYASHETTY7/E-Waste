@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import ForgotPasswordModal from "@/components/ForgotPasswordModal";
 
 export default function AdminLoginPage() {
@@ -15,7 +15,7 @@ export default function AdminLoginPage() {
   const [showForgot, setShowForgot] = useState(false);
 
   const router = useRouter();
-  const { login, users } = useApp();
+  const { login } = useApp();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,7 +24,7 @@ export default function AdminLoginPage() {
     try {
       await login("admin", loginEmail, loginPassword);
       router.push("/admin/dashboard");
-    } catch (err) {
+    } catch {
       setError("Invalid administrative credentials or unauthorized access.");
     } finally {
       setLoading(false);
@@ -32,7 +32,7 @@ export default function AdminLoginPage() {
   };
 
   const quickDemo = () => {
-    setLoginEmail("admin@weconnect.com");
+    setLoginEmail(process.env.ADMIN_EMAIL as string);
     setLoginPassword("password");
   };
 
@@ -96,7 +96,7 @@ export default function AdminLoginPage() {
             <div>
               <label className="text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] ml-1 mb-2 block">Admin Identifier</label>
               <input type="text" required value={loginEmail} onChange={e => setLoginEmail(e.target.value)}
-                placeholder="admin@weconnect.com" 
+                placeholder={process.env.ADMIN_EMAIL} 
                 className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:border-[#0B5ED7] focus:bg-white dark:focus:bg-slate-800 dark:focus:text-white focus:ring-4 focus:ring-[#0B5ED7]/5 outline-none transition-all font-medium dark:bg-slate-950 dark:text-white dark:border-slate-700" 
               />
             </div>
@@ -129,4 +129,6 @@ export default function AdminLoginPage() {
   </>
   );
 }
+
+
 

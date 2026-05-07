@@ -4,9 +4,10 @@ import { AuctionsController } from './auctions.controller';
 import { AuctionGateway } from './auction.gateway';
 import { AuctionScheduler } from './auction.scheduler';
 import { NotificationModule } from '../notifications/notification.module';
+import { DocumentsModule } from '../documents/documents.module';
 
 @Module({
-  imports: [NotificationModule],
+  imports: [NotificationModule, DocumentsModule],
   controllers: [AuctionsController],
   providers: [AuctionsService, AuctionGateway, AuctionScheduler],
   exports: [AuctionsService],

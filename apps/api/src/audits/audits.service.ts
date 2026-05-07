@@ -75,6 +75,31 @@ export class AuditsService {
     return inv;
   }
 
+  async acceptAudit(id: string) {
+    const inv = await this.prisma.auditInvitation.update({
+      where: { id },
+      data: { status: AuditStatus.ACCEPTED },
+      include: {
+        vendor: { include: { users: { take: 1 } } },
+        requirement: { include: { client: true } },
+      },
+    });
+
+    const vendorUser = inv.vendor.users[0];
+    if (vendorUser?.email && inv.spocName && inv.siteAddress) {
+      await this.notifications.notifyAuditSpocDetails(
+        vendorUser.email,
+        vendorUser.name || inv.vendor.name,
+        inv.requirement.client.name,
+        inv.spocName,
+        inv.spocPhone || '',
+        inv.siteAddress,
+      );
+    }
+
+    return inv;
+  }
+
   async respondToInvitation(id: string, status: 'ACCEPTED' | 'REJECTED') {
     return this.prisma.auditInvitation.update({
       where: { id },
@@ -84,7 +109,12 @@ export class AuditsService {
 
   async shareSpoc(
     id: string,
-    data: { siteAddress: string; spocName: string; spocPhone: string; scheduledAt: string },
+    data: {
+      siteAddress: string;
+      spocName: string;
+      spocPhone: string;
+      scheduledAt: string;
+    },
   ) {
     return this.prisma.auditInvitation.update({
       where: { id },
@@ -105,6 +135,9 @@ export class AuditsService {
       remarks?: string;
       vendorUserId: string;
       photos?: Express.Multer.File[];
+      latitude?: number;
+      longitude?: number;
+      capturedAt?: Date;
     },
   ) {
     const report = await this.prisma.auditReport.upsert({
@@ -135,6 +168,9 @@ export class AuditsService {
                   s3Bucket: bucket,
                   fileName: photo.originalname,
                   mimeType: photo.mimetype,
+                  latitude: data.latitude,
+                  longitude: data.longitude,
+                  capturedAt: data.capturedAt,
                   auditReportId: report.id,
                 },
               }),

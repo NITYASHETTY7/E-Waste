@@ -4,6 +4,7 @@ import { useApp } from "@/context/AppContext";
 import { KpiCard } from "@/components/dashboard/KpiCard";
 import { InteractiveLineChart, InteractiveDonutChart } from "@/components/dashboard/Charts";
 import { ActivityTable } from "@/components/dashboard/ActivityTable";
+import { StatusStepper, DealStage } from "@/components/StatusStepper";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useState, useEffect } from "react";

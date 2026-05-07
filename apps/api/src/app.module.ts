@@ -15,6 +15,8 @@ import { PaymentsModule } from './payments/payments.module';
 import { PickupsModule } from './pickups/pickups.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { NotificationModule } from './notifications/notification.module';
+import { DocumentsModule } from './documents/documents.module';
+import { QueueModule } from './queue/queue.module';
 
 @Module({
   imports: [
@@ -24,6 +26,7 @@ import { NotificationModule } from './notifications/notification.module';
     // Core infrastructure (global)
     PrismaModule,
     S3Module,
+    QueueModule,
 
     // Feature modules
     AuthModule,
@@ -36,6 +39,7 @@ import { NotificationModule } from './notifications/notification.module';
     PickupsModule,
     DashboardModule,
     NotificationModule,
+    DocumentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

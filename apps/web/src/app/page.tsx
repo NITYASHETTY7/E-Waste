@@ -455,9 +455,6 @@ function LandingPageContent() {
                 </li>
               ))}
             </ul>
-            <button suppressHydrationWarning onClick={() => router.push('/client-login')} className="w-full bg-emerald-600 text-white font-black text-xs uppercase tracking-widest py-5 rounded-2xl shadow-lg shadow-emerald-900/20 hover:bg-emerald-500 transition-all">
-              Raise Pickup Request
-            </button>
           </div>
 
           {/* For Vendors */}
@@ -482,9 +479,6 @@ function LandingPageContent() {
                 </li>
               ))}
             </ul>
-            <button suppressHydrationWarning onClick={() => router.push('/vendor-login')} className="w-full bg-blue-600 text-white font-black text-xs uppercase tracking-widest py-5 rounded-2xl shadow-lg shadow-blue-900/20 hover:bg-blue-500 transition-all">
-              Become a Vendor
-            </button>
           </div>
         </div>
       </section>
@@ -532,7 +526,36 @@ function LandingPageContent() {
         </div>
       </section>
 
-      {/* 8. CONTACT SECTION */}
+      {/* 8. COMMITMENT SECTION */}
+      <section className="py-24 px-6 md:px-10 relative z-10 bg-white border-t border-slate-100">
+        <div className="max-w-7xl mx-auto text-center">
+          <div className="mb-16">
+            <h2 className="text-sm font-bold text-[#1E8E3E] uppercase tracking-[0.2em] mb-4">Our Promise</h2>
+            <h3 className="text-4xl font-headline font-extrabold text-[#1A1A2E] tracking-tight">Our Commitment</h3>
+            <div className="w-20 h-1 bg-emerald-500 mx-auto mt-6 rounded-full" />
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            {[
+              { title: "Responsible recycling practices", icon: "recycling" },
+              { title: "Full compliance with environmental norms", icon: "verified" },
+              { title: "Reliable vendor partnerships", icon: "handshake" },
+              { title: "Seamless client experience", icon: "auto_awesome" }
+            ].map((item, i) => (
+              <div key={i} className="p-8 rounded-[2rem] bg-slate-50 border border-slate-100 hover:border-emerald-500 transition-all group">
+                <div className="w-16 h-16 rounded-2xl bg-white flex items-center justify-center mb-6 shadow-sm mx-auto group-hover:bg-emerald-600 transition-colors">
+                  <span className="material-symbols-outlined text-3xl text-emerald-600 group-hover:text-white transition-colors">{item.icon}</span>
+                </div>
+                <p className="font-bold text-slate-800 leading-relaxed text-sm">
+                  {item.title}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 9. CONTACT SECTION */}
       <section id="contact" className="py-24 px-6 md:px-10 relative z-10 bg-[#F5F7FA] dark:bg-slate-950">
         <div className="max-w-7xl mx-auto">
           <div className="bg-[#1A1A2E] rounded-[3rem] overflow-hidden shadow-2xl flex flex-col lg:flex-row">

@@ -15,6 +15,7 @@ export default function AdminDashboard() {
   const { users, listings, bids } = useApp();
   const [mounted, setMounted] = useState(false);
 
+  // eslint-disable-next-line
   useEffect(() => { setMounted(true); }, []);
 
   if (!mounted) return (

@@ -20,6 +20,7 @@ export default function AdminProfile() {
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error', msg: string } | null>(null);
   const [mounted, setMounted] = useState(false);
 
+  // eslint-disable-next-line
   useEffect(() => { setMounted(true); }, []);
 
   if (!mounted) return null;

@@ -40,7 +40,7 @@ export default function AdminLogin() {
   };
 
   const loadDemoAdmin = () => {
-    setLoginEmail("admin@WeConnect.com");
+    setLoginEmail(process.env.ADMIN_EMAIL as string);
     setLoginPassword("admin123");
   };
 
@@ -74,7 +74,7 @@ export default function AdminLogin() {
           <div>
             <label className="text-[10px] uppercase font-black tracking-widest text-slate-500 mb-1 block">Administrator Email</label>
             <input type="email" required value={loginEmail} onChange={e => setLoginEmail(e.target.value)}
-              placeholder="admin@WeConnect.com" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:bg-white dark:focus:bg-slate-800 dark:focus:text-white transition-all font-medium dark:bg-slate-950 dark:border-slate-700" />
+              placeholder={process.env.ADMIN_EMAIL} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:bg-white dark:focus:bg-slate-800 dark:focus:text-white transition-all font-medium dark:bg-slate-950 dark:border-slate-700" />
           </div>
           <div>
             <label className="text-[10px] uppercase font-black tracking-widest text-slate-500 mb-1 block">Security Key</label>

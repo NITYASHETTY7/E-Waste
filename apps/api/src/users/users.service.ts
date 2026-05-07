@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { UserRole } from '@prisma/client';
 
@@ -32,8 +36,16 @@ export class UsersService {
     return safe;
   }
 
-  async create(data: { email: string; name: string; passwordHash: string; role?: string; phone?: string }) {
-    const existing = await this.prisma.user.findUnique({ where: { email: data.email } });
+  async create(data: {
+    email: string;
+    name: string;
+    passwordHash: string;
+    role?: string;
+    phone?: string;
+  }) {
+    const existing = await this.prisma.user.findUnique({
+      where: { email: data.email },
+    });
     if (existing) throw new ConflictException('Email already registered');
 
     return this.prisma.user.create({
@@ -54,11 +66,66 @@ export class UsersService {
     });
   }
 
-  async updateRole(userId: string, role: UserRole) {
+  async updateRole(id: string, role: UserRole) {
     return this.prisma.user.update({
-      where: { id: userId },
+      where: { id },
       data: { role },
     });
+  }
+
+  async approveUser(id: string) {
+    const user = await this.prisma.user.update({
+      where: { id },
+      data: { isActive: true },
+      include: { company: true },
+    });
+
+    if (user.companyId) {
+      await this.prisma.company.update({
+        where: { id: user.companyId },
+        data: { status: 'APPROVED' },
+      });
+    }
+
+    const { passwordHash, ...safe } = user as any;
+    return safe;
+  }
+
+  async rejectUser(id: string) {
+    // Optionally deactivating the user
+    const user = await this.prisma.user.update({
+      where: { id },
+      data: { isActive: false },
+      include: { company: true },
+    });
+
+    if (user.companyId) {
+      await this.prisma.company.update({
+        where: { id: user.companyId },
+        data: { status: 'REJECTED' },
+      });
+    }
+
+    const { passwordHash, ...safe } = user as any;
+    return safe;
+  }
+
+  async holdUser(id: string) {
+    const user = await this.prisma.user.update({
+      where: { id },
+      data: { isActive: false },
+      include: { company: true },
+    });
+
+    if (user.companyId) {
+      await this.prisma.company.update({
+        where: { id: user.companyId },
+        data: { status: 'BLOCKED' },
+      });
+    }
+
+    const { passwordHash, ...safe } = user as any;
+    return safe;
   }
 
   async deleteMe(userId: string) {

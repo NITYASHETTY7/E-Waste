@@ -313,7 +313,7 @@ const MOCK_BIDS: Bid[] = [
 ];
 
 const MOCK_USERS: User[] = [
-  { id: 'A1', name: 'Super Admin', role: 'admin', email: 'admin@weconnect.com', status: 'active', registeredAt: '2026-02-15T10:00:00.000Z', onboardingStep: 5 },
+  { id: 'A1', name: 'Super Admin', role: 'admin', email: process.env.ADMIN_EMAIL as string, status: 'active', registeredAt: '2026-02-15T10:00:00.000Z', onboardingStep: 5 },
   { id: 'C1', name: 'Tech Corp Ltd', role: 'client', email: 'client@weconnect.com', status: 'active', phone: '+91 98765 43210', registeredAt: '2026-03-01T10:00:00.000Z', onboardingStep: 5 },
   { id: 'C2', name: 'Global Infra Pvt Ltd', role: 'client', email: 'info@globalinfra.com', status: 'active', phone: '+91 87654 32109', registeredAt: '2026-03-15T10:00:00.000Z', onboardingStep: 5 },
   { id: 'C3', name: 'Manufacturing Hub', role: 'client', email: 'ops@manhub.com', status: 'active', phone: '+91 76543 21098', registeredAt: '2026-03-25T10:00:00.000Z', onboardingStep: 5 },
@@ -642,7 +642,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const login = async (role: UserRole, email: string, password?: string) => {
+  const login = async (role: UserRole, email: string, password?: string): Promise<User> => {
     try {
       const res = await api.post('/auth/login', { email, password });
       const { access_token } = res.data;
@@ -657,6 +657,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }));
       
       await fetchAllData();
+      return user;
     } catch (error) {
       console.error('Login failed', error);
       throw error;

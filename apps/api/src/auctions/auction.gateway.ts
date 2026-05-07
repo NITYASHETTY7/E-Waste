@@ -55,8 +55,19 @@ export class AuctionGateway
   @SubscribeMessage('placeBid')
   async handleBid(
     @ConnectedSocket() client: Socket,
-    @MessageBody() payload: { auctionId: string; vendorId: string; amount: number },
+    @MessageBody()
+    payload: { auctionId: string; vendorId: string; amount: number },
   ) {
+    const vendorUser = await this.prisma.user.findUnique({
+      where: { id: payload.vendorId },
+      include: { company: true },
+    });
+
+    if (vendorUser?.company?.isLocked) {
+      client.emit('bidError', { message: 'Your account is locked. Please contact admin.' });
+      return;
+    }
+
     const auction = await this.prisma.auction.findUnique({
       where: { id: payload.auctionId },
       include: { bids: { orderBy: { amount: 'desc' }, take: 1 } },
@@ -94,7 +105,9 @@ export class AuctionGateway
     const endTime = auction.openPhaseEnd!;
     const msToEnd = endTime.getTime() - now.getTime();
     if (msToEnd > 0 && msToEnd < auction.extensionMinutes * 60 * 1000) {
-      const updatedAuction = await this.auctionsService.extendTimer(payload.auctionId);
+      const updatedAuction = await this.auctionsService.extendTimer(
+        payload.auctionId,
+      );
       this.server.to(payload.auctionId).emit('timerExtended', {
         newEndTime: updatedAuction.openPhaseEnd,
         extensionCount: updatedAuction.extensionCount,

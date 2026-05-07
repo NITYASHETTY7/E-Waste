@@ -43,6 +43,7 @@ const STATS = [
 
 export function BusinessOverviewChart() {
   const [mounted, setMounted] = useState(false);
+  // eslint-disable-next-line
   useEffect(() => { setMounted(true); }, []);
 
   return (

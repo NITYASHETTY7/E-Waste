@@ -1,44 +1,61 @@
 import {
-  Controller, Get, Post, Patch, Param, Body, Query,
-  UseGuards, UploadedFile, UseInterceptors
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Param,
+  Body,
+  Query,
+  UseGuards,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { PaymentsService } from './payments.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { PaymentStatus } from '@prisma/client';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { PaymentStatus, UserRole } from '@prisma/client';
 
-@UseGuards(JwtAuthGuard)
-@Controller('payments')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Controller()
 export class PaymentsController {
   constructor(private svc: PaymentsService) {}
 
-  @Post('auction/:auctionId')
-  create(@Param('auctionId') auctionId: string, @Body('clientAmount') amount: number) {
+  @Post('payments/auction/:auctionId')
+  create(
+    @Param('auctionId') auctionId: string,
+    @Body('clientAmount') amount: number,
+  ) {
     return this.svc.createForAuction(auctionId, amount);
   }
 
-  @Get()
+  @Get('payments')
   findAll(@Query('status') status?: PaymentStatus) {
     return this.svc.findAll(status);
   }
 
-  @Get('auction/:auctionId')
+  @Get('payments/auction/:auctionId')
   findOne(@Param('auctionId') auctionId: string) {
     return this.svc.findByAuction(auctionId);
   }
 
-  @Post('auction/:auctionId/proof')
+  @Patch('payments/:id/upload-proof')
   @UseInterceptors(FileInterceptor('file'))
   uploadProof(
-    @Param('auctionId') auctionId: string,
+    @Param('id') id: string,
     @UploadedFile() file: Express.Multer.File,
     @Body('utrNumber') utrNumber?: string,
   ) {
-    return this.svc.uploadProof(auctionId, file, utrNumber);
+    return this.svc.uploadProof(id, file, utrNumber);
   }
 
-  @Patch('auction/:auctionId/confirm')
-  confirm(@Param('auctionId') auctionId: string, @Body('adminNotes') notes?: string) {
-    return this.svc.confirm(auctionId, notes);
+  @Patch('admin/payments/:id/verify')
+  @Roles(UserRole.ADMIN)
+  verifyPayment(
+    @Param('id') id: string,
+    @Body('adminNotes') notes?: string,
+  ) {
+    return this.svc.verifyPayment(id, notes);
   }
 }

@@ -44,3 +44,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+#cd apps/api
+#npm run start:dev
+
+#cd apps/web
+#npm run dev

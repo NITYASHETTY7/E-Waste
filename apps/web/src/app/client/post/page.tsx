@@ -38,8 +38,6 @@ export default function ClientPost() {
   const [form, setForm] = useState({
     title: "", weight: "", description: "", location: "",
     pickupAddress: "", urgency: "medium" as "low" | "medium" | "high",
-    sealedBidStartDate: "", sealedBidEndDate: "",
-    invitationDeadline: "",
   });
   const [images, setImages] = useState<string[]>([]);
   const [documents, setDocuments] = useState<{name: string, url: string, type: string}[]>([]);

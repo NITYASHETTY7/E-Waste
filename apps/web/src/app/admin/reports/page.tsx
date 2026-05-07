@@ -11,7 +11,7 @@ export default function AdminReports() {
 
   useEffect(() => { setMounted(true); }, []);
 
-  const isDemo = currentUser?.email === 'admin@weconnect.com';
+  const isDemo = currentUser?.email === process.env.ADMIN_EMAIL;
 
   // Calculations
   const completedListings = listings.filter(l => l.status === "completed" || l.auctionPhase === "completed");

@@ -1,4 +1,11 @@
-import { Controller, Post, Body, Get, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { OtpService } from './otp.service';
 import { RegisterDto, LoginDto } from './auth.dto';
@@ -33,9 +40,15 @@ export class AuthController {
   }
 
   @Post('verify-otp')
-  async verifyOtp(@Body() body: { email: string; code: string; type: 'email' | 'phone' }) {
-    // verifyOtp is now async and persists emailVerified/isActive to DB internally
+  async verifyOtp(
+    @Body() body: { email: string; code: string; type: 'email' | 'phone' },
+  ) {
     return await this.otpService.verifyOtp(body.email, body.code, body.type);
+  }
+
+  @Post('complete-verification')
+  async completeVerification(@Body() body: { email: string }) {
+    return this.authService.completeVerification(body.email);
   }
 
   @Post('forgot-password')
@@ -44,7 +57,13 @@ export class AuthController {
   }
 
   @Post('reset-password')
-  async resetPassword(@Body() body: { email: string; otp: string; newPassword: string }) {
-    return this.authService.resetPassword(body.email, body.otp, body.newPassword);
+  async resetPassword(
+    @Body() body: { email: string; otp: string; newPassword: string },
+  ) {
+    return this.authService.resetPassword(
+      body.email,
+      body.otp,
+      body.newPassword,
+    );
   }
 }

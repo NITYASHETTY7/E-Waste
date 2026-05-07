@@ -23,6 +23,7 @@ export function useAuction(listingId: string) {
   const [isActive, setIsActive] = useState(false);
 
   // Use socket time when live, local countdown otherwise
+  // eslint-disable-next-line
   useEffect(() => {
     if (isLive && socket.connected) {
       // WebSocket is handling the timer

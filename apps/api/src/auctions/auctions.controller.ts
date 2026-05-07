@@ -1,24 +1,48 @@
 import {
-  Controller, Get, Post, Patch, Param, Body, Query,
-  UseGuards, Request, UploadedFile, UseInterceptors, BadRequestException
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Param,
+  Body,
+  Query,
+  UseGuards,
+  Request,
+  UploadedFile,
+  UseInterceptors,
+  BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AuctionsService } from './auctions.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { AuctionStatus } from '@prisma/client';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { AuctionStatus, UserRole } from '@prisma/client';
+import {
+  CreateAuctionDto,
+  ScheduleAuctionDto,
+  SubmitSealedBidDto,
+} from './auctions.dto';
 
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('auctions')
 export class AuctionsController {
   constructor(private svc: AuctionsService) {}
 
   @Post()
-  create(@Body() body: any, @Request() req: any) {
-    return this.svc.create({ ...body, clientId: body.clientId || req.user.companyId });
+  @Roles(UserRole.ADMIN)
+  create(@Body() body: CreateAuctionDto, @Request() req: any) {
+    return this.svc.create({
+      ...body,
+      clientId: body.clientId || req.user.companyId,
+    });
   }
 
   @Get()
-  findAll(@Query('status') status?: AuctionStatus, @Query('clientId') clientId?: string) {
+  findAll(
+    @Query('status') status?: AuctionStatus,
+    @Query('clientId') clientId?: string,
+  ) {
     return this.svc.findAll(status, clientId);
   }
 
@@ -34,8 +58,14 @@ export class AuctionsController {
   }
 
   @Patch(':id/schedule')
-  schedule(@Param('id') id: string, @Body() body: any) {
+  schedule(@Param('id') id: string, @Body() body: ScheduleAuctionDto) {
     return this.svc.schedule(id, body);
+  }
+
+  @Patch(':id/share-with-client')
+  @Roles(UserRole.ADMIN)
+  shareWithClient(@Param('id') id: string, @Body('bidIds') bidIds: string[]) {
+    return this.svc.shareSealedBids(id, bidIds);
   }
 
   @Patch(':id/status')
@@ -47,13 +77,20 @@ export class AuctionsController {
   @UseInterceptors(FileInterceptor('file'))
   sealedBid(
     @Param('id') id: string,
-    @Body() body: any,
+    @Body() body: SubmitSealedBidDto,
     @Request() req: any,
     @UploadedFile() file: Express.Multer.File,
   ) {
-    const amount = parseFloat(body.amount);
-    if (isNaN(amount)) throw new BadRequestException('amount is required and must be a number');
-    return this.svc.submitSealedBid(id, req.user.userId, amount, file, body.remarks);
+    const amount = body.amount;
+    if (isNaN(amount))
+      throw new BadRequestException('amount is required and must be a number');
+    return this.svc.submitSealedBid(
+      id,
+      req.user.userId,
+      amount,
+      file,
+      body.remarks,
+    );
   }
 
   @Patch(':id/winner')

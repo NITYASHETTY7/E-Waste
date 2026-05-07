@@ -1,6 +1,16 @@
 import {
-  Controller, Get, Post, Patch, Param, Body,
-  Query, UseGuards, Request, UploadedFiles, UseInterceptors
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Param,
+  Body,
+  Query,
+  UseGuards,
+  Request,
+  UploadedFiles,
+  UseInterceptors,
+  BadRequestException,
 } from '@nestjs/common';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { AuditsService } from './audits.service';
@@ -11,9 +21,14 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 export class AuditsController {
   constructor(private svc: AuditsService) {}
 
-  @Post('invite')
-  invite(@Body() body: { requirementId: string; vendorIds: string[] }) {
-    return this.svc.inviteVendors(body.requirementId, body.vendorIds);
+  @Post(':requirementId/invite')
+  invite(@Param('requirementId') requirementId: string, @Body() body: { vendorIds: string[] }) {
+    return this.svc.inviteVendors(requirementId, body.vendorIds);
+  }
+
+  @Get('vendor/:vendorId')
+  findByVendor(@Param('vendorId') vendorId: string) {
+    return this.svc.findAllInvitations(vendorId);
   }
 
   @Get('invitations')
@@ -29,29 +44,49 @@ export class AuditsController {
     return this.svc.findOneInvitation(id);
   }
 
-  @Patch('invitations/:id/respond')
-  respond(@Param('id') id: string, @Body('status') status: 'ACCEPTED' | 'REJECTED') {
-    return this.svc.respondToInvitation(id, status);
+  @Patch(':id/accept')
+  accept(@Param('id') id: string) {
+    return this.svc.acceptAudit(id);
   }
 
-  @Patch('invitations/:id/spoc')
-  shareSpoc(@Param('id') id: string, @Body() body: any) {
-    return this.svc.shareSpoc(id, body);
+  @Patch(':id/reject')
+  reject(@Param('id') id: string) {
+    return this.svc.respondToInvitation(id, 'REJECTED');
   }
 
-  @Post('invitations/:id/report')
+  @Patch(':id/complete')
   @UseInterceptors(FilesInterceptor('photos'))
-  submitReport(
+  complete(
     @Param('id') id: string,
-    @Body() body: any,
+    @Body() body: { 
+      productMatch: string; 
+      remarks?: string;
+      latitude?: string;
+      longitude?: string;
+      capturedAt?: string;
+    },
     @Request() req: any,
-    @UploadedFiles() photos: Express.Multer.File[],
+    @UploadedFiles() photos?: Express.Multer.File[],
   ) {
+    const isProductMatch = body.productMatch === 'true' || body.productMatch === true.toString(); 
+
+    if (!isProductMatch && (!body.remarks || body.remarks.trim() === '')) {
+      throw new BadRequestException('Remarks are mandatory when product match is false.');        
+    }
+
     return this.svc.submitReport(id, {
-      productMatch: body.productMatch === 'true',
+      productMatch: isProductMatch,
       remarks: body.remarks,
       vendorUserId: req.user.userId,
       photos,
+      latitude: body.latitude ? parseFloat(body.latitude) : undefined,
+      longitude: body.longitude ? parseFloat(body.longitude) : undefined,
+      capturedAt: body.capturedAt ? new Date(body.capturedAt) : undefined,
     });
+  }
+  // Admin provides spoc details to the audit invitation initially (if needed)
+  @Patch('invitations/:id/spoc')
+  shareSpoc(@Param('id') id: string, @Body() body: any) {
+    return this.svc.shareSpoc(id, body);
   }
 }

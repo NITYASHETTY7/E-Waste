@@ -1,9 +1,11 @@
 "use client";
+"use client";
 
 import { useApp } from "@/context/AppContext";
 import { KpiCard } from "@/components/dashboard/KpiCard";
 import { InteractiveLineChart, InteractiveDonutChart } from "@/components/dashboard/Charts";
 import { ActivityTable } from "@/components/dashboard/ActivityTable";
+import { StatusStepper, DealStage } from "@/components/StatusStepper";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { useState, useEffect } from "react";
@@ -19,10 +21,20 @@ export default function ClientDashboard() {
   const myListings = listings.filter(l => l.userId === currentUser?.id);
   const activeListings = myListings.filter(l => l.status === "active" || l.auctionPhase === "live");
   const completedListings = myListings.filter(l => l.status === "completed");
-  
+
   const myBids = bids.filter(b => myListings.some(l => l.id === b.listingId));
   const acceptedBids = myBids.filter(b => b.status === "accepted");
   const revenueGenerated = acceptedBids.reduce((sum, b) => sum + b.amount, 0);
+
+  // Determine global stage based on the most advanced listing
+  let globalStage: DealStage = "onboarded";
+  if (myListings.length > 0) globalStage = "requirement_finalized";
+  if (myListings.some(l => l.status === "active")) globalStage = "audit";
+  if (myListings.some(l => l.auctionPhase === "sealed_bid")) globalStage = "sealed_bid";
+  if (myListings.some(l => l.auctionPhase === "live")) globalStage = "auction";
+  if (myListings.some(l => l.finalQuoteStatus === "approved")) globalStage = "finalized";
+  if (myListings.some(l => l.paymentStatus === "confirmed")) globalStage = "payment";
+  if (myListings.some(l => l.complianceStatus === "verified")) globalStage = "completed";
 
   // Dynamic Chart Data
   const getMonthlyRevenue = () => {

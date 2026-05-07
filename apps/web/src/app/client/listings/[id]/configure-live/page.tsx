@@ -57,7 +57,6 @@ export default function ConfigureLiveAuction() {
     const errs: Record<string, string> = {};
     if (!form.basePrice) errs.basePrice = "Required";
     if (!form.highestEmdAmount) errs.highestEmdAmount = "Required";
-    if (!form.bidIncrement) errs.bidIncrement = "Required";
     if (!form.auctionStartDate) errs.auctionStartDate = "Required";
     if (!form.auctionEndDate) errs.auctionEndDate = "Required";
 
@@ -68,14 +67,10 @@ export default function ConfigureLiveAuction() {
 
     editListing(id, {
       basePrice: Number(form.basePrice),
-      highestEmdAmount: Number(form.highestEmdAmount),
-      bidIncrement: Number(form.bidIncrement),
-      maximumTickSize: Number(form.maximumTickSize) || Number(form.bidIncrement) * 10,
+      targetPrice: Number(form.highestEmdAmount),
       auctionStartDate: new Date(form.auctionStartDate).toISOString(),
       auctionEndDate: new Date(form.auctionEndDate).toISOString(),
-      extensionTime: Number(form.extensionTime),
-      maxExtensions: Number(form.maxExtensions),
-      auctionPhase: "live"
+      auctionPhase: "pending_admin_config" // Mark it ready for admin to set tick size
     });
 
     addNotification({
@@ -151,19 +146,6 @@ export default function ConfigureLiveAuction() {
                 <label className="label">End Date & Time *</label>
                 <input type="datetime-local" className={`input-base ${errors.auctionEndDate ? "ring-2 ring-red-400" : ""}`} 
                   value={form.auctionEndDate} onChange={e => setForm({...form, auctionEndDate: e.target.value})} />
-              </div>
-              <div>
-                <label className="label">Auto-Extension (Mins)</label>
-                <select className="input-base" value={form.extensionTime} onChange={e => setForm({...form, extensionTime: e.target.value})}>
-                  <option value="1">1 Minute</option>
-                  <option value="3">3 Minutes (Recommended)</option>
-                  <option value="5">5 Minutes</option>
-                  <option value="10">10 Minutes</option>
-                </select>
-              </div>
-              <div>
-                <label className="label">Max Extensions</label>
-                <input type="number" className="input-base" value={form.maxExtensions} onChange={e => setForm({...form, maxExtensions: e.target.value})} />
               </div>
             </div>
           </div>

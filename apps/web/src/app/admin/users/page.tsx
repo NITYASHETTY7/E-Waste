@@ -10,7 +10,31 @@ export default function AdminUsers() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "pending" | "rejected" | "on-hold">("all");
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
+  const [fetchedDetails, setFetchedDetails] = useState<any>(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
+  const [activeTab, setActiveTab] = useState<number>(1);
   const [decisionModal, setDecisionModal] = useState<{ isOpen: boolean; userId: string | null }>({ isOpen: false, userId: null });
+
+  const handleUserClick = async (client: any) => {
+    setSelectedUser(client.id);
+    setActiveTab(1);
+    setFetchedDetails(null);
+    setLoadingDetails(true);
+    try {
+      const { api } = await import("@/lib/api"); // Import to ensure it is defined
+      const userRes = await api.get(`/users/${client.id}`);
+      let companyData = userRes.data?.company;
+      if (companyData?.id) {
+        const companyRes = await api.get(`/companies/${companyData.id}`);
+        companyData = companyRes.data;
+      }
+      setFetchedDetails({ ...userRes.data, company: companyData });
+    } catch (err) {
+      console.error("Failed to fetch user details", err);
+    } finally {
+      setLoadingDetails(false);
+    }
+  };
 
   const clients = users.filter(u => u.role === "client");
   const stats = {
@@ -83,16 +107,15 @@ export default function AdminUsers() {
           <tbody>
             {filtered.map(client => (
               <tr key={client.id}
-                onClick={() => setSelectedUser(client.id)}
-                className="hover:bg-blue-50/40 transition-colors cursor-pointer">
-                <td>
+                onClick={() => handleUserClick(client)}
+                className="hover:bg-blue-50/40 transition-colors cursor-pointer">                <td>
                   <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-xl bg-[color:var(--color-secondary-container)] flex items-center justify-center font-black text-sm text-[color:var(--color-primary)]">
                       {client.name[0]}
                     </div>
                     <div>
                       <p className="font-bold text-sm">{client.name}</p>
-                      <p className="text-[10px] text-slate-400 font-bold">#{client.id}</p>
+                      <p className="text-[10px] text-slate-400 font-bold">{client.companyId ? `REG-${new Date(client.registeredAt).getFullYear()}-${client.companyId.substring(client.companyId.length - 4)}` : `#${client.id}`}</p>
                     </div>
                   </div>
                 </td>
@@ -113,9 +136,8 @@ export default function AdminUsers() {
                 </td>
                 <td>
                   <div className="flex items-center gap-2" onClick={e => e.stopPropagation()}>
-                    <button onClick={() => setSelectedUser(client.id)}
-                      className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200 transition-all dark:bg-slate-800 dark:text-slate-400" title="View Details">
-                      <span className="material-symbols-outlined text-lg">visibility</span>
+                    <button onClick={() => handleUserClick(client)}
+                      className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center hover:bg-slate-200 transition-all dark:bg-slate-800 dark:text-slate-400" title="View Details">                      <span className="material-symbols-outlined text-lg">visibility</span>
                     </button>
                     {client.status === "pending" && (
                       <button onClick={() => setDecisionModal({ isOpen: true, userId: client.id })}
@@ -164,7 +186,7 @@ export default function AdminUsers() {
             {/* Scrollable Body */}
             <div className="overflow-y-auto flex-1 p-6 space-y-6">
 
-              {/* Onboarding Progress */}
+              {/* Onboarding Progress Tabs */}
               <div className="flex items-center gap-0">
                 {[
                   { step: 1, label: "Profile" },
@@ -173,12 +195,12 @@ export default function AdminUsers() {
                   { step: 4, label: "Under Review" },
                 ].map((s, i, arr) => {
                   const done = modalUser.onboardingStep > s.step;
-                  const active = modalUser.onboardingStep === s.step;
+                  const active = activeTab === s.step;
                   return (
-                    <div key={s.step} className="flex items-center flex-1">
-                      <div className="flex flex-col items-center">
-                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-black ${done ? 'bg-emerald-500 text-white' : active ? 'bg-[color:var(--color-primary)] text-white' : 'bg-slate-200 text-slate-500'}`}>
-                          {done ? <span className="material-symbols-outlined text-sm">check</span> : s.step}
+                    <div key={s.step} className="flex items-center flex-1 cursor-pointer" onClick={() => setActiveTab(s.step)}>
+                      <div className="flex flex-col items-center group">
+                        <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-black transition-all ${active ? 'bg-[color:var(--color-primary)] text-white ring-4 ring-[color:var(--color-primary)]/20' : done ? 'bg-emerald-500 text-white' : 'bg-slate-200 text-slate-500 group-hover:bg-slate-300'}`}>
+                          {done && !active ? <span className="material-symbols-outlined text-sm">check</span> : s.step}
                         </div>
                         <span className={`text-[9px] font-bold mt-1 uppercase tracking-wider ${active ? 'text-[color:var(--color-primary)]' : done ? 'text-emerald-600' : 'text-slate-400'}`}>{s.label}</span>
                       </div>
@@ -188,109 +210,166 @@ export default function AdminUsers() {
                 })}
               </div>
 
-              {/* Identity */}
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-3 flex items-center gap-2">
-                  <span className="material-symbols-outlined text-sm text-slate-400">badge</span> Identity & Contact
-                </p>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                  {[
-                    ["Email", modalUser.email],
-                    ["Phone", modalUser.phone],
-                    ["Contact Person", modalUser.onboardingProfile?.contactPerson],
-                  ].map(([label, val]) => (
-                    <div key={label} className="bg-slate-50 p-3 rounded-xl border border-slate-100 dark:bg-slate-950 dark:border-slate-800">
-                      <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-0.5">{label}</p>
-                      <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{val || <span className="text-slate-300 font-normal italic">Not provided</span>}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Organization Profile */}
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-3 flex items-center gap-2">
-                  <span className="material-symbols-outlined text-sm text-slate-400">corporate_fare</span> Organization Profile
-                </p>
-                {modalUser.onboardingProfile ? (
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                    {[
-                      ["Company Name", modalUser.onboardingProfile.companyName],
-                      ["GSTIN", modalUser.onboardingProfile.gstin],
-                      ["Industry Sector", modalUser.onboardingProfile.industrySector],
-                      ["No. of Employees", modalUser.onboardingProfile.numberOfEmployees],
-                      ["City", modalUser.onboardingProfile.city],
-                      ["State", modalUser.onboardingProfile.state],
-                      ["Pincode", modalUser.onboardingProfile.pincode],
-                      ["Full Address", modalUser.onboardingProfile.address],
-                    ].map(([label, val]) => (
-                      <div key={label} className="bg-slate-50 p-3 rounded-xl border border-slate-100 dark:bg-slate-950 dark:border-slate-800">
-                        <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-0.5">{label}</p>
-                        <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{val || <span className="text-slate-300 font-normal italic">—</span>}</p>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="p-4 bg-slate-50 rounded-xl border border-dashed border-slate-200 text-center dark:bg-slate-950 dark:border-slate-700">
-                    <span className="material-symbols-outlined text-slate-300 text-2xl">corporate_fare</span>
-                    <p className="text-xs text-slate-400 font-bold mt-1">Organization profile not submitted</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Documents */}
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-3 flex items-center gap-2">
-                  <span className="material-symbols-outlined text-sm text-slate-400">folder_open</span>
-                  Documents
-                  {modalUser.documents && modalUser.documents.length > 0 && (
-                    <span className="ml-auto px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full text-[9px] font-black">{modalUser.documents.length} submitted</span>
-                  )}
-                </p>
-                {modalUser.documents && modalUser.documents.length > 0 ? (
-                  <div className="space-y-2">
-                    {modalUser.documents.map((doc, i) => (
-                      <div key={i} className="flex items-center gap-4 p-3.5 bg-slate-50 border border-slate-100 rounded-xl hover:border-slate-200 transition-colors dark:bg-slate-950 dark:border-slate-800">
-                        <div className="w-9 h-9 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
-                          <span className="material-symbols-outlined text-lg">description</span>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-bold text-slate-800 truncate dark:text-slate-200">{doc.fileName}</p>
-                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{doc.name} · {doc.size} · {formatDate(doc.uploadedAt)}</p>
-                        </div>
-                        <div className="flex items-center gap-2 shrink-0">
-                          <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase ${doc.status === 'verified' ? 'bg-emerald-100 text-emerald-700' : doc.status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>
-                            {doc.status}
-                          </span>
-                          {doc.url ? (
-                            <a href={doc.url} download className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all">
-                              <span className="material-symbols-outlined text-sm">download</span>
-                            </a>
-                          ) : (
-                            <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center dark:bg-slate-800" title="No file attached">
-                              <span className="material-symbols-outlined text-sm text-slate-300">visibility_off</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="p-4 bg-red-50 rounded-xl border border-dashed border-red-200 text-center">
-                    <span className="material-symbols-outlined text-red-300 text-2xl">folder_off</span>
-                    <p className="text-xs text-red-500 font-bold mt-1">No documents uploaded yet</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Rejection / Hold reason */}
-              {modalUser.statusReason && (
-                <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex gap-3">
-                  <span className="material-symbols-outlined text-red-500 shrink-0">info</span>
+              {/* Tab Content */}
+              {activeTab === 1 && (
+                <div className="space-y-6 animate-fade-in">
+                  {/* Identity */}
                   <div>
-                    <p className="text-xs font-black uppercase tracking-widest text-red-700 mb-1">Reason for {modalUser.status}</p>
-                    <p className="text-sm text-red-700">{modalUser.statusReason}</p>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-3 flex items-center gap-2">
+                      <span className="material-symbols-outlined text-sm text-slate-400">badge</span> Identity & Contact
+                    </p>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                      {[
+                        ["Email", fetchedDetails?.email || modalUser.email],
+                        ["Phone", fetchedDetails?.phone || modalUser.phone],
+                        ["Contact Person", fetchedDetails?.name || modalUser.name],
+                      ].map(([label, val]) => (
+                        <div key={label} className="bg-slate-50 p-3 rounded-xl border border-slate-100 dark:bg-slate-950 dark:border-slate-800">
+                          <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-0.5">{label}</p>
+                          <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{val || <span className="text-slate-300 font-normal italic">Not provided</span>}</p>
+                        </div>
+                      ))}
+                    </div>
                   </div>
+
+                  {/* Organization Profile */}
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-3 flex items-center gap-2">
+                      <span className="material-symbols-outlined text-sm text-slate-400">corporate_fare</span> Organization Profile
+                    </p>
+                    {fetchedDetails?.company ? (
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        {[
+                          ["Company Name", fetchedDetails.company.name],
+                          ["GSTIN", fetchedDetails.company.gstNumber],
+                          ["PAN", fetchedDetails.company.panNumber],
+                          ["City", fetchedDetails.company.city],
+                          ["State", fetchedDetails.company.state],
+                          ["Pincode", fetchedDetails.company.pincode],
+                          ["Full Address", fetchedDetails.company.address],
+                        ].map(([label, val]) => (
+                          <div key={label} className="bg-slate-50 p-3 rounded-xl border border-slate-100 dark:bg-slate-950 dark:border-slate-800">
+                            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-0.5">{label}</p>
+                            <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{val || <span className="text-slate-300 font-normal italic">—</span>}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="p-4 bg-slate-50 rounded-xl border border-dashed border-slate-200 text-center dark:bg-slate-950 dark:border-slate-700">
+                        <span className="material-symbols-outlined text-slate-300 text-2xl">corporate_fare</span>
+                        <p className="text-xs text-slate-400 font-bold mt-1">Organization profile not submitted</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 2 && (
+                <div className="space-y-6 animate-fade-in">
+                  {/* Documents */}
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-3 flex items-center gap-2">
+                      <span className="material-symbols-outlined text-sm text-slate-400">folder_open</span>
+                      Documents
+                      {fetchedDetails?.company?.kycDocuments?.length > 0 && (
+                        <span className="ml-auto px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full text-[9px] font-black">{fetchedDetails.company.kycDocuments.length} submitted</span>
+                      )}
+                    </p>
+                    {loadingDetails ? (
+                      <div className="flex justify-center py-8"><div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div></div>
+                    ) : fetchedDetails?.company?.kycDocuments?.length > 0 ? (
+                      <div className="space-y-2">
+                        {fetchedDetails.company.kycDocuments.map((doc: any, i: number) => (
+                          <div key={i} className="flex items-center gap-4 p-3.5 bg-slate-50 border border-slate-100 rounded-xl hover:border-slate-200 transition-colors dark:bg-slate-950 dark:border-slate-800">
+                            <div className="w-9 h-9 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">
+                              <span className="material-symbols-outlined text-lg">description</span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-bold text-slate-800 truncate dark:text-slate-200">{doc.type}</p>
+                              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{doc.fileName} · {formatDate(doc.uploadedAt)}</p>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase bg-emerald-100 text-emerald-700`}>
+                                VERIFIED
+                              </span>
+                              {doc.signedUrl && (
+                                <a href={doc.signedUrl} target="_blank" rel="noopener noreferrer" className="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center hover:bg-blue-600 hover:text-white transition-all">
+                                  <span className="material-symbols-outlined text-sm">download</span>
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="p-4 bg-red-50 rounded-xl border border-dashed border-red-200 text-center">
+                        <span className="material-symbols-outlined text-red-300 text-2xl">folder_off</span>
+                        <p className="text-xs text-red-500 font-bold mt-1">No documents uploaded yet</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 3 && (
+                <div className="space-y-6 animate-fade-in">
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-3 flex items-center gap-2">
+                      <span className="material-symbols-outlined text-sm text-slate-400">account_balance</span> Bank Details
+                    </p>
+                    {loadingDetails ? (
+                      <div className="flex justify-center py-8"><div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div></div>
+                    ) : fetchedDetails?.company?.bankAccountNumber ? (
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 dark:bg-slate-950 dark:border-slate-800">
+                          <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Account Name</p>
+                          <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{fetchedDetails.company.bankAccountHolder || "—"}</p>
+                        </div>
+                        <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 dark:bg-slate-950 dark:border-slate-800">
+                          <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Account Number</p>
+                          <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{fetchedDetails.company.bankAccountNumber || "—"}</p>
+                        </div>
+                        <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 dark:bg-slate-950 dark:border-slate-800">
+                          <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-0.5">IFSC Code</p>
+                          <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{fetchedDetails.company.bankIfscCode || "—"}</p>
+                        </div>
+                        <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 dark:bg-slate-950 dark:border-slate-800">
+                          <p className="text-[9px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Bank Name</p>
+                          <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{fetchedDetails.company.bankName || "—"}</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-4 bg-slate-50 rounded-xl border border-dashed border-slate-200 text-center dark:bg-slate-950 dark:border-slate-700">
+                        <span className="material-symbols-outlined text-slate-300 text-2xl">account_balance</span>
+                        <p className="text-xs text-slate-400 font-bold mt-1">Bank details not provided</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {activeTab === 4 && (
+                <div className="space-y-6 animate-fade-in">
+                  <div className="p-6 bg-slate-50 rounded-xl border border-slate-100 text-center dark:bg-slate-950 dark:border-slate-800">
+                    <span className="material-symbols-outlined text-4xl text-slate-400 mb-2">fact_check</span>
+                    <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-1">Final Review</h4>
+                    <p className="text-sm text-slate-500 mb-4">Please review all submitted information before taking a final decision.</p>
+                    <div className="flex gap-2 justify-center">
+                      <button onClick={() => setActiveTab(1)} className="btn-outline px-4 py-2 text-xs rounded-xl">View Profile</button>
+                      <button onClick={() => setActiveTab(2)} className="btn-outline px-4 py-2 text-xs rounded-xl">View Documents</button>
+                    </div>
+                  </div>
+                  
+                  {/* Rejection / Hold reason */}
+                  {modalUser.statusReason && (
+                    <div className="p-4 bg-red-50 border border-red-200 rounded-xl flex gap-3">
+                      <span className="material-symbols-outlined text-red-500 shrink-0">info</span>
+                      <div>
+                        <p className="text-xs font-black uppercase tracking-widest text-red-700 mb-1">Reason for {modalUser.status}</p>
+                        <p className="text-sm text-red-700">{modalUser.statusReason}</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

@@ -55,8 +55,12 @@ function ClientLoginPageContent() {
     setLoading(true);
     try {
       await new Promise(r => setTimeout(r, 800));
-      await login("client", loginEmail, loginPassword);
-      router.push("/client/dashboard");
+      const user = await login("client", loginEmail, loginPassword);
+      if (user.role !== 'client' && user.role !== 'consumer') {
+        setError(`You are registered as a ${user.role.toUpperCase()}. Please sign in from the correct portal.`);
+        return;
+      }
+      router.push(user.role === 'consumer' ? "/consumer/dashboard" : "/client/dashboard");
     } catch (err: any) {
       setError(err?.response?.data?.message || err.message || "Failed to connect to server. Please try again.");
     } finally {
@@ -73,12 +77,8 @@ function ClientLoginPageContent() {
     }
     setLoading(true);
     try {
-      const otp = await register("client", regName, regEmail, regPassword, regPhone);
-      setOtpEmail(regEmail);
-      setOtpPhone(regPhone);
-      if (otp?.devEmailOtp) setDevEmailOtp(otp.devEmailOtp);
-      if (otp?.devPhoneOtp) setDevPhoneOtp(otp.devPhoneOtp);
-      setOtpStep(true);
+      await register("client", regName, regEmail, regPassword, regPhone);
+      router.push("/onboarding/client/step1");
     } catch (err: any) {
       setError(err?.response?.data?.message || err.message || "Registration failed. Please try again.");
     } finally {

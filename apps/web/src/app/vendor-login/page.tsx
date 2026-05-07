@@ -56,7 +56,11 @@ function VendorLoginPageContent() {
     setLoading(true);
     try {
       await new Promise(r => setTimeout(r, 800));
-      await login("vendor", loginEmail, loginPassword);
+      const user = await login("vendor", loginEmail, loginPassword);
+      if (user.role !== 'vendor') {
+        setError(`You are registered as a ${user.role.toUpperCase()}. Please sign in from the correct portal.`);
+        return;
+      }
       router.push("/vendor/dashboard");
     } catch (err: any) {
       setError(err?.response?.data?.message || err.message || "Failed to connect to server. Please try again.");
@@ -74,12 +78,8 @@ function VendorLoginPageContent() {
     }
     setLoading(true);
     try {
-      const otp = await register("vendor", regContactName, regEmail, regPassword, regPhone);
-      setOtpEmail(regEmail);
-      setOtpPhone(regPhone);
-      if (otp?.devEmailOtp) setDevEmailOtp(otp.devEmailOtp);
-      if (otp?.devPhoneOtp) setDevPhoneOtp(otp.devPhoneOtp);
-      setOtpStep(true);
+      await register("vendor", regContactName, regEmail, regPassword, regPhone);
+      router.push("/onboarding/vendor/step1");
     } catch (err: any) {
       setError(err?.response?.data?.message || err.message || "Registration failed. Please try again.");
     } finally {

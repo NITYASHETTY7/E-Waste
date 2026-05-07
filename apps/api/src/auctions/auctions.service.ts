@@ -1,7 +1,12 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { S3Service } from '../s3/s3.service';
 import { NotificationService } from '../notifications/notification.service';
+import { DocumentsService } from '../documents/documents.service';
 import { AuctionStatus, BidPhase, DocumentType } from '@prisma/client';
 
 @Injectable()
@@ -10,6 +15,7 @@ export class AuctionsService {
     private prisma: PrismaService,
     private s3: S3Service,
     private notifications: NotificationService,
+    private documents: DocumentsService,
   ) {}
 
   async findAllBids(auctionId?: string) {
@@ -89,7 +95,9 @@ export class AuctionsService {
         openPhaseEnd: new Date(data.openPhaseEnd),
         ...(data.tickSize && { tickSize: data.tickSize }),
         ...(data.maxTicks && { maxTicks: data.maxTicks }),
-        ...(data.extensionMinutes && { extensionMinutes: data.extensionMinutes }),
+        ...(data.extensionMinutes && {
+          extensionMinutes: data.extensionMinutes,
+        }),
         status: AuctionStatus.UPCOMING,
       },
     });
@@ -102,8 +110,19 @@ export class AuctionsService {
     file?: Express.Multer.File,
     remarks?: string,
   ) {
-    const auction = await this.prisma.auction.findUnique({ where: { id: auctionId } });
+    const auction = await this.prisma.auction.findUnique({
+      where: { id: auctionId },
+    });
     if (!auction) throw new NotFoundException('Auction not found');
+
+    const vendorUser = await this.prisma.user.findUnique({
+      where: { id: vendorId },
+      include: { company: true },
+    });
+
+    if (vendorUser?.company?.isLocked) {
+      throw new BadRequestException('Your account is locked. Please contact admin.');
+    }
     if (auction.status !== AuctionStatus.SEALED_PHASE) {
       throw new BadRequestException('Sealed bidding is not currently open');
     }
@@ -113,7 +132,10 @@ export class AuctionsService {
     let priceSheetFileName: string | undefined;
 
     if (file) {
-      const { key, bucket } = await this.s3.upload(file, `bids/${auctionId}/${vendorId}`);
+      const { key, bucket } = await this.s3.upload(
+        file,
+        `bids/${auctionId}/${vendorId}`,
+      );
       priceSheetS3Key = key;
       priceSheetS3Bucket = bucket;
       priceSheetFileName = file.originalname;
@@ -139,26 +161,57 @@ export class AuctionsService {
       data: { winnerId: vendorId, status: AuctionStatus.COMPLETED },
       include: {
         client: true,
+        requirement: true,
         bids: {
           where: { vendorId },
           orderBy: { amount: 'desc' },
           take: 1,
-          include: { vendor: { select: { id: true, name: true, email: true } } },
+          include: {
+            vendor: { select: { id: true, name: true, email: true } },
+          },
         },
       },
     });
 
-    // Send winner email with full procedure
     const winningBid = auction.bids[0];
-    if (winningBid?.vendor?.email) {
-      await this.notifications.notifyAuctionWinner(
-        winningBid.vendor.email,
-        winningBid.vendor.name,
-        auction.title,
-        winningBid.amount,
-        auction.client.name,
+    const vendorAddress = 'Address on file';
+
+    try {
+      const workOrderS3Key = await this.documents.generateWorkOrderPdf(
         auction.id,
-      ).catch(() => {});
+        auction.client.name,
+        winningBid?.vendor?.name || 'Vendor',
+        vendorAddress,
+        auction.title,
+        auction.requirement?.totalWeight || 0,
+        winningBid?.amount || 0,
+      );
+
+      await this.prisma.auctionDocument.create({
+        data: {
+          auctionId: auction.id,
+          type: DocumentType.WORK_ORDER,
+          s3Key: workOrderS3Key,
+          s3Bucket: process.env.AWS_S3_BUCKET_NAME || 'ecoloop-docs',
+          fileName: `WO-${auction.id.substring(0, 8).toUpperCase()}.pdf`,
+          mimeType: 'application/pdf',
+        },
+      });
+    } catch (e) {
+      console.error('Failed to generate work order', e);
+    }
+
+    if (winningBid?.vendor?.email) {
+      await this.notifications
+        .notifyAuctionWinner(
+          winningBid.vendor.email,
+          winningBid.vendor.name,
+          auction.title,
+          winningBid.amount,
+          auction.client.name,
+          auction.id,
+        )
+        .catch(() => {});
     }
 
     return auction;
@@ -169,7 +222,10 @@ export class AuctionsService {
     file: Express.Multer.File,
     type: 'FINAL_QUOTE' | 'LETTERHEAD_QUOTATION',
   ) {
-    const { key, bucket } = await this.s3.upload(file, `final-quotes/${auctionId}`);
+    const { key, bucket } = await this.s3.upload(
+      file,
+      `final-quotes/${auctionId}`,
+    );
     return this.prisma.auctionDocument.create({
       data: {
         type: type as DocumentType,
@@ -218,6 +274,27 @@ export class AuctionsService {
     });
   }
 
+  async shareSealedBids(auctionId: string, bidIds: string[]) {
+    const auction = await this.prisma.auction.findUnique({ where: { id: auctionId } });
+    if (!auction) throw new NotFoundException('Auction not found');
+
+    // Reset all bids to false
+    await this.prisma.bid.updateMany({
+      where: { auctionId },
+      data: { isShortlisted: false },
+    });
+
+    // Set selected bids to true
+    if (bidIds.length > 0) {
+      await this.prisma.bid.updateMany({
+        where: { id: { in: bidIds } },
+        data: { isShortlisted: true },
+      });
+    }
+
+    return { success: true, message: 'Bids shared with client' };
+  }
+
   async updateStatus(id: string, status: AuctionStatus) {
     return this.prisma.auction.update({ where: { id }, data: { status } });
   }
@@ -231,7 +308,10 @@ export class AuctionsService {
     });
 
     await this.prisma.auction.updateMany({
-      where: { status: AuctionStatus.SEALED_PHASE, openPhaseStart: { lte: now } },
+      where: {
+        status: AuctionStatus.SEALED_PHASE,
+        openPhaseStart: { lte: now },
+      },
       data: { status: AuctionStatus.OPEN_PHASE },
     });
 
@@ -243,7 +323,8 @@ export class AuctionsService {
 
   async extendTimer(id: string) {
     const auction = await this.prisma.auction.findUnique({ where: { id } });
-    if (!auction || !auction.openPhaseEnd) throw new NotFoundException('Auction not found');
+    if (!auction || !auction.openPhaseEnd)
+      throw new NotFoundException('Auction not found');
     if (auction.extensionCount >= auction.maxTicks) return auction;
 
     const newEnd = new Date(

@@ -43,39 +43,66 @@ export class PaymentsService {
   }
 
   // Vendor uploads payment proof (screenshot / UTR)
-  async uploadProof(auctionId: string, file: Express.Multer.File, utrNumber?: string) {
-    const { key } = await this.s3.upload(file, `payments/${auctionId}`);
+  async uploadProof(
+    id: string,
+    file: Express.Multer.File,
+    utrNumber?: string,
+  ) {
+    const payment = await this.prisma.payment.findUnique({ where: { id } });
+    if (!payment) throw new NotFoundException('Payment not found');
+
+    const { key } = await this.s3.upload(file, `payments/${payment.auctionId}`);
     return this.prisma.payment.update({
-      where: { auctionId },
+      where: { id },
       data: {
         proofS3Key: key,
+        paymentProofUrl: key, // Added for new schema field
         utrNumber,
         status: PaymentStatus.SUBMITTED,
       },
     });
   }
 
-  // Admin confirms payment → notify vendor to upload compliance docs
-  async confirm(auctionId: string, adminNotes?: string) {
+  // Admin verifies payment → notify vendor and client
+  async verifyPayment(id: string, adminNotes?: string) {
     const payment = await this.prisma.payment.update({
-      where: { auctionId },
+      where: { id },
       data: { status: PaymentStatus.CONFIRMED, adminNotes },
+      include: {
+        auction: {
+          include: {
+            winner: { include: { users: { take: 1 } } },
+            client: { include: { users: { take: 1 } } }
+          }
+        }
+      }
     });
 
-    // Notify winning vendor to upload compliance documents
+    const auction = payment.auction;
+    const vendorUser = auction.winner?.users?.[0];
+    const clientUser = auction.client?.users?.[0];
+
     try {
-      const auction = await this.prisma.auction.findUnique({
-        where: { id: auctionId },
-        include: {
-          winner: { include: { users: { select: { email: true, name: true }, take: 1 } } },
-        },
-      });
-      const vendorUser = auction?.winner?.users?.[0];
-      if (vendorUser?.email && auction?.winner) {
+      if (vendorUser?.email) {
+        await this.notifications.notifyPaymentVerified(
+          vendorUser.email,
+          vendorUser.name || auction.winner!.name,
+          auction.title,
+          'VENDOR'
+        );
+        // Also trigger compliance pending email as requested originally
         await this.notifications.notifyCompliancePending(
           vendorUser.email,
-          vendorUser.name || auction.winner.name,
+          vendorUser.name || auction.winner!.name,
           auction.title,
+        );
+      }
+      if (clientUser?.email) {
+        await this.notifications.notifyPaymentVerified(
+          clientUser.email,
+          clientUser.name || auction.client!.name,
+          auction.title,
+          'CLIENT'
         );
       }
     } catch (e) {

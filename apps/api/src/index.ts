@@ -30,6 +30,6 @@ export const createNextServer = async (expressInstance: express.Express) => {
   return app;
 };
 
-createNextServer(server);
+createNextServer(server).catch((err) => console.error(err));
 
 export default server;

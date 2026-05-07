@@ -50,6 +50,9 @@ model Company {
   bankAccountNumber  String?
   bankIfscCode       String?
   bankAccountType    String?
+  isLocked           Boolean           @default(false)
+  lockReason         String?
+  penaltyAmount      Float?
   createdAt          DateTime          @default(now())
   updatedAt          DateTime          @updatedAt
   auctions         Auction[]         @relation("ClientAuctions")
@@ -136,6 +139,9 @@ model AuditPhoto {
   s3Bucket      String
   fileName      String
   mimeType      String?
+  latitude      Float?
+  longitude     Float?
+  capturedAt    DateTime?
   auditReportId String
   uploadedAt    DateTime    @default(now())
   auditReport   AuditReport @relation(fields: [auditReportId], references: [id])
@@ -170,6 +176,7 @@ model Auction {
   pickup           Pickup?
   quoteApproved    Boolean?
   quoteRemarks     String?
+  payment          Payment?
 }
 
 model AuctionDocument {
@@ -190,6 +197,7 @@ model Bid {
   phase              BidPhase
   remarks            String?
   rank               Int?
+  isShortlisted      Boolean  @default(false)
   auctionId          String
   vendorId           String
   priceSheetS3Key    String?
@@ -197,11 +205,10 @@ model Bid {
   priceSheetFileName String?
   createdAt          DateTime @default(now())
   auction            Auction  @relation(fields: [auctionId], references: [id])
-  vendor             User     @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  vendor             User     @relation(fields: [vendorId], references: [id], onDelete: Cascade)  
 
   @@index([auctionId, amount])
 }
-
 model Payment {
   id               String        @id @default(cuid())
   status           PaymentStatus @default(PENDING)
@@ -209,6 +216,8 @@ model Payment {
   commissionAmount Float
   totalAmount      Float
   utrNumber        String?
+  paymentProofUrl  String?
+  auction          Auction       @relation(fields: [auctionId], references: [id])
   proofS3Key       String?
   proofS3Bucket    String?
   auctionId        String        @unique
@@ -342,4 +351,5 @@ enum DocumentType {
   AADHAR_CARD
   CANCELLED_CHEQUE
   OTHER
+  WORK_ORDER
 }

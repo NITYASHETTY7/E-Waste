@@ -1,10 +1,23 @@
 import {
-  Controller, Get, Post, Patch, Param, Query, Body,
-  UseGuards, Request, UploadedFile, UseInterceptors
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Param,
+  Query,
+  Body,
+  UseGuards,
+  Request,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { RequirementsService } from './requirements.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import {
+  CreateRequirementDto,
+  ClientApproveRequirementDto,
+} from './requirements.dto';
 
 @UseGuards(JwtAuthGuard)
 @Controller('requirements')
@@ -14,7 +27,7 @@ export class RequirementsController {
   @Post()
   @UseInterceptors(FileInterceptor('file'))
   create(
-    @Body() body: any,
+    @Body() body: CreateRequirementDto,
     @UploadedFile() file: Express.Multer.File,
     @Request() req: any,
   ) {
@@ -22,9 +35,10 @@ export class RequirementsController {
     let invitedVendorIds: string[] = [];
     if (body.invitedVendorIds) {
       try {
-        invitedVendorIds = typeof body.invitedVendorIds === 'string'
-          ? JSON.parse(body.invitedVendorIds)
-          : body.invitedVendorIds;
+        invitedVendorIds =
+          typeof body.invitedVendorIds === 'string'
+            ? JSON.parse(body.invitedVendorIds)
+            : body.invitedVendorIds;
       } catch {
         invitedVendorIds = body.invitedVendorIds
           .split(',')
@@ -54,13 +68,19 @@ export class RequirementsController {
   // Admin uploads cleaned / standardised sheet
   @Post(':id/processed-sheet')
   @UseInterceptors(FileInterceptor('file'))
-  uploadProcessed(@Param('id') id: string, @UploadedFile() file: Express.Multer.File) {
+  uploadProcessed(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
     return this.svc.uploadProcessedSheet(id, file);
   }
 
   // Client approves the processed sheet with target price
   @Patch(':id/approve')
-  clientApprove(@Param('id') id: string, @Body() body: any) {
+  clientApprove(
+    @Param('id') id: string,
+    @Body() body: ClientApproveRequirementDto,
+  ) {
     return this.svc.clientApprove(id, body);
   }
 
@@ -71,7 +91,10 @@ export class RequirementsController {
   }
 
   @Get(':id/download/:field')
-  getSignedUrl(@Param('id') id: string, @Param('field') field: 'raw' | 'processed') {
+  getSignedUrl(
+    @Param('id') id: string,
+    @Param('field') field: 'raw' | 'processed',
+  ) {
     return this.svc.getSignedUrl(id, field);
   }
 }

@@ -26,7 +26,10 @@ export class RequirementsService {
   }) {
     let rawS3Key: string | undefined;
     if (data.file) {
-      const { key } = await this.s3.upload(data.file, `requirements/${data.clientId}`);
+      const { key } = await this.s3.upload(
+        data.file,
+        `requirements/${data.clientId}`,
+      );
       rawS3Key = key;
     }
 
@@ -39,8 +42,12 @@ export class RequirementsService {
         category: data.category,
         totalWeight: data.totalWeight ? Number(data.totalWeight) : undefined,
         invitedVendorIds: data.invitedVendorIds ?? [],
-        sealedPhaseStart: data.sealedPhaseStart ? new Date(data.sealedPhaseStart) : undefined,
-        sealedPhaseEnd: data.sealedPhaseEnd ? new Date(data.sealedPhaseEnd) : undefined,
+        sealedPhaseStart: data.sealedPhaseStart
+          ? new Date(data.sealedPhaseStart)
+          : undefined,
+        sealedPhaseEnd: data.sealedPhaseEnd
+          ? new Date(data.sealedPhaseEnd)
+          : undefined,
       },
       include: { client: true },
     });
@@ -74,7 +81,10 @@ export class RequirementsService {
   // Admin uploads the cleaned / processed sheet
   async uploadProcessedSheet(id: string, file: Express.Multer.File) {
     const req = await this.findOne(id);
-    const { key } = await this.s3.upload(file, `requirements/${req.clientId}/processed`);
+    const { key } = await this.s3.upload(
+      file,
+      `requirements/${req.clientId}/processed`,
+    );
     return this.prisma.requirement.update({
       where: { id },
       data: { processedS3Key: key, status: RequirementStatus.CLIENT_REVIEW },
@@ -82,7 +92,10 @@ export class RequirementsService {
   }
 
   // Client approves the processed list with target price
-  async clientApprove(id: string, data: { targetPrice: number; totalWeight?: number; category?: string }) {
+  async clientApprove(
+    id: string,
+    data: { targetPrice: number; totalWeight?: number; category?: string },
+  ) {
     const { targetPrice, totalWeight, category } = data;
     return this.prisma.requirement.update({
       where: { id },
@@ -117,8 +130,10 @@ export class RequirementsService {
     // Create or update the auction linked to this requirement
     const now = new Date();
     const sealedStart = req.sealedPhaseStart ?? now;
-    const sealedEnd = req.sealedPhaseEnd ?? new Date(now.getTime() + 3 * 60 * 60 * 1000);
-    const auctionStatus = sealedStart <= now ? AuctionStatus.SEALED_PHASE : AuctionStatus.UPCOMING;
+    const sealedEnd =
+      req.sealedPhaseEnd ?? new Date(now.getTime() + 3 * 60 * 60 * 1000);
+    const auctionStatus =
+      sealedStart <= now ? AuctionStatus.SEALED_PHASE : AuctionStatus.UPCOMING;
 
     let auction = req.auction;
     if (!auction) {
@@ -139,7 +154,11 @@ export class RequirementsService {
     } else {
       await this.prisma.auction.update({
         where: { id: auction.id },
-        data: { status: auctionStatus, sealedPhaseStart: sealedStart, sealedPhaseEnd: sealedEnd },
+        data: {
+          status: auctionStatus,
+          sealedPhaseStart: sealedStart,
+          sealedPhaseEnd: sealedEnd,
+        },
       });
     }
 
@@ -151,17 +170,21 @@ export class RequirementsService {
       });
 
       const sealedEndStr = sealedEnd.toLocaleString('en-IN', {
-        day: '2-digit', month: 'long', year: 'numeric',
-        hour: '2-digit', minute: '2-digit', hour12: true,
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
       });
 
       await Promise.all(
-        vendors.map(v =>
+        vendors.map((v) =>
           this.notifications.notifySealedBidInvitation(
             v.email,
             v.name,
             req.title,
-            auction!.id,
+            auction.id,
             sealedEndStr,
           ),
         ),

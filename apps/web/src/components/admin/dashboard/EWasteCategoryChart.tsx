@@ -14,6 +14,7 @@ const EWASTE_DATA = [
 
 export function EWasteCategoryChart() {
   const [mounted, setMounted] = useState(false);
+  // eslint-disable-next-line
   useEffect(() => { setMounted(true); }, []);
 
   return (

@@ -32,7 +32,7 @@ export default function AdminLoginPage() {
   };
 
   const quickDemo = () => {
-    setLoginEmail(process.env.ADMIN_EMAIL as string);
+    setLoginEmail(process.env.NEXT_PUBLIC_ADMIN_EMAIL || "admin@weconnect.com");
     setLoginPassword("password");
   };
 
@@ -92,11 +92,11 @@ export default function AdminLoginPage() {
             </motion.div>
           )}
 
-          <form onSubmit={handleLogin} className="space-y-6">
+          <form onSubmit={handleLogin} className="space-y-6" suppressHydrationWarning>
             <div>
               <label className="text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] ml-1 mb-2 block">Admin Identifier</label>
               <input type="text" required value={loginEmail} onChange={e => setLoginEmail(e.target.value)}
-                placeholder={process.env.ADMIN_EMAIL} 
+                placeholder={process.env.NEXT_PUBLIC_ADMIN_EMAIL || "admin@weconnect.com"}
                 className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:border-[#0B5ED7] focus:bg-white dark:focus:bg-slate-800 dark:focus:text-white focus:ring-4 focus:ring-[#0B5ED7]/5 outline-none transition-all font-medium dark:bg-slate-950 dark:text-white dark:border-slate-700" 
               />
             </div>

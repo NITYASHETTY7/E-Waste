@@ -50,6 +50,17 @@ export class PaymentsController {
     return this.svc.uploadProof(id, file, utrNumber);
   }
 
+  // Route called by frontend AppContext: POST /payments/auction/:auctionId/proof
+  @Post('payments/auction/:auctionId/proof')
+  @UseInterceptors(FileInterceptor('file'))
+  uploadProofByAuction(
+    @Param('auctionId') auctionId: string,
+    @UploadedFile() file: Express.Multer.File,
+    @Body('utrNumber') utrNumber?: string,
+  ) {
+    return this.svc.uploadProofByAuction(auctionId, file, utrNumber);
+  }
+
   @Patch('admin/payments/:id/verify')
   @Roles(UserRole.ADMIN)
   verifyPayment(
@@ -57,5 +68,15 @@ export class PaymentsController {
     @Body('adminNotes') notes?: string,
   ) {
     return this.svc.verifyPayment(id, notes);
+  }
+
+  // Route called by frontend AppContext: PATCH /payments/auction/:auctionId/confirm
+  @Patch('payments/auction/:auctionId/confirm')
+  @Roles(UserRole.ADMIN)
+  verifyPaymentByAuction(
+    @Param('auctionId') auctionId: string,
+    @Body('adminNotes') notes?: string,
+  ) {
+    return this.svc.verifyPaymentByAuction(auctionId, notes);
   }
 }

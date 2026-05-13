@@ -6,6 +6,7 @@ import api from '@/lib/api';
 import axios from 'axios';
 
 interface AppContextType extends AppState {
+  refreshData: () => Promise<void>;
   login: (role: UserRole, email: string, password?: string) => Promise<void>;
   logout: () => void;
   register: (role: UserRole, name: string, email: string, password?: string, phone?: string) => Promise<{ devEmailOtp?: string; devPhoneOtp?: string; resumed?: boolean; resumeStep?: number }>;
@@ -24,6 +25,7 @@ interface AppContextType extends AppState {
   acceptBid: (bidId: string) => void;
   addNotification: (n: Omit<Notification, 'id' | 'createdAt' | 'read'>) => void;
   markNotificationRead: (id: string) => void;
+  markAllNotificationsRead: () => void;
   editListing: (id: string, updates: Partial<Listing>) => void;
   editBid: (id: string, updates: Partial<Bid>) => void;
   respondToInvitation: (invitationId: string, status: 'ACCEPTED' | 'REJECTED') => Promise<void>;
@@ -40,11 +42,23 @@ interface AppContextType extends AppState {
   approveFinalQuote: (listingId: string) => void;
   rejectFinalQuote: (listingId: string, remarks: string) => void;
   // Requirement sheet flow
-  uploadProcessedSheet: (listingId: string, file: File) => Promise<void>;
+  uploadProcessedSheet: (listingId: string, file: File, vendorIds?: string[]) => Promise<void>;
   approveRequirement: (listingId: string, targetPrice: number, totalWeight?: number) => Promise<void>;
+  // Step 6 — Purchase Order
+  issuePO: (listingId: string, data: { paymentTerms: string; deliveryTerms: string; penaltyClause: string; specialConditions: string }) => void;
+  acknowledgePO: (listingId: string) => void;
+  // Step 6 — EMD
+  submitEMD: (listingId: string, amount: number, utr: string) => Promise<void>;
+  verifyEMD: (listingId: string) => void;
   // Payment flow
   submitPaymentProof: (listingId: string, file: File, utrNumber: string) => Promise<void>;
   confirmPayment: (listingId: string) => void;
+  // Step 7 — Handover Documents
+  createHandoverDocs: (listingId: string, data: { gatePass: string; vehicle: string; driver: string; date: string; notes: string }) => void;
+  acknowledgeHandover: (listingId: string) => void;
+  // Step 8 — Reconciliation
+  submitReconciliation: (listingId: string, finalWeight: number, finalQuantity: number, finalValue: number, notes: string, file?: File) => Promise<void>;
+  verifyReconciliation: (listingId: string) => void;
   // Compliance flow
   submitComplianceDocs: (listingId: string, files: Record<string, File | null>, pickupDate?: string) => Promise<void>;
   verifyCompliance: (listingId: string) => void;
@@ -211,7 +225,45 @@ const MOCK_LISTINGS: Listing[] = [
     images: ['https://images.unsplash.com/photo-1563298723-dcfebaa392e3?auto=format&fit=crop&w=800&q=80']
   },
 
-  // V1 payment pending — client just approved quote, vendor must pay (payment flow demo for vendor@)
+  // ── STEP 6: PO issued, vendor must acknowledge ────────────────────────────
+  {
+    id: 'ECO19001', title: 'Server Room IT Assets — Phase 1 Decommission', category: 'IT Equipment',
+    weight: 1200, location: 'Koramangala, Bangalore', status: 'completed', userId: 'C1',
+    userName: 'Tech Corp Ltd', description: 'HP ProLiant servers (Gen 9/10), Dell PowerEdge R740 units. 18 servers total. HDDs removed. BIOS reset. Includes rack hardware and PDUs.',
+    createdAt: '2026-04-22T09:00:00.000Z', urgency: 'high', bidCount: 5, viewCount: 88,
+    auctionPhase: 'completed', basePrice: 160000, bidIncrement: 3000, highestEmdAmount: 20000,
+    winnerVendorId: 'V1', winnerVendorName: 'Green Recyclers Pvt Ltd',
+    finalQuoteStatus: 'approved', finalQuoteSubmittedAt: '2026-04-25T11:00:00.000Z',
+    poStatus: 'issued',
+    poNumber: 'WC-2026-0047',
+    poIssuedAt: '2026-04-26T10:00:00.000Z',
+    poPaymentTerms: 'Advance Payment — 100% before pickup',
+    poDeliveryTerms: 'Ex-Works (Client premises, Koramangala)',
+    poPenaltyClause: '2% per week of delay, capped at 10%',
+    poSpecialConditions: 'All drives to be physically destroyed on-site. Vendor must carry CPCB certificate.',
+    emdStatus: 'pending', emdAmount: 20000,
+    images: ['https://images.unsplash.com/photo-1558494949-ef010cbdcc48?auto=format&fit=crop&w=800&q=80']
+  },
+
+  // ── STEP 6: PO acknowledged, EMD pending → then payment ──────────────────
+  {
+    id: 'ECO19002', title: 'Network Equipment Lot — End of Lease Return', category: 'IT Equipment',
+    weight: 560, location: 'MG Road, Bangalore', status: 'completed', userId: 'C1',
+    userName: 'Tech Corp Ltd', description: 'Cisco Catalyst 9000 series switches (12 units), Juniper SRX firewalls (4 units), Aruba access points (32 units). All factory-reset.',
+    createdAt: '2026-04-18T10:00:00.000Z', urgency: 'medium', bidCount: 4, viewCount: 63,
+    auctionPhase: 'completed', basePrice: 120000, bidIncrement: 2000, highestEmdAmount: 15000,
+    winnerVendorId: 'V1', winnerVendorName: 'Green Recyclers Pvt Ltd',
+    finalQuoteStatus: 'approved', finalQuoteSubmittedAt: '2026-04-21T14:00:00.000Z',
+    poStatus: 'acknowledged', poNumber: 'WC-2026-0046', poIssuedAt: '2026-04-22T09:00:00.000Z',
+    poPaymentTerms: 'Net 15 — Payment within 15 days of PO acknowledgement',
+    poDeliveryTerms: 'Ex-Works (Client premises, MG Road)',
+    poPenaltyClause: '1.5% per week of delay, capped at 8%',
+    emdStatus: 'submitted', emdAmount: 15000, emdUTR: 'HDFC2604220099123', emdSubmittedAt: '2026-04-23T10:00:00.000Z',
+    paymentStatus: 'pending', paymentClientAmount: 142500, paymentCommissionAmount: 7500,
+    images: ['https://images.unsplash.com/photo-1605810230434-7631ac76ec81?auto=format&fit=crop&w=800&q=80']
+  },
+
+  // V1 payment pending — client just approved quote, vendor must pay (payment flow demo)
   {
     id: 'ECO18996', title: 'Workstation PC Lot (Engineering Dept Refresh)', category: 'Laptops & PCs',
     weight: 940, location: 'Indiranagar, Bangalore', status: 'completed', userId: 'C1',
@@ -219,14 +271,15 @@ const MOCK_LISTINGS: Listing[] = [
     createdAt: '2026-04-08T11:00:00.000Z', urgency: 'medium', bidCount: 4, viewCount: 71,
     auctionPhase: 'completed', basePrice: 80000, bidIncrement: 2000, highestEmdAmount: 10000,
     winnerVendorId: 'V1', winnerVendorName: 'Green Recyclers Pvt Ltd',
-    finalQuoteStatus: 'approved',
-    finalQuoteSubmittedAt: '2026-04-19T09:00:00.000Z',
-    paymentStatus: 'pending',
-    paymentClientAmount: 109750, paymentCommissionAmount: 5750,
+    finalQuoteStatus: 'approved', finalQuoteSubmittedAt: '2026-04-19T09:00:00.000Z',
+    poStatus: 'acknowledged', poNumber: 'WC-2026-0044', poIssuedAt: '2026-04-18T09:00:00.000Z',
+    poPaymentTerms: 'Advance Payment — 100% before pickup', poDeliveryTerms: 'Ex-Works (Client premises)',
+    emdStatus: 'verified', emdAmount: 10000, emdUTR: 'ICIC2604170055678',
+    paymentStatus: 'pending', paymentClientAmount: 109750, paymentCommissionAmount: 5750,
     images: ['https://images.unsplash.com/photo-1547082299-de196ea013d6?auto=format&fit=crop&w=800&q=80']
   },
 
-  // V1 payment confirmed, compliance docs pending — for vendor compliance flow demo
+  // ── STEP 7: Payment confirmed, client has sent handover docs → vendor to acknowledge ──
   {
     id: 'ECO18997', title: 'Mixed PCB Scrap — R&D Lab Decommission', category: 'Circuit Boards',
     weight: 380, location: 'HSR Layout, Bangalore', status: 'completed', userId: 'C1',
@@ -235,15 +288,16 @@ const MOCK_LISTINGS: Listing[] = [
     auctionPhase: 'completed', basePrice: 55000, bidIncrement: 1000,
     winnerVendorId: 'V1', winnerVendorName: 'Green Recyclers Pvt Ltd',
     finalQuoteStatus: 'approved',
-    paymentStatus: 'confirmed',
-    paymentClientAmount: 68400, paymentCommissionAmount: 3600,
-    paymentUTR: 'ICIC2604080033221',
-    complianceStatus: undefined,
-    pickupScheduledDate: undefined,
+    poStatus: 'acknowledged', poNumber: 'WC-2026-0042', poIssuedAt: '2026-04-09T09:00:00.000Z',
+    poPaymentTerms: 'Advance Payment', poDeliveryTerms: 'Ex-Works', emdStatus: 'not_required',
+    paymentStatus: 'confirmed', paymentClientAmount: 68400, paymentCommissionAmount: 3600, paymentUTR: 'ICIC2604080033221',
+    handoverStatus: 'created',
+    handoverGatePass: 'GP-2026-0312', handoverVehicle: 'KA-01-AB-5678', handoverDriver: 'Ramesh Kumar',
+    handoverDate: '2026-05-10T09:00:00.000Z', handoverNotes: 'Report to Gate 3. Contact security: Ravi +91 98001 11222. PCB lots in Warehouse B, Rack 14-18.',
     images: ['https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=800&q=80']
   },
 
-  // Stage 3: Payment confirmed, compliance docs uploaded → admin to verify
+  // ── STEP 8: Handover done, reconciliation submitted → admin to verify ────
   {
     id: 'ECO18994', title: 'Decommissioned Data Centre Cooling Units', category: 'Other',
     weight: 3400, location: 'Whitefield, Bangalore', status: 'completed', userId: 'C1',
@@ -252,15 +306,19 @@ const MOCK_LISTINGS: Listing[] = [
     auctionPhase: 'completed', basePrice: 180000, bidIncrement: 4000, highestEmdAmount: 25000,
     winnerVendorId: 'V2', winnerVendorName: 'EcoMetal Solutions',
     finalQuoteStatus: 'approved',
-    paymentStatus: 'confirmed',
-    paymentClientAmount: 285500, paymentCommissionAmount: 15000,
-    paymentUTR: 'HDFC2603290056781',
-    complianceStatus: 'documents_uploaded',
-    pickupScheduledDate: '2026-04-18T08:00:00.000Z',
+    poStatus: 'acknowledged', poNumber: 'WC-2026-0038', poIssuedAt: '2026-03-31T09:00:00.000Z',
+    emdStatus: 'verified', emdAmount: 25000,
+    paymentStatus: 'confirmed', paymentClientAmount: 285500, paymentCommissionAmount: 15000, paymentUTR: 'HDFC2603290056781',
+    handoverStatus: 'acknowledged', handoverGatePass: 'GP-2026-0289', handoverDate: '2026-04-18T08:00:00.000Z',
+    reconciliationStatus: 'submitted',
+    reconciliationFinalWeight: 3350, reconciliationFinalQuantity: 6, reconciliationFinalValue: 282000,
+    reconciliationNotes: 'One unit had missing compressor housing — 50kg short. Adjusted commercial value accordingly.',
+    reconciliationSubmittedAt: '2026-04-20T14:00:00.000Z',
+    complianceStatus: 'documents_uploaded', pickupScheduledDate: '2026-04-18T08:00:00.000Z',
     images: ['https://images.unsplash.com/photo-1544724569-5f546fd6f2b5?auto=format&fit=crop&w=800&q=80']
   },
 
-  // Stage 4: Fully completed — compliance verified, docs downloadable by client
+  // ── FULLY COMPLETED — all steps done ─────────────────────────────────────
   {
     id: 'ECO18995', title: 'Enterprise Printer Fleet Disposal (60 Units)', category: 'Other',
     weight: 720, location: 'MG Road, Bangalore', status: 'completed', userId: 'C1',
@@ -269,10 +327,12 @@ const MOCK_LISTINGS: Listing[] = [
     auctionPhase: 'completed', basePrice: 42000, bidIncrement: 1000,
     winnerVendorId: 'V1', winnerVendorName: 'Green Recyclers Pvt Ltd',
     finalQuoteStatus: 'approved',
-    paymentStatus: 'confirmed',
-    paymentClientAmount: 49400, paymentCommissionAmount: 2600,
-    complianceStatus: 'verified',
-    pickupScheduledDate: '2026-04-10T08:00:00.000Z',
+    poStatus: 'acknowledged', poNumber: 'WC-2026-0031', poIssuedAt: '2026-03-18T09:00:00.000Z',
+    emdStatus: 'not_required',
+    paymentStatus: 'confirmed', paymentClientAmount: 49400, paymentCommissionAmount: 2600,
+    handoverStatus: 'acknowledged', handoverGatePass: 'GP-2026-0256', handoverDate: '2026-04-10T08:00:00.000Z',
+    reconciliationStatus: 'verified', reconciliationFinalWeight: 720, reconciliationFinalQuantity: 60, reconciliationFinalValue: 52000,
+    complianceStatus: 'verified', pickupScheduledDate: '2026-04-10T08:00:00.000Z',
     form6Url: 'data:text/plain;base64,Rm9ybTY=',
     weightSlipEmptyUrl: 'data:text/plain;base64,V2VpZ2h0RW1wdHk=',
     weightSlipLoadedUrl: 'data:text/plain;base64,V2VpZ2h0TG9hZGVk',
@@ -303,6 +363,9 @@ const MOCK_BIDS: Bid[] = [
   { id: 'B10', listingId: 'ECO18985', vendorId: 'V2', vendorName: 'EcoMetal Solutions', amount: 255000, status: 'pending', type: 'sealed', createdAt: '2026-04-16T14:00:00.000Z' },
   { id: 'CON-B1', listingId: 'CON-L1', vendorId: 'V1', vendorName: 'Green Recyclers Pvt Ltd', amount: 1500, status: 'accepted', type: 'open', createdAt: '2026-04-14T11:00:00.000Z' },
   { id: 'CON-B2', listingId: 'CON-L2', vendorId: 'V2', vendorName: 'EcoMetal Solutions', amount: 450, status: 'pending', type: 'sealed', createdAt: '2026-04-17T15:00:00.000Z' },
+  // New step-6 demo bids
+  { id: 'B20', listingId: 'ECO19001', vendorId: 'V1', vendorName: 'Green Recyclers Pvt Ltd', amount: 175000, status: 'accepted', type: 'open', createdAt: '2026-04-24T17:00:00.000Z' },
+  { id: 'B21', listingId: 'ECO19002', vendorId: 'V1', vendorName: 'Green Recyclers Pvt Ltd', amount: 150000, status: 'accepted', type: 'open', createdAt: '2026-04-20T16:00:00.000Z' },
   // Post-auction demo bids — accepted winners
   { id: 'B14', listingId: 'ECO18992', vendorId: 'V1', vendorName: 'Green Recyclers Pvt Ltd', amount: 105000, status: 'accepted', type: 'open', createdAt: '2026-04-18T17:55:00.000Z' },
   { id: 'B15', listingId: 'ECO18993', vendorId: 'V3', vendorName: 'RecycleFirst India', amount: 250000, status: 'accepted', type: 'open', createdAt: '2026-04-15T17:58:00.000Z' },
@@ -313,8 +376,11 @@ const MOCK_BIDS: Bid[] = [
 ];
 
 const MOCK_USERS: User[] = [
-  { id: 'A1', name: 'Super Admin', role: 'admin', email: process.env.ADMIN_EMAIL as string, status: 'active', registeredAt: '2026-02-15T10:00:00.000Z', onboardingStep: 5 },
-  { id: 'C1', name: 'Tech Corp Ltd', role: 'client', email: 'client@weconnect.com', status: 'active', phone: '+91 98765 43210', registeredAt: '2026-03-01T10:00:00.000Z', onboardingStep: 5 },
+  { id: 'A1', name: 'Super Admin', role: 'admin', email: 'admin@weconnect.com', status: 'active', registeredAt: '2026-02-15T10:00:00.000Z', onboardingStep: 5 },
+  {
+    id: 'C1', name: 'Tech Corp Ltd', role: 'client', email: 'client@weconnect.com', status: 'active', phone: '+91 98765 43210', registeredAt: '2026-03-01T10:00:00.000Z', onboardingStep: 5,
+    bankDetails: { accountHolderName: 'Tech Corp Ltd', bankName: 'HDFC Bank', accountNumber: '50100234567890', ifscCode: 'HDFC0001234', accountType: 'current' as const },
+  },
   { id: 'C2', name: 'Global Infra Pvt Ltd', role: 'client', email: 'info@globalinfra.com', status: 'active', phone: '+91 87654 32109', registeredAt: '2026-03-15T10:00:00.000Z', onboardingStep: 5 },
   { id: 'C3', name: 'Manufacturing Hub', role: 'client', email: 'ops@manhub.com', status: 'active', phone: '+91 76543 21098', registeredAt: '2026-03-25T10:00:00.000Z', onboardingStep: 5 },
   { id: 'V1', name: 'Green Recyclers Pvt Ltd', role: 'vendor', email: 'vendor@weconnect.com', status: 'active', phone: '+91 76543 21098', registeredAt: '2026-03-05T10:00:00.000Z', onboardingStep: 5 },
@@ -534,7 +600,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       PROCESSING: 'processing',
       CLIENT_REVIEW: 'client_review',
       FINALIZED: 'finalized',
+      REJECTED: 'rejected',
     };
+
+    const auctionStartDate = req.auction?.openPhaseStart
+      ? new Date(req.auction.openPhaseStart).toISOString()
+      : undefined;
+    const auctionEndDate = req.auction?.openPhaseEnd
+      ? new Date(req.auction.openPhaseEnd).toISOString()
+      : undefined;
 
     return {
       id: req.id,
@@ -551,11 +625,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       targetPrice: req.targetPrice,
       basePrice: req.auction?.basePrice,
       requirementId: req.id,
+      auctionId: req.auction?.id,
+      liveConfigured: !!(auctionStartDate),
       requirementStatus: statusMap[req.status] ?? undefined,
-      processedSheetUrl: req.processedS3Key ? undefined : undefined, // signed URL fetched on demand
+      processedSheetUrl: req.processedS3Key ? undefined : undefined,
       invitedVendorIds: req.invitedVendorIds ?? [],
+      acceptedVendorIds: req.acceptedVendorIds ?? [],
+      declinedVendorIds: req.declinedVendorIds ?? [],
       sealedBidStartDate: req.sealedPhaseStart,
       sealedBidEndDate: req.sealedPhaseEnd,
+      auctionStartDate,
+      auctionEndDate,
     } as Listing;
   };
 
@@ -596,12 +676,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const fetchAllData = async () => {
     try {
-      const [requirementsRes, bidsRes, usersRes, auctionsRes, auditsRes] = await Promise.all([
+      const [requirementsRes, bidsRes, usersRes, auctionsRes, auditsRes, notificationsRes] = await Promise.all([
         api.get('/requirements').catch(() => ({ data: [] })),
         api.get('/auctions/bids').catch(() => ({ data: [] })),
         api.get('/users').catch(() => ({ data: [] })),
         api.get('/auctions').catch(() => ({ data: [] })),
         api.get('/audits/invitations').catch(() => ({ data: [] })),
+        api.get('/notifications').catch(() => ({ data: [] })),
       ]);
 
       const backendListings = (requirementsRes.data || []).map(mapRequirementToListing);
@@ -625,8 +706,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         completedAt: a.report?.completedAt,
       }));
 
+      const backendNotifications = (notificationsRes.data || []).map((n: any) => ({
+        id: n.id,
+        userId: n.userId,
+        type: n.type,
+        title: n.title,
+        message: n.message,
+        link: n.link,
+        read: n.read,
+        createdAt: n.createdAt,
+      }));
+
       setState(prev => {
-        // Use backend data if available, otherwise keep existing (mock) data
         const hasBackendListings = backendListings.length > 0;
         const hasBackendUsers = backendUsers.length > 0;
         return {
@@ -635,6 +726,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           bids: backendBids.length > 0 ? backendBids : prev.bids,
           users: hasBackendUsers ? backendUsers : prev.users,
           auditInvitations: backendAudits.length > 0 ? backendAudits : prev.auditInvitations,
+          notifications: backendNotifications.length > 0 ? backendNotifications : prev.notifications,
         };
       });
     } catch (error) {
@@ -647,18 +739,40 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const res = await api.post('/auth/login', { email, password });
       const { access_token } = res.data;
       localStorage.setItem('ecoloop_token', access_token);
-      
+
       const profileRes = await api.get('/auth/profile');
       const user = mapBackendUser(profileRes.data);
-      
+
       setState(prev => ({
         ...prev,
         currentUser: user,
       }));
-      
+
       await fetchAllData();
       return user;
-    } catch (error) {
+    } catch (error: any) {
+      // Mock fallback: if backend is unreachable (no HTTP response), allow demo accounts
+      if (!error.response) {
+        const mockUser = MOCK_USERS.find(u => u.email.toLowerCase() === email.toLowerCase());
+        if (mockUser && password === 'password') {
+          setState(prev => ({
+            ...prev,
+            currentUser: mockUser,
+            // Load mock data only if not already present (preserve any mid-session state updates)
+            ...(prev.listings.length === 0 ? {
+              listings: MOCK_LISTINGS,
+              bids: MOCK_BIDS,
+              users: MOCK_USERS,
+              notifications: MOCK_NOTIFICATIONS,
+              auditInvitations: MOCK_AUDIT_INVITATIONS,
+              vendorRatings: MOCK_VENDOR_RATINGS,
+            } : {
+              users: prev.users.length === 0 ? MOCK_USERS : prev.users,
+            }),
+          }));
+          return mockUser;
+        }
+      }
       console.error('Login failed', error);
       throw error;
     }
@@ -894,10 +1008,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const transitionAuctionPhase = async (listingId: string, nextPhase: Listing['auctionPhase']) => {
+    const listing = state.listings.find(l => l.id === listingId);
+    const auctionId = listing?.auctionId || listingId;
     const backendStatus = PHASE_TO_STATUS[nextPhase ?? ''];
     if (backendStatus) {
       try {
-        await api.patch(`/auctions/${listingId}/status`, { status: backendStatus });
+        await api.patch(`/auctions/${auctionId}/status`, { status: backendStatus });
         await fetchAllData();
         return;
       } catch (error) {
@@ -957,21 +1073,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }));
   };
 
-  const uploadProcessedSheet = async (listingId: string, file: File) => {
-    try {
-      const fd = new FormData();
-      fd.append('file', file);
-      await api.post(`/requirements/${listingId}/processed-sheet`, fd, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-      await fetchAllData();
-    } catch (error) {
-      console.error('Failed to upload processed sheet', error);
-    }
-    setState(prev => ({
-      ...prev,
-      listings: prev.listings.map(l => l.id === listingId ? { ...l, requirementStatus: 'client_review' } : l),
-    }));
+  const uploadProcessedSheet = async (listingId: string, file: File, vendorIds?: string[]) => {
+    const fd = new FormData();
+    fd.append('file', file);
+    if (vendorIds?.length) fd.append('vendorIds', JSON.stringify(vendorIds));
+    await api.post(`/requirements/${listingId}/processed-sheet`, fd, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    await fetchAllData();
   };
 
   const approveRequirement = async (listingId: string, targetPrice: number, totalWeight?: number) => {
@@ -988,10 +1097,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   };
 
   const updateAuctionPhase = async (id: string, phase: Listing['auctionPhase']) => {
+    // Use the actual auction ID when available; listing.id is the requirement ID
+    const listing = state.listings.find(l => l.id === id);
+    const auctionId = listing?.auctionId || id;
     const backendStatus = PHASE_TO_STATUS[phase ?? ''];
     if (backendStatus) {
       try {
-        await api.patch(`/auctions/${id}/status`, { status: backendStatus });
+        await api.patch(`/auctions/${auctionId}/status`, { status: backendStatus });
         await fetchAllData();
         return;
       } catch (error) {
@@ -1096,6 +1208,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const markNotificationRead = (id: string) => {
     setState(prev => ({ ...prev, notifications: prev.notifications.map(n => n.id === id ? { ...n, read: true } : n) }));
+    api.patch(`/notifications/${id}/read`).catch(() => {});
+  };
+
+  const markAllNotificationsRead = () => {
+    setState(prev => ({ ...prev, notifications: prev.notifications.map(n => ({ ...n, read: true })) }));
+    api.patch('/notifications/read-all').catch(() => {});
   };
 
   const addClosingDocument = (listingId: string, doc: { name: string; url: string; type: string; timestamp: string }) => {
@@ -1259,6 +1377,83 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // ── Step 6: Purchase Order ─────────────────────────────────────────────
+  const issuePO = (listingId: string, data: { paymentTerms: string; deliveryTerms: string; penaltyClause: string; specialConditions: string }) => {
+    const listing = state.listings.find(l => l.id === listingId);
+    const poNumber = listing?.poNumber || `WC-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 9000) + 1000)}`;
+    setState(prev => ({
+      ...prev,
+      listings: prev.listings.map(l => l.id === listingId ? {
+        ...l, poStatus: 'issued', poNumber, poIssuedAt: new Date().toISOString(),
+        poPaymentTerms: data.paymentTerms, poDeliveryTerms: data.deliveryTerms,
+        poPenaltyClause: data.penaltyClause, poSpecialConditions: data.specialConditions,
+      } : l),
+    }));
+  };
+
+  const acknowledgePO = (listingId: string) => {
+    setState(prev => ({
+      ...prev,
+      listings: prev.listings.map(l => l.id === listingId ? { ...l, poStatus: 'acknowledged' } : l),
+    }));
+  };
+
+  // ── Step 6: EMD ────────────────────────────────────────────────────────
+  const submitEMD = async (listingId: string, amount: number, utr: string) => {
+    setState(prev => ({
+      ...prev,
+      listings: prev.listings.map(l => l.id === listingId ? {
+        ...l, emdStatus: 'submitted', emdAmount: amount, emdUTR: utr, emdSubmittedAt: new Date().toISOString(),
+      } : l),
+    }));
+  };
+
+  const verifyEMD = (listingId: string) => {
+    setState(prev => ({
+      ...prev,
+      listings: prev.listings.map(l => l.id === listingId ? { ...l, emdStatus: 'verified' } : l),
+    }));
+  };
+
+  // ── Step 7: Handover Documents ─────────────────────────────────────────
+  const createHandoverDocs = (listingId: string, data: { gatePass: string; vehicle: string; driver: string; date: string; notes: string }) => {
+    setState(prev => ({
+      ...prev,
+      listings: prev.listings.map(l => l.id === listingId ? {
+        ...l, handoverStatus: 'created',
+        handoverGatePass: data.gatePass, handoverVehicle: data.vehicle,
+        handoverDriver: data.driver, handoverDate: data.date, handoverNotes: data.notes,
+      } : l),
+    }));
+  };
+
+  const acknowledgeHandover = (listingId: string) => {
+    setState(prev => ({
+      ...prev,
+      listings: prev.listings.map(l => l.id === listingId ? { ...l, handoverStatus: 'acknowledged' } : l),
+    }));
+  };
+
+  // ── Step 8: Reconciliation ─────────────────────────────────────────────
+  const submitReconciliation = async (listingId: string, finalWeight: number, finalQuantity: number, finalValue: number, notes: string, _file?: File) => {
+    setState(prev => ({
+      ...prev,
+      listings: prev.listings.map(l => l.id === listingId ? {
+        ...l, reconciliationStatus: 'submitted',
+        reconciliationFinalWeight: finalWeight, reconciliationFinalQuantity: finalQuantity,
+        reconciliationFinalValue: finalValue, reconciliationNotes: notes,
+        reconciliationSubmittedAt: new Date().toISOString(),
+      } : l),
+    }));
+  };
+
+  const verifyReconciliation = (listingId: string) => {
+    setState(prev => ({
+      ...prev,
+      listings: prev.listings.map(l => l.id === listingId ? { ...l, reconciliationStatus: 'verified' } : l),
+    }));
+  };
+
   const submitPaymentProof = async (listingId: string, file: File, utrNumber: string) => {
     try {
       const fd = new FormData();
@@ -1383,17 +1578,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   return (
     <AppContext.Provider value={{
       ...state,
+      refreshData: fetchAllData,
       login, logout, register, startOnboarding,
       saveOnboardingProfile, saveOnboardingDocuments, saveOnboardingBankDetails, completeOnboarding,
       addListing, addBid, updateListingStatus, updateAuctionPhase, updateBidStatus, updateUserStatus, assignVendor,
       uploadProcessedSheet, approveRequirement,
-      acceptBid, addNotification, markNotificationRead, editListing, editBid,
+      acceptBid, addNotification, markNotificationRead, markAllNotificationsRead, editListing, editBid,
       respondToInvitation, transitionAuctionPhase, addClosingDocument,
       updateUserProfile, changePassword, deleteAccount,
       auditInvitations: state.auditInvitations ?? [],
       sendAuditInvitations, respondToAuditInvitation, completeAudit,
       submitFinalQuote, approveFinalQuote, rejectFinalQuote,
+      issuePO, acknowledgePO,
+      submitEMD, verifyEMD,
       submitPaymentProof, confirmPayment,
+      createHandoverDocs, acknowledgeHandover,
+      submitReconciliation, verifyReconciliation,
       submitComplianceDocs, verifyCompliance,
       vendorRatings: state.vendorRatings ?? [],
       rateVendor,

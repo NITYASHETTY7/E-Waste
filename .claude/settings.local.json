@@ -23,7 +23,24 @@
       "Bash(git push *)",
       "Bash(git remote *)",
       "Bash(git fetch *)",
-      "Bash(git checkout *)"
+      "Bash(git checkout *)",
+      "Bash(npx ts-node *)",
+      "Bash(timeout 20 npx nest start)",
+      "Bash(node *)",
+      "Bash(netstat -ano)",
+      "Bash(powershell -c \"netstat -ano | Select-String ':4000'\")",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(tasklist)",
+      "Bash(taskkill *)",
+      "PowerShell(Stop-Process *)",
+      "Bash(echo \"API server starting with PID $!\")",
+      "PowerShell(Get-NetTCPConnection *)",
+      "Bash(echo \"PID=$!\")",
+      "Bash(cat .env)",
+      "Bash(cat ../.env)",
+      "Bash(npx dotenv -e .env -- npx ts-node -e ' *)",
+      "Bash(npx next *)",
+      "Bash(npm --version)"
     ]
   }
 }

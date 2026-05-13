@@ -25,9 +25,11 @@ model User {
   otpExpiresAt  DateTime?
   otpType       String?
   phoneVerified Boolean       @default(false)
-  auditReports  AuditReport[]
-  bids          Bid[]
-  company       Company?      @relation(fields: [companyId], references: [id])
+  auditReports      AuditReport[]
+  bids              Bid[]
+  auditDocs         VendorAuditDoc[]      @relation("VendorAuditDocs")
+  inAppNotifications InAppNotification[]
+  company           Company?              @relation(fields: [companyId], references: [id])
 
   @@index([email])
 }
@@ -66,7 +68,7 @@ model Company {
 model KycDocument {
   id         String       @id @default(cuid())
   type       DocumentType
-  s3Key      String
+  s3Key      String       @unique
   s3Bucket   String
   fileName   String
   mimeType   String?
@@ -86,19 +88,27 @@ model Requirement {
   totalWeight       Float?
   category          String?
   clientId          String
-  // Vendor IDs (User.id) that the client selected to receive sealed bid invitations
+  // Vendor IDs (User.id) invited by admin for sealed bidding
   invitedVendorIds  String[]          @default([])
+  // Vendor responses to sealed bid invitation
+  acceptedVendorIds       String[]          @default([])
+  declinedVendorIds       String[]          @default([])
+  auditApprovedVendorIds  String[]          @default([])
   // Sealed bid window set by client at listing creation
-  sealedPhaseStart  DateTime?
-  sealedPhaseEnd    DateTime?
+  sealedPhaseStart        DateTime?
+  sealedPhaseEnd          DateTime?
+  // Sealed bid event (created by admin after audits are reviewed)
+  sealedBidEventCreatedAt DateTime?
+  sealedBidDeadline       DateTime?
   // Admin approval tracking
-  adminApprovedAt   DateTime?
-  adminApprovedById String?
-  createdAt         DateTime          @default(now())
-  updatedAt         DateTime          @updatedAt
-  auction           Auction?
-  auditInvitations  AuditInvitation[]
-  client            Company           @relation("ClientRequirements", fields: [clientId], references: [id])
+  adminApprovedAt         DateTime?
+  adminApprovedById       String?
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @updatedAt
+  auction                 Auction?
+  auditInvitations        AuditInvitation[]
+  auditDocs               VendorAuditDoc[]
+  client                  Company           @relation("ClientRequirements", fields: [clientId], references: [id])
 }
 
 model AuditInvitation {
@@ -162,10 +172,12 @@ model Auction {
   sealedPhaseEnd   DateTime?
   openPhaseStart   DateTime?
   openPhaseEnd     DateTime?
-  extensionCount   Int               @default(0)
-  clientId         String
-  winnerId         String?
-  requirementId    String?           @unique
+  extensionCount        Int               @default(0)
+  liveApprovalStatus    String            @default("pending")
+  liveApprovalRemarks   String?
+  clientId              String
+  winnerId              String?
+  requirementId         String?           @unique
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
   client           Company           @relation("ClientAuctions", fields: [clientId], references: [id])
@@ -191,21 +203,55 @@ model AuctionDocument {
   auction    Auction      @relation(fields: [auctionId], references: [id])
 }
 
+model VendorAuditDoc {
+  id                  String      @id @default(cuid())
+  requirementId       String
+  vendorUserId        String
+  auditReportS3Key    String?
+  auditReportFileName String?
+  excelS3Key          String?
+  excelFileName       String?
+  imageS3Keys         String[]    @default([])
+  imageFileNames      String[]    @default([])
+  status              String      @default("pending")
+  adminRemarks        String?
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+  requirement         Requirement @relation(fields: [requirementId], references: [id])
+  vendor              User        @relation("VendorAuditDocs", fields: [vendorUserId], references: [id])
+
+  @@unique([requirementId, vendorUserId])
+}
+
+model InAppNotification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  title     String
+  message   String
+  link      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
 model Bid {
-  id                 String   @id @default(cuid())
-  amount             Float
-  phase              BidPhase
-  remarks            String?
-  rank               Int?
-  isShortlisted      Boolean  @default(false)
-  auctionId          String
-  vendorId           String
-  priceSheetS3Key    String?
-  priceSheetS3Bucket String?
-  priceSheetFileName String?
-  createdAt          DateTime @default(now())
-  auction            Auction  @relation(fields: [auctionId], references: [id])
-  vendor             User     @relation(fields: [vendorId], references: [id], onDelete: Cascade)  
+  id                   String   @id @default(cuid())
+  amount               Float
+  phase                BidPhase
+  remarks              String?
+  rank                 Int?
+  isShortlisted        Boolean  @default(false)
+  auctionId            String
+  vendorId             String
+  priceSheetS3Key      String?
+  priceSheetS3Bucket   String?
+  priceSheetFileName   String?
+  clientStatus         String   @default("pending")
+  clientRemarks        String?
+  createdAt            DateTime @default(now())
+  auction              Auction  @relation(fields: [auctionId], references: [id])
+  vendor               User     @relation(fields: [vendorId], references: [id], onDelete: Cascade)
 
   @@index([auctionId, amount])
 }
@@ -277,6 +323,7 @@ enum RequirementStatus {
   PROCESSING
   CLIENT_REVIEW
   FINALIZED
+  REJECTED
 }
 
 enum AuditStatus {

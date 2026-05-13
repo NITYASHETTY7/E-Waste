@@ -342,7 +342,7 @@ export default function GetStartedPage() {
                 {[
                   { label: "Client", email: "client@weconnect.com", role: "client", password: "password" },
                   { label: "Vendor", email: "vendor@weconnect.com", role: "vendor", password: "password" },
-                  { label: "Admin", email: process.env.ADMIN_EMAIL as string, role: "admin", password: "password" }
+                  { label: "Admin", email: "admin@weconnect.com", role: "admin", password: "password" }
                 ].map((demo, i) => (
                   <button
                     key={i}
@@ -358,7 +358,7 @@ export default function GetStartedPage() {
               <div className="text-center pt-2">
                 <p className="text-[10px] font-bold text-slate-400">
                   Admin portal: <button
-                    onClick={() => quickLogin("admin" as UserRole, process.env.ADMIN_EMAIL as string)}
+                    onClick={() => quickLogin("admin" as UserRole, "admin@weconnect.com")}
                     className="text-emerald-600 font-black hover:underline cursor-pointer"
                   >
                     We Connect Console

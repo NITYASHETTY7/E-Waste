@@ -207,3 +207,32 @@ Client Upload → Data Cleanup → Vendor Audit → Sealed Bid → Auction → F
 
  
 
+ 1. Admin: Review & Approve the Listing                                                               - Log in as admin → go to Admin > Vendors (or listings/requirements section)
+  - Find the new requirement → upload a "processed sheet" (the cleaned material list)                
+  - Click Admin Approve — this creates the auction and sends sealed-bid email invitations to selected
+   vendors
+
+  2. Vendor: Accept Invitation
+  - Log in as a vendor → go to their dashboard/invitations
+  - Accept the invitation (respond as INTERESTED)
+
+  3. Client: Approve Processed Sheet + Set Target Price
+  - Log back in as client → My Listings → the listing will show in the "review" tab
+  - Click approve, enter a target price → moves status to FINALIZED
+
+  4. Client: Schedule the Live (Open) Bidding Phase
+  - In My Listings → find the listing → click "Schedule Open Bidding" (or "Configure Live")
+  - Set base price, tick size, start/end times for the open phase
+
+  5. Vendor: Place Sealed Bid
+  - Log in as vendor → Sealed Bids section
+  - Place a sealed bid during the sealed bid window
+
+  6. Live Auction
+  - Once the open phase starts, both client (observer) and vendors (bidders) can join the live       
+  auction
+  - Vendors place open bids; auto-extension kicks in if a bid lands in the last few minutes (capped  
+  at 24 min total)
+
+  7. Auction Ends → Winner Declared
+  - Highest bidder wins; admin can view results in Admin > Auctions

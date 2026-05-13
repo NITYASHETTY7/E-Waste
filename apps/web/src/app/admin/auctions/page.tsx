@@ -3,6 +3,9 @@
 import { useState } from "react";
 import { useApp } from "@/context/AppContext";
 import Link from "next/link";
+import api from "@/lib/api";
+
+const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 const PHASE_ORDER = ["invitation_window", "sealed_bid", "open_configuration", "live", "completed"] as const;
 type Phase = typeof PHASE_ORDER[number];
@@ -16,13 +19,42 @@ const PHASE_META: Record<Phase, { label: string; color: string; next?: Phase }> 
 };
 
 export default function AdminAuctions() {
-  const { listings, bids, updateAuctionPhase, editListing } = useApp();
+  const { listings, bids, updateAuctionPhase, editListing, refreshData } = useApp();
   const [filter, setFilter] = useState<Phase | "all">("all");
   const [search, setSearch] = useState("");
   const [configModal, setConfigModal] = useState<{isOpen: boolean, listingId: string | null}>({isOpen: false, listingId: null});
-  const [configForm, setConfigForm] = useState({ tickSize: "", maxTick: "", extensionTime: "3" });
+  const [configForm, setConfigForm] = useState({ tickSize: "", maxTick: "", extensionTime: "3", openPhaseStart: "", openPhaseEnd: "", basePrice: "", targetPrice: "" });
+  const [launching, setLaunching] = useState(false);
+  const [notifyingClient, setNotifyingClient] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
 
-  const auctionListings = listings.filter(l => l.auctionPhase && l.auctionPhase !== "draft");
+  const showToast = (msg: string, type: "success" | "error" = "success") => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3500);
+  };
+
+  const handleNotifyClient = async (listing: any) => {
+    const requirementId = listing.requirementId || listing.id;
+    setNotifyingClient(requirementId);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API}/requirements/${requirementId}/notify-client-live`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error();
+      showToast("Client notified for live auction approval.");
+      await refreshData();
+    } catch {
+      showToast("Failed to notify client.", "error");
+    } finally {
+      setNotifyingClient(null);
+    }
+  };
+
+  const auctionListings = listings.filter(l =>
+    l.auctionPhase && !["draft", "pending"].includes(l.auctionPhase)
+  );
 
   const filtered = auctionListings
     .filter(l => filter === "all" || l.auctionPhase === filter)
@@ -37,6 +69,11 @@ export default function AdminAuctions() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
+      {toast && (
+        <div className={`fixed top-6 right-6 z-[200] px-5 py-3 rounded-xl shadow-lg text-sm font-bold text-white ${toast.type === "error" ? "bg-red-600" : "bg-emerald-600"}`}>
+          {toast.msg}
+        </div>
+      )}
       <div className="flex justify-between items-end">
         <div>
           <h2 className="text-3xl font-headline font-extrabold tracking-tight text-[color:var(--color-on-surface)]">Auction Control</h2>
@@ -98,7 +135,45 @@ export default function AdminAuctions() {
                       {listing.basePrice && <span className="text-xs text-slate-400">Base: ₹{listing.basePrice.toLocaleString()}</span>}
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
+                  <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                    {(phase === "invitation_window" || phase === "sealed_bid") && (
+                      <Link href={`/admin/listings/${listing.requirementId || listing.id}/audit-docs`}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-black uppercase hover:bg-blue-700 transition-colors">
+                        <span className="material-symbols-outlined text-sm">fact_check</span>
+                        Audit Docs
+                      </Link>
+                    )}
+                    {phase === "sealed_bid" && (
+                      <>
+                        <Link href={`/admin/listings/${listing.requirementId || listing.id}/sealed-bids`}
+                          className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-600 text-white text-xs font-black uppercase hover:bg-amber-700 transition-colors">
+                          <span className="material-symbols-outlined text-sm">gavel</span>
+                          Sealed Bids
+                        </Link>
+                        <button
+                          onClick={() => {
+                            setConfigModal({ isOpen: true, listingId: listing.id });
+                            setConfigForm({ tickSize: "", maxTick: "", extensionTime: "3", openPhaseStart: "", openPhaseEnd: "", basePrice: "", targetPrice: "" });
+                          }}
+                          className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-orange-600 text-white text-xs font-black uppercase hover:bg-orange-700 transition-colors"
+                        >
+                          <span className="material-symbols-outlined text-sm">settings</span>
+                          Set Params
+                        </button>
+                      </>
+                    )}
+                    {phase === "open_configuration" && (
+                      <button
+                        onClick={() => handleNotifyClient(listing)}
+                        disabled={notifyingClient === (listing.requirementId || listing.id)}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-purple-600 text-white text-xs font-black uppercase hover:bg-purple-700 disabled:opacity-50 transition-colors"
+                      >
+                        {notifyingClient === (listing.requirementId || listing.id)
+                          ? <><span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>Notifying...</>
+                          : <><span className="material-symbols-outlined text-sm">notifications</span>Notify Client</>
+                        }
+                      </button>
+                    )}
                     {phase === "live" && (
                       <Link href={`/admin/auctions/${listing.id}/live`}
                         className="px-4 py-2 rounded-xl bg-red-600 text-white text-xs font-black uppercase hover:bg-red-700 transition-colors">
@@ -109,14 +184,14 @@ export default function AdminAuctions() {
                       <button
                         onClick={() => {
                           setConfigModal({ isOpen: true, listingId: listing.id });
-                          setConfigForm({ tickSize: "", maxTick: "", extensionTime: "3" });
+                          setConfigForm({ tickSize: "", maxTick: "", extensionTime: "3", openPhaseStart: "", openPhaseEnd: "", basePrice: "", targetPrice: "" });
                         }}
                         className="px-4 py-2 rounded-xl bg-orange-600 text-white text-xs font-black uppercase hover:bg-orange-700 transition-colors"
                       >
                         Configure & Launch →
                       </button>
                     )}
-                    {meta.next && phase !== "open_configuration" && (
+                    {meta.next && phase !== "open_configuration" && phase !== "invitation_window" && phase !== "sealed_bid" && (
                       <button
                         onClick={() => updateAuctionPhase(listing.id, meta.next!)}
                         className="px-4 py-2 rounded-xl bg-primary text-white text-xs font-black uppercase hover:bg-primary/90 transition-colors"
@@ -140,7 +215,27 @@ export default function AdminAuctions() {
               <p className="text-sm text-slate-500 mt-1">Set the final parameters to launch the live auction.</p>
             </div>
             
-            <div className="space-y-4">
+            <div className="space-y-4 max-h-[60vh] overflow-y-auto px-1">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="label">Base Price (₹) *</label>
+                  <input type="number" className="input-base" value={configForm.basePrice} onChange={e => setConfigForm({...configForm, basePrice: e.target.value})} placeholder="e.g. 50000" />
+                </div>
+                <div>
+                  <label className="label">EMD Amount (₹) *</label>
+                  <input type="number" className="input-base" value={configForm.targetPrice} onChange={e => setConfigForm({...configForm, targetPrice: e.target.value})} placeholder="e.g. 5000" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="label">Start Date & Time *</label>
+                  <input type="datetime-local" className="input-base" value={configForm.openPhaseStart} onChange={e => setConfigForm({...configForm, openPhaseStart: e.target.value})} />
+                </div>
+                <div>
+                  <label className="label">End Date & Time *</label>
+                  <input type="datetime-local" className="input-base" value={configForm.openPhaseEnd} onChange={e => setConfigForm({...configForm, openPhaseEnd: e.target.value})} />
+                </div>
+              </div>
               <div>
                 <label className="label">Tick Size / Increment (₹) *</label>
                 <input type="number" className="input-base" value={configForm.tickSize} onChange={e => setConfigForm({...configForm, tickSize: e.target.value})} placeholder="e.g. 500" />
@@ -162,20 +257,49 @@ export default function AdminAuctions() {
 
             <div className="flex gap-3 mt-6">
               <button onClick={() => setConfigModal({isOpen: false, listingId: null})} className="flex-1 py-3 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:border-slate-700">Cancel</button>
-              <button 
-                onClick={() => {
-                  editListing(configModal.listingId!, {
-                    bidIncrement: Number(configForm.tickSize),
-                    maximumTickSize: Number(configForm.maxTick) || Number(configForm.tickSize) * 10,
-                    extensionTime: Number(configForm.extensionTime)
-                  });
-                  updateAuctionPhase(configModal.listingId!, "live");
-                  setConfigModal({isOpen: false, listingId: null});
+              <button
+                onClick={async () => {
+                  if (!configModal.listingId) return;
+                  setLaunching(true);
+                  try {
+                    const listing = listings.find(l => l.id === configModal.listingId);
+                    const auctionId = listing?.auctionId;
+                    if (auctionId) {
+                      // Persist tick settings + keep existing schedule
+                      await api.patch(`/auctions/${auctionId}/schedule`, {
+                        sealedPhaseStart: listing.sealedBidStartDate || new Date().toISOString(),
+                        sealedPhaseEnd: listing.sealedBidEndDate || new Date().toISOString(),
+                        openPhaseStart: configForm.openPhaseStart ? new Date(configForm.openPhaseStart).toISOString() : listing.auctionStartDate || new Date().toISOString(),
+                        openPhaseEnd: configForm.openPhaseEnd ? new Date(configForm.openPhaseEnd).toISOString() : listing.auctionEndDate || new Date(Date.now() + 86400000).toISOString(),
+                        tickSize: Number(configForm.tickSize),
+                        maxTicks: Number(configForm.maxTick) || Number(configForm.tickSize) * 10,
+                        extensionMinutes: Number(configForm.extensionTime),
+                      }).catch(() => {});
+                    }
+                    // Do not transition to "live" right away. Wait for client approval.
+                    // The backend API sets status to UPCOMING if it was DRAFT. Or we can explicitly leave it until client approves.
+                    // So we might just update listing locally to reflect changes
+                    editListing(configModal.listingId, {
+                       basePrice: configForm.basePrice ? Number(configForm.basePrice) : listing?.basePrice,
+                       targetPrice: configForm.targetPrice ? Number(configForm.targetPrice) : listing?.targetPrice,
+                       auctionStartDate: configForm.openPhaseStart ? new Date(configForm.openPhaseStart).toISOString() : listing?.auctionStartDate,
+                       auctionEndDate: configForm.openPhaseEnd ? new Date(configForm.openPhaseEnd).toISOString() : listing?.auctionEndDate,
+                       bidIncrement: Number(configForm.tickSize),
+                       liveConfigured: true,
+                    });
+                    await refreshData().catch(() => {});
+                  } finally {
+                    setLaunching(false);
+                    setConfigModal({isOpen: false, listingId: null});
+                  }
                 }}
-                disabled={!configForm.tickSize}
-                className="flex-1 py-3 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary/90 disabled:opacity-50"
+                disabled={!configForm.tickSize || !configForm.openPhaseStart || !configForm.openPhaseEnd || !configForm.basePrice || !configForm.targetPrice || launching}
+                className="flex-1 py-3 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2"
               >
-                Launch Auction
+                {launching
+                  ? <><span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>Sending...</>
+                  : "Send for Approval"
+                }
               </button>
             </div>
           </div>

@@ -1,5 +1,4 @@
-/* Material Symbols Outlined — loaded via next/head in layout.tsx */
-/* Do NOT import here — Next.js/Tailwind 4 blocks cross-origin CSS @imports */
+@import "material-symbols/outlined.css";
 @import "tailwindcss";
 
 @theme {

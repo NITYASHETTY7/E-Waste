@@ -62,6 +62,11 @@ export class AuctionsController {
     return this.svc.schedule(id, body);
   }
 
+  @Patch(':id/approve-live')
+  approveLive(@Param('id') id: string) {
+    return this.svc.approveLiveAuction(id);
+  }
+
   @Patch(':id/share-with-client')
   @Roles(UserRole.ADMIN)
   shareWithClient(@Param('id') id: string, @Body('bidIds') bidIds: string[]) {

@@ -131,6 +131,8 @@ export interface Listing {
   assignedVendorName?: string;
   auctionPhase?: 'draft' | 'invitation_window' | 'sealed_bid' | 'open_configuration' | 'live' | 'completed';
   invitedVendorIds?: string[];
+  acceptedVendorIds?: string[];
+  declinedVendorIds?: string[];
   vendorResponses?: { vendorId: string; status: 'interested' | 'declined'; respondedAt?: string }[];
   price?: number;
   userId: string;
@@ -158,9 +160,12 @@ export interface Listing {
   pickupAddress?: string;
   viewCount?: number;
   bidCount?: number;
+  // Auction identity
+  auctionId?: string;
+  liveConfigured?: boolean;
   // Requirement upload flow
   requirementId?: string;
-  requirementStatus?: 'pending' | 'processing' | 'client_review' | 'finalized';
+  requirementStatus?: 'pending' | 'processing' | 'client_review' | 'finalized' | 'rejected';
   processedSheetUrl?: string;
   // Winner info (post-auction)
   winnerVendorId?: string;
@@ -171,6 +176,19 @@ export interface Listing {
   finalQuoteLetterheadUrl?: string;
   finalQuoteSubmittedAt?: string;
   finalQuoteRemarks?: string;
+  // Step 6 — Purchase Order
+  poStatus?: 'pending' | 'issued' | 'acknowledged';
+  poNumber?: string;
+  poIssuedAt?: string;
+  poPaymentTerms?: string;
+  poDeliveryTerms?: string;
+  poPenaltyClause?: string;
+  poSpecialConditions?: string;
+  // Step 6 — EMD (Earnest Money Deposit)
+  emdStatus?: 'not_required' | 'pending' | 'submitted' | 'verified';
+  emdAmount?: number;
+  emdUTR?: string;
+  emdSubmittedAt?: string;
   // Payment flow
   paymentStatus?: 'pending' | 'proof_uploaded' | 'confirmed';
   paymentClientAmount?: number;
@@ -178,6 +196,21 @@ export interface Listing {
   paymentProofUrl?: string;
   paymentUTR?: string;
   paymentSubmittedAt?: string;
+  // Step 7 — Handover Documents
+  handoverStatus?: 'pending' | 'created' | 'acknowledged';
+  handoverGatePass?: string;
+  handoverVehicle?: string;
+  handoverDriver?: string;
+  handoverDate?: string;
+  handoverNotes?: string;
+  // Step 8 — Final Reconciliation
+  reconciliationStatus?: 'pending' | 'submitted' | 'verified';
+  reconciliationFinalWeight?: number;
+  reconciliationFinalQuantity?: number;
+  reconciliationFinalValue?: number;
+  reconciliationDocUrl?: string;
+  reconciliationNotes?: string;
+  reconciliationSubmittedAt?: string;
   // Compliance flow
   complianceStatus?: 'pending' | 'pickup_scheduled' | 'documents_uploaded' | 'verified';
   pickupScheduledDate?: string;
@@ -201,14 +234,24 @@ export interface Bid {
   createdAt: string;
   note?: string;
   expiresAt?: string;
+  // Sealed bid submission fields
+  auditReportUrl?: string;
+  auditReportFileName?: string;
+  priceSheetUrl?: string;
+  priceSheetFileName?: string;
+  imageUrls?: string[];
+  imageFileNames?: string[];
+  clientStatus?: 'pending' | 'approved' | 'rejected';
+  clientRemarks?: string;
 }
 
 export interface Notification {
   id: string;
   userId: string;
-  type: 'bid_received' | 'bid_accepted' | 'bid_rejected' | 'listing_approved' | 'account_approved' | 'general';
+  type: 'bid_received' | 'bid_accepted' | 'bid_rejected' | 'listing_approved' | 'account_approved' | 'general' | 'audit_approved' | 'audit_rejected' | 'sealed_bid_event' | 'live_auction_approval' | 'live_auction_approved';
   title: string;
   message: string;
+  link?: string;
   read: boolean;
   createdAt: string;
 }

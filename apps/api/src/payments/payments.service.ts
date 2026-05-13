@@ -35,9 +35,33 @@ export class PaymentsService {
     return this.prisma.payment.findUnique({ where: { auctionId } });
   }
 
+  async uploadProofByAuction(
+    auctionId: string,
+    file: Express.Multer.File,
+    utrNumber?: string,
+  ) {
+    const payment = await this.prisma.payment.findUnique({ where: { auctionId } });
+    if (!payment) throw new NotFoundException('Payment not found for this auction');
+    return this.uploadProof(payment.id, file, utrNumber);
+  }
+
+  async verifyPaymentByAuction(auctionId: string, adminNotes?: string) {
+    const payment = await this.prisma.payment.findUnique({ where: { auctionId } });
+    if (!payment) throw new NotFoundException('Payment not found for this auction');
+    return this.verifyPayment(payment.id, adminNotes);
+  }
+
   async findAll(status?: PaymentStatus) {
     return this.prisma.payment.findMany({
       where: status ? { status } : {},
+      include: {
+        auction: {
+          include: {
+            client: { select: { id: true, name: true } },
+            winner: { select: { id: true, name: true } },
+          },
+        },
+      },
       orderBy: { createdAt: 'desc' },
     });
   }

@@ -29,6 +29,18 @@ export class CreateRequirementDto {
   @IsOptional()
   location?: string;
 
+  @IsString()
+  @IsOptional()
+  pickupAddress?: string;
+
+  @IsString()
+  @IsOptional()
+  sealedPhaseStart?: string;
+
+  @IsString()
+  @IsOptional()
+  sealedPhaseEnd?: string;
+
   @IsOptional()
   invitedVendorIds?: any; // Validated in controller
 

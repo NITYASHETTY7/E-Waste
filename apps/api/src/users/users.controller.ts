@@ -3,6 +3,7 @@ import {
   Get,
   Param,
   Patch,
+  Post,
   Delete,
   Body,
   Query,
@@ -12,6 +13,7 @@ import {
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UserRole } from '@prisma/client';
+import { CreateAdminDto } from './users.dto';
 import { NotificationService } from '../notifications/notification.service';
 import { Public } from '../auth/decorators/public.decorator';
 import { PrismaService } from '../prisma/prisma.service';
@@ -65,25 +67,27 @@ export class UsersController {
   @Patch(':id/approve')
   async approveUser(@Param('id') id: string) {
     const user = await this.usersService.approveUser(id);
-
-    // Notify approved user
-    await this.notifications.notifyAccountApproved(user.email, user.name);
-
+    this.notifications.notifyAccountApproved(user.email, user.name, user.phone ?? undefined).catch(() => {});
     return user;
   }
 
   @Patch(':id/reject')
-  async rejectUser(@Param('id') id: string) {
-    const updatedUser = await this.usersService.rejectUser(id);
-    this.notifications.notifyAccountRejected(updatedUser.email, updatedUser.name).catch(() => {});
-    return updatedUser;
+  async rejectUser(@Param('id') id: string, @Body('reason') reason?: string) {
+    const user = await this.usersService.rejectUser(id);
+    this.notifications.notifyAccountRejected(user.email, user.name, user.phone ?? undefined, reason).catch(() => {});
+    return user;
   }
 
   @Patch(':id/hold')
-  async holdUser(@Param('id') id: string) {
-    const updatedUser = await this.usersService.holdUser(id);
-    this.notifications.notifyAccountOnHold(updatedUser.email, updatedUser.name).catch(() => {});
-    return updatedUser;
+  async holdUser(@Param('id') id: string, @Body('reason') reason?: string) {
+    const user = await this.usersService.holdUser(id);
+    this.notifications.notifyAccountOnHold(user.email, user.name, user.phone ?? undefined, reason).catch(() => {});
+    return user;
+  }
+
+  @Post('admin')
+  createAdmin(@Body() dto: CreateAdminDto) {
+    return this.usersService.createAdmin(dto);
   }
 
   @Delete('me')

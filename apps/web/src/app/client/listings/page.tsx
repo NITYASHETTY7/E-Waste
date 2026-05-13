@@ -19,6 +19,30 @@ export default function ClientListings() {
   const [targetPrice, setTargetPrice] = useState("");
   const [approving, setApproving] = useState(false);
 
+  const [sealedBidModal, setSealedBidModal] = useState<{ isOpen: boolean; listingId: string | null; title: string }>({ isOpen: false, listingId: null, title: "" });
+  const [sealedBids, setSealedBids] = useState<any[]>([]);
+  const [sealedBidsLoading, setSealedBidsLoading] = useState(false);
+  const [reviewingBidId, setReviewingBidId] = useState<string | null>(null);
+
+  const openSealedBidReview = async (listingId: string, title: string) => {
+    setSealedBidModal({ isOpen: true, listingId, title });
+    setSealedBidsLoading(true);
+    try {
+      const res = await api.get(`/requirements/${listingId}/sealed-bids`);
+      setSealedBids(res.data);
+    } catch { setSealedBids([]); }
+    finally { setSealedBidsLoading(false); }
+  };
+
+  const handleReviewBid = async (listingId: string, bidId: string, action: 'approve' | 'reject', remarks?: string) => {
+    setReviewingBidId(bidId);
+    try {
+      await api.patch(`/requirements/${listingId}/bids/${bidId}/review`, { action, remarks });
+      setSealedBids(prev => prev.map(b => b.id === bidId ? { ...b, clientStatus: action === 'approve' ? 'approved' : 'rejected' } : b));
+    } catch { /* ignore */ }
+    finally { setReviewingBidId(null); }
+  };
+
   const myListings = listings.filter(l => l.userId === currentUser?.id);
   const reviewListings = myListings.filter(l => l.requirementStatus === 'client_review');
 
@@ -252,21 +276,87 @@ export default function ClientListings() {
                           Approve Sheet
                         </button>
                       )}
-                      {displayStatus === "invites" && (
-                        <Link
-                          href={`/client/listings/${listing.id}/configure-live`}
-                          className="btn-primary text-[11px] py-2.5 px-5 uppercase tracking-widest font-black shadow-md flex items-center gap-1.5 bg-amber-600 hover:bg-amber-700 border-none">
-                          <span className="material-symbols-outlined text-sm">event_available</span>
-                          Schedule Open Bidding
-                        </Link>
-                      )}
-                      {displayStatus === "sealed" && (
-                        <Link href={`/client/listings/${listing.id}/configure-live`}
-                          className="btn-tertiary text-[11px] py-2.5 px-6 uppercase tracking-widest font-black shadow-md flex items-center gap-2">
-                          <span className="material-symbols-outlined text-sm">settings_input_component</span>
-                          Configure Live
-                        </Link>
-                      )}
+                      {displayStatus === "invites" && (() => {
+                        const isScheduled = !!(listing.auctionStartDate || listing.liveConfigured);
+                        if (isScheduled && listing.auctionStartDate) {
+                          const startMs = new Date(listing.auctionStartDate).getTime();
+                          const isActive = Date.now() >= startMs - 5 * 60 * 1000;
+                          const fmtStart = new Date(listing.auctionStartDate).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+                          if (isActive) {
+                            return (
+                              <Link href="/client/live-auction"
+                                className="btn-primary text-[11px] py-2.5 px-6 uppercase tracking-widest font-black shadow-md flex items-center gap-2 bg-red-600 hover:bg-red-700 border-none animate-pulse">
+                                <span className="material-symbols-outlined text-sm">sensors</span>
+                                View Bidding
+                              </Link>
+                            );
+                          }
+                          return (
+                            <button disabled
+                              className="btn-tertiary text-[11px] py-2.5 px-5 uppercase tracking-widest font-black shadow-md flex items-center gap-1.5 opacity-50 cursor-not-allowed">
+                              <span className="material-symbols-outlined text-sm">sensors</span>
+                              View Bidding · {fmtStart}
+                            </button>
+                          );
+                        }
+                        return (
+                          <Link
+                            href={`/client/listings/${listing.id}/configure-live`}
+                            className="btn-primary text-[11px] py-2.5 px-5 uppercase tracking-widest font-black shadow-md flex items-center gap-1.5 bg-amber-600 hover:bg-amber-700 border-none">
+                            <span className="material-symbols-outlined text-sm">event_available</span>
+                            Schedule Open Bidding
+                          </Link>
+                        );
+                      })()}
+                      {displayStatus === "sealed" && (() => {
+                        const isScheduled = !!(listing.auctionStartDate || listing.liveConfigured);
+                        if (isScheduled && listing.auctionStartDate) {
+                          const startMs = new Date(listing.auctionStartDate).getTime();
+                          const nowMs = Date.now();
+                          const isActive = nowMs >= startMs - 5 * 60 * 1000;
+                          const fmtStart = new Date(listing.auctionStartDate).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+                          if (isActive) {
+                            return (
+                              <>
+                                <button onClick={() => openSealedBidReview(listing.id, listing.title)}
+                                  className="btn-outline text-[11px] py-2.5 px-4 uppercase tracking-widest font-black flex items-center gap-1.5">
+                                  <span className="material-symbols-outlined text-sm">rate_review</span>Review Bids
+                                </button>
+                                <Link href="/client/live-auction"
+                                  className="btn-primary text-[11px] py-2.5 px-6 uppercase tracking-widest font-black shadow-md flex items-center gap-2 bg-red-600 hover:bg-red-700 border-none animate-pulse">
+                                  <span className="material-symbols-outlined text-sm">sensors</span>
+                                  View Bidding
+                                </Link>
+                              </>
+                            );
+                          }
+                          return (
+                            <div className="flex flex-col items-end gap-1">
+                              <span className="text-[9px] font-black uppercase tracking-widest text-emerald-600 flex items-center gap-1">
+                                <span className="material-symbols-outlined text-xs">check_circle</span>Scheduled
+                              </span>
+                              <button disabled
+                                className="btn-tertiary text-[11px] py-2.5 px-6 uppercase tracking-widest font-black shadow-md flex items-center gap-2 opacity-50 cursor-not-allowed">
+                                <span className="material-symbols-outlined text-sm">sensors</span>
+                                View Bidding · {fmtStart}
+                              </button>
+                            </div>
+                          );
+                        }
+                        return (
+                          <>
+                            <button onClick={() => openSealedBidReview(listing.id, listing.title)}
+                              className="btn-outline text-[11px] py-2.5 px-4 uppercase tracking-widest font-black flex items-center gap-1.5">
+                              <span className="material-symbols-outlined text-sm">rate_review</span>Review Bids
+                            </button>
+                            <Link href={`/client/listings/${listing.id}/configure-live`}
+                              className="btn-tertiary text-[11px] py-2.5 px-6 uppercase tracking-widest font-black shadow-md flex items-center gap-2">
+                              <span className="material-symbols-outlined text-sm">settings_input_component</span>
+                              Configure Live
+                            </Link>
+                          </>
+                        );
+                      })()}
                       {displayStatus === "live" && (
                         <Link href="/client/live-auction" className="btn-primary text-[11px] py-2.5 px-6 uppercase tracking-widest font-black shadow-md flex items-center gap-2 bg-red-600 hover:bg-red-700">
                           <span className="material-symbols-outlined text-sm">monitoring</span>
@@ -333,6 +423,168 @@ export default function ClientListings() {
                   : <><span className="material-symbols-outlined text-sm">check_circle</span>Confirm & Proceed</>
                 }
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Sealed Bid Review Modal */}
+      {sealedBidModal.isOpen && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setSealedBidModal({ isOpen: false, listingId: null, title: "" })}>
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="sticky top-0 bg-white dark:bg-slate-900 px-6 pt-6 pb-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between z-10">
+              <div>
+                <h3 className="text-xl font-headline font-extrabold text-slate-900 dark:text-white">Sealed Bid Submissions</h3>
+                <p className="text-xs text-slate-500 mt-0.5">{sealedBidModal.title}</p>
+              </div>
+              <button onClick={() => setSealedBidModal({ isOpen: false, listingId: null, title: "" })}
+                className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center dark:bg-slate-800">
+                <span className="material-symbols-outlined text-sm">close</span>
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {sealedBidsLoading ? (
+                <div className="py-16 text-center">
+                  <span className="material-symbols-outlined text-4xl text-slate-300 animate-spin">progress_activity</span>
+                </div>
+              ) : sealedBids.length === 0 ? (
+                <div className="py-16 text-center">
+                  <span className="material-symbols-outlined text-5xl text-slate-200 block mb-3">inbox</span>
+                  <p className="font-bold text-slate-500">No sealed bids submitted yet.</p>
+                  <p className="text-xs text-slate-400 mt-1">Vendors will submit their bids after conducting site visits.</p>
+                </div>
+              ) : (
+                sealedBids.map((bid: any) => (
+                  <div key={bid.id} className={`rounded-2xl border-2 p-5 space-y-4 ${
+                    bid.clientStatus === 'approved' ? 'border-emerald-300 bg-emerald-50/30' :
+                    bid.clientStatus === 'rejected' ? 'border-red-200 bg-red-50/20 opacity-70' :
+                    'border-slate-200 bg-white dark:bg-slate-900 dark:border-slate-700'
+                  }`}>
+                    {/* Vendor header */}
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-slate-800 text-white flex items-center justify-center font-black text-sm">
+                          {(bid.vendor?.name || "?")[0]}
+                        </div>
+                        <div>
+                          <p className="font-black text-slate-900 dark:text-white">{bid.vendor?.name || bid.vendorId}</p>
+                          <p className="text-[10px] text-slate-400 font-mono uppercase">{bid.vendor?.email}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Sealed Bid</p>
+                        <p className="text-2xl font-headline font-bold text-[color:var(--color-primary)]">₹{bid.amount?.toLocaleString()}</p>
+                      </div>
+                    </div>
+
+                    {/* Status badge */}
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                        bid.clientStatus === 'approved' ? 'bg-emerald-100 text-emerald-700' :
+                        bid.clientStatus === 'rejected' ? 'bg-red-100 text-red-700' :
+                        'bg-amber-100 text-amber-700 animate-pulse'
+                      }`}>
+                        {bid.clientStatus === 'approved' ? 'Accepted' : bid.clientStatus === 'rejected' ? 'Rejected' : 'Pending Review'}
+                      </span>
+                      <span className="text-[10px] text-slate-400">{new Date(bid.createdAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
+
+                    {/* Documents */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      {bid.auditReportUrl && (
+                        <a href={bid.auditReportUrl} target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-blue-400 transition-colors dark:bg-slate-800 dark:border-slate-700">
+                          <span className="material-symbols-outlined text-red-500">description</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[10px] font-black text-slate-400 uppercase">Audit Report</p>
+                            <p className="text-xs font-bold text-slate-700 truncate dark:text-slate-300">{bid.auditReportFileName || "Download"}</p>
+                          </div>
+                          <span className="material-symbols-outlined text-sm text-slate-400">download</span>
+                        </a>
+                      )}
+                      {bid.priceSheetUrl && (
+                        <a href={bid.priceSheetUrl} target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-3 p-3 rounded-xl bg-slate-50 border border-slate-200 hover:border-blue-400 transition-colors dark:bg-slate-800 dark:border-slate-700">
+                          <span className="material-symbols-outlined text-emerald-500">table_chart</span>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[10px] font-black text-slate-400 uppercase">Price Sheet</p>
+                            <p className="text-xs font-bold text-slate-700 truncate dark:text-slate-300">{bid.priceSheetFileName || "Download"}</p>
+                          </div>
+                          <span className="material-symbols-outlined text-sm text-slate-400">download</span>
+                        </a>
+                      )}
+                    </div>
+
+                    {/* Site visit images */}
+                    {bid.imageUrls && bid.imageUrls.length > 0 && (
+                      <div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Site Visit Photos ({bid.imageUrls.length})</p>
+                        <div className="grid grid-cols-4 gap-2">
+                          {bid.imageUrls.map((url: string, i: number) => (
+                            <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="block">
+                              <img src={url} alt={`Site photo ${i + 1}`}
+                                className="w-full h-20 object-cover rounded-xl border border-slate-200 hover:opacity-80 transition-opacity" />
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* No docs warning */}
+                    {!bid.auditReportUrl && !bid.priceSheetUrl && (!bid.imageUrls || bid.imageUrls.length === 0) && (
+                      <p className="text-xs text-slate-400 italic">No documents uploaded with this bid.</p>
+                    )}
+
+                    {/* Client remarks */}
+                    {bid.clientRemarks && (
+                      <div className="p-3 bg-slate-50 rounded-xl text-xs text-slate-600 dark:bg-slate-800">
+                        <span className="font-black text-slate-400 uppercase tracking-widest">Remarks: </span>
+                        {bid.clientRemarks}
+                      </div>
+                    )}
+
+                    {/* Review actions */}
+                    {bid.clientStatus === 'pending' && (
+                      <div className="flex gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
+                        <button
+                          onClick={() => sealedBidModal.listingId && handleReviewBid(sealedBidModal.listingId, bid.id, 'reject')}
+                          disabled={reviewingBidId === bid.id}
+                          className="flex-1 py-2.5 rounded-xl border-2 border-red-200 text-red-600 font-black text-xs hover:bg-red-50 disabled:opacity-50 flex items-center justify-center gap-2 transition-all uppercase tracking-widest">
+                          <span className="material-symbols-outlined text-sm">cancel</span>
+                          Reject
+                        </button>
+                        <button
+                          onClick={() => sealedBidModal.listingId && handleReviewBid(sealedBidModal.listingId, bid.id, 'approve')}
+                          disabled={reviewingBidId === bid.id}
+                          className="flex-1 py-2.5 rounded-xl bg-emerald-600 text-white font-black text-xs hover:bg-emerald-700 disabled:opacity-50 flex items-center justify-center gap-2 transition-all uppercase tracking-widest">
+                          {reviewingBidId === bid.id
+                            ? <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
+                            : <><span className="material-symbols-outlined text-sm">check_circle</span>Accept</>}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+
+              {sealedBids.length > 0 && (
+                <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                  <p className="text-xs text-slate-500">
+                    <span className="font-black text-emerald-600">{sealedBids.filter(b => b.clientStatus === 'approved').length}</span> accepted ·{" "}
+                    <span className="font-black text-red-500">{sealedBids.filter(b => b.clientStatus === 'rejected').length}</span> rejected ·{" "}
+                    <span className="font-black text-amber-600">{sealedBids.filter(b => b.clientStatus === 'pending').length}</span> pending
+                  </p>
+                  {sealedBidModal.listingId && (
+                    <Link href={`/client/listings/${sealedBidModal.listingId}/configure-live`}
+                      onClick={() => setSealedBidModal({ isOpen: false, listingId: null, title: "" })}
+                      className="btn-primary text-[11px] py-2.5 px-5 uppercase tracking-widest font-black flex items-center gap-1.5 bg-amber-600 hover:bg-amber-700 border-none">
+                      <span className="material-symbols-outlined text-sm">event_available</span>
+                      Configure Live Auction
+                    </Link>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>

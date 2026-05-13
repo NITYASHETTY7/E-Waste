@@ -4,15 +4,15 @@ import { useState, useEffect } from "react";
 import { useApp } from "@/context/AppContext";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import api from "@/lib/api";
 
 export default function ConfigureLiveAuction() {
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
-  const { listings, bids, users, editListing, updateAuctionPhase, addNotification } = useApp();
+  const { listings, bids, users, editListing, refreshData } = useApp();
 
   const listing = listings.find(l => l.id === id);
-  const isFromInvitationWindow = listing?.auctionPhase === 'invitation_window';
   const sealedBids = bids.filter(b => b.listingId === id && b.type === "sealed");
   const interestedVendors = listing?.vendorResponses?.filter(r => r.status === 'interested') || [];
   const declinedVendors = listing?.vendorResponses?.filter(r => r.status === 'declined') || [];
@@ -35,6 +35,8 @@ export default function ConfigureLiveAuction() {
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     if (listing) {
@@ -53,34 +55,30 @@ export default function ConfigureLiveAuction() {
 
   if (!listing) return <div className="p-20 text-center">Listing not found</div>;
 
-  const handleStart = () => {
-    const errs: Record<string, string> = {};
-    if (!form.basePrice) errs.basePrice = "Required";
-    if (!form.highestEmdAmount) errs.highestEmdAmount = "Required";
-    if (!form.auctionStartDate) errs.auctionStartDate = "Required";
-    if (!form.auctionEndDate) errs.auctionEndDate = "Required";
+  const handleApprove = async () => {
+    setSaving(true);
+    setSaveError(null);
 
-    if (Object.keys(errs).length > 0) {
-      setErrors(errs);
-      return;
+    try {
+      const requirementId = listing.requirementId || id;
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001"}/requirements/${requirementId}/client-approve-live`, {
+        method: "PATCH",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || "Approval failed.");
+      }
+
+      editListing(id, { liveConfigured: true, auctionPhase: 'live' });
+      await refreshData().catch(() => {});
+      router.push("/client/listings");
+    } catch (err: any) {
+      setSaveError(err?.message || err?.response?.data?.message || "Failed to approve. Please try again.");
+    } finally {
+      setSaving(false);
     }
-
-    editListing(id, {
-      basePrice: Number(form.basePrice),
-      targetPrice: Number(form.highestEmdAmount),
-      auctionStartDate: new Date(form.auctionStartDate).toISOString(),
-      auctionEndDate: new Date(form.auctionEndDate).toISOString(),
-      auctionPhase: "pending_admin_config" // Mark it ready for admin to set tick size
-    });
-
-    addNotification({
-      userId: "all_vendors", // Special keyword for global notification or handle in context
-      title: "New Live Auction!",
-      message: `A live auction for "${listing.title}" has been scheduled.`,
-      type: "general"
-    });
-
-    router.push("/client/listings");
   };
 
   return (
@@ -90,12 +88,8 @@ export default function ConfigureLiveAuction() {
           <span className="material-symbols-outlined text-sm">arrow_back</span>
         </Link>
         <div>
-          <h2 className="text-3xl font-headline font-extrabold tracking-tight text-[color:var(--color-on-surface)]">Schedule Open Bidding</h2>
-          <p className="text-[color:var(--color-on-surface-variant)] mt-1">
-            {isFromInvitationWindow
-              ? "Set base price, tick size, and schedule the live open auction for accepted vendors."
-              : "Configure pricing and timing for the open auction phase."}
-          </p>
+          <h2 className="text-3xl font-headline font-extrabold tracking-tight text-[color:var(--color-on-surface)]">Review Live Bidding Parameters</h2>
+          <p className="text-[color:var(--color-on-surface-variant)] mt-1">Review the parameters set by the admin and approve to start the live open auction.</p>
         </div>
       </div>
 
@@ -106,27 +100,23 @@ export default function ConfigureLiveAuction() {
               <span className="material-symbols-outlined text-base">settings</span>
               Auction Governance
             </h3>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="label">Base Price (₹) *</label>
-                <input type="number" className={`input-base ${errors.basePrice ? "ring-2 ring-red-400" : ""}`} 
-                  value={form.basePrice} onChange={e => setForm({...form, basePrice: e.target.value})} placeholder="Starting bid threshold" />
+              <div className="p-4 bg-slate-50 rounded-xl dark:bg-slate-900">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Base Price</label>
+                <p className="text-lg font-bold text-slate-900 dark:text-white">₹{form.basePrice || "Not Set"}</p>
               </div>
-              <div>
-                <label className="label">EMD Amount (₹) *</label>
-                <input type="number" className={`input-base ${errors.highestEmdAmount ? "ring-2 ring-red-400" : ""}`} 
-                  value={form.highestEmdAmount} onChange={e => setForm({...form, highestEmdAmount: e.target.value})} placeholder="Refundable deposit" />
+              <div className="p-4 bg-slate-50 rounded-xl dark:bg-slate-900">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">EMD Amount</label>
+                <p className="text-lg font-bold text-slate-900 dark:text-white">₹{form.highestEmdAmount || "Not Set"}</p>
               </div>
-              <div>
-                <label className="label">Tick Size / Increment (₹) *</label>
-                <input type="number" className={`input-base ${errors.bidIncrement ? "ring-2 ring-red-400" : ""}`} 
-                  value={form.bidIncrement} onChange={e => setForm({...form, bidIncrement: e.target.value})} placeholder="Min bid jump" />
+              <div className="p-4 bg-slate-50 rounded-xl dark:bg-slate-900">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Tick Size / Increment</label>
+                <p className="text-lg font-bold text-slate-900 dark:text-white">₹{form.bidIncrement || "Not Set"}</p>
               </div>
-              <div>
-                <label className="label">Max Tick Size (₹)</label>
-                <input type="number" className="input-base" 
-                  value={form.maximumTickSize} onChange={e => setForm({...form, maximumTickSize: e.target.value})} placeholder="Max bid jump (optional)" />
+              <div className="p-4 bg-slate-50 rounded-xl dark:bg-slate-900">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Max Tick Size</label>
+                <p className="text-lg font-bold text-slate-900 dark:text-white">₹{form.maximumTickSize || "No Limit"}</p>
               </div>
             </div>
           </div>
@@ -134,28 +124,48 @@ export default function ConfigureLiveAuction() {
           <div className="card p-6 space-y-6">
             <h3 className="text-sm font-black uppercase tracking-widest text-[color:var(--color-on-surface-variant)] flex items-center gap-2">
               <span className="material-symbols-outlined text-base">timer</span>
-              Timing & Extensions
+              Live Auction Timing
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="label">Start Date & Time *</label>
-                <input type="datetime-local" className={`input-base ${errors.auctionStartDate ? "ring-2 ring-red-400" : ""}`} 
-                  value={form.auctionStartDate} onChange={e => setForm({...form, auctionStartDate: e.target.value})} />
+              <div className="p-4 bg-slate-50 rounded-xl dark:bg-slate-900">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Start Date & Time</label>
+                <p className="text-sm font-bold text-slate-900 dark:text-white mt-1">
+                  {form.auctionStartDate ? new Date(form.auctionStartDate).toLocaleString() : "Not Set"}
+                </p>
               </div>
-              <div>
-                <label className="label">End Date & Time *</label>
-                <input type="datetime-local" className={`input-base ${errors.auctionEndDate ? "ring-2 ring-red-400" : ""}`} 
-                  value={form.auctionEndDate} onChange={e => setForm({...form, auctionEndDate: e.target.value})} />
+              <div className="p-4 bg-slate-50 rounded-xl dark:bg-slate-900">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">End Date & Time</label>
+                <p className="text-sm font-bold text-slate-900 dark:text-white mt-1">
+                  {form.auctionEndDate ? new Date(form.auctionEndDate).toLocaleString() : "Not Set"}
+                </p>
+              </div>
+              <div className="p-4 bg-slate-50 rounded-xl dark:bg-slate-900">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Auto-Extension</label>
+                <p className="text-lg font-bold text-slate-900 dark:text-white">{form.extensionTime} Minutes</p>
+              </div>
+              <div className="p-4 bg-slate-50 rounded-xl dark:bg-slate-900">
+                <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Max Extensions</label>
+                <p className="text-lg font-bold text-slate-900 dark:text-white">{form.maxExtensions}</p>
               </div>
             </div>
           </div>
 
+          {saveError && (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-xl text-sm text-red-700 flex items-center gap-2">
+              <span className="material-symbols-outlined text-sm shrink-0">error</span>
+              {saveError}
+            </div>
+          )}
+
           <div className="flex gap-4">
-             <Link href="/client/listings" className="btn-outline flex-1 py-4 rounded-xl text-center">Cancel</Link>
-             <button onClick={handleStart} className="btn-tertiary flex-[2] py-4 rounded-xl font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg">
-                <span className="material-symbols-outlined">{isFromInvitationWindow ? "event_available" : "rocket_launch"}</span>
-                {isFromInvitationWindow ? "Schedule Open Bidding" : "Launch Live Auction"}
-             </button>
+            <Link href="/client/listings" className="btn-outline flex-1 py-4 rounded-xl text-center">Cancel</Link>
+            <button onClick={handleApprove} disabled={saving}
+              className="btn-tertiary flex-[2] py-4 rounded-xl font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg disabled:opacity-60">
+              {saving
+                ? <><span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>Approving...</>
+                : <><span className="material-symbols-outlined">check_circle</span>Approve Live Auction Parameters</>
+              }
+            </button>
           </div>
         </div>
 
@@ -164,7 +174,7 @@ export default function ConfigureLiveAuction() {
             <div className="card p-6 bg-white border border-amber-100 dark:bg-slate-900">
               <h4 className="text-xs font-black uppercase tracking-widest text-amber-600 mb-4 flex items-center gap-2">
                 <span className="material-symbols-outlined text-sm">mail</span>
-                Vendor Invitation Responses
+                Invited Vendors
               </h4>
               <div className="grid grid-cols-3 gap-2 mb-4">
                 <div className="bg-emerald-50 p-2 rounded-xl text-center border border-emerald-100">
@@ -176,8 +186,8 @@ export default function ConfigureLiveAuction() {
                   <p className="text-xl font-headline font-bold text-red-700">{declinedVendors.length}</p>
                 </div>
                 <div className="bg-slate-50 p-2 rounded-xl text-center border border-slate-100 dark:bg-slate-950 dark:border-slate-800">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Pending</p>
-                  <p className="text-xl font-headline font-bold text-slate-600 dark:text-slate-400">{pendingVendors.length}</p>
+                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Invited</p>
+                  <p className="text-xl font-headline font-bold text-slate-600 dark:text-slate-400">{listing.invitedVendorIds.length}</p>
                 </div>
               </div>
               <div className="space-y-2">
@@ -195,78 +205,67 @@ export default function ConfigureLiveAuction() {
                         response?.status === 'declined' ? 'bg-red-100 text-red-700' :
                         'bg-slate-200 text-slate-500'
                       }`}>
-                        {response?.status === 'interested' ? 'Accepted' : response?.status === 'declined' ? 'Declined' : 'No Reply'}
+                        {response?.status === 'interested' ? 'Accepted' : response?.status === 'declined' ? 'Declined' : 'Invited'}
                       </span>
                     </div>
                   );
                 })}
               </div>
-              {listing.sealedBidStartDate && (
-                <div className="mt-4 p-3 bg-blue-50 rounded-xl border border-blue-100">
-                  <p className="text-[9px] font-black uppercase tracking-widest text-blue-600 mb-1">Sealed Bid Window</p>
-                  <p className="text-xs font-bold text-blue-800">
-                    {new Date(listing.sealedBidStartDate).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
-                    {' → '}
-                    {listing.sealedBidEndDate ? new Date(listing.sealedBidEndDate).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'}
-                  </p>
-                </div>
-              )}
             </div>
           )}
 
           <div className="card p-6 bg-[color:var(--color-primary-container)] text-[color:var(--color-on-primary-container)]">
-             <h4 className="text-xs font-black uppercase tracking-widest opacity-70 mb-4">Sealed Bid Intelligence</h4>
-             <div className="space-y-4">
-                <div className="flex justify-between items-end border-b border-[color:var(--color-on-primary-container)]/10 pb-4">
-                   <p className="text-xs font-bold">Total Bids Received</p>
-                   <p className="text-2xl font-headline font-bold">{sealedBids.length}</p>
-                </div>
-                {sealedBids.length > 0 && (
-                  <div className="space-y-3">
-                    <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Bid Range & Average</p>
-                    <div className="grid grid-cols-3 gap-2">
-                      <div className="bg-white/40 p-2 rounded-lg text-center">
-                        <p className="text-[9px] opacity-60 uppercase font-black">Min</p>
-                        <p className="text-xs font-headline font-bold">₹{(sealedBidMin/1000).toFixed(0)}k</p>
-                      </div>
-                      <div className="bg-white/60 p-2 rounded-lg text-center border border-white/40">
-                        <p className="text-[9px] opacity-60 uppercase font-black">Avg</p>
-                        <p className="text-xs font-headline font-bold">₹{(sealedBidAvg/1000).toFixed(0)}k</p>
-                      </div>
-                      <div className="bg-white/40 p-2 rounded-lg text-center">
-                        <p className="text-[9px] opacity-60 uppercase font-black">Max</p>
-                        <p className="text-xs font-headline font-bold">₹{(sealedBidMax/1000).toFixed(0)}k</p>
-                      </div>
+            <h4 className="text-xs font-black uppercase tracking-widest opacity-70 mb-4">Sealed Bid Intelligence</h4>
+            <div className="space-y-4">
+              <div className="flex justify-between items-end border-b border-[color:var(--color-on-primary-container)]/10 pb-4">
+                <p className="text-xs font-bold">Total Bids Received</p>
+                <p className="text-2xl font-headline font-bold">{sealedBids.length}</p>
+              </div>
+              {sealedBids.length > 0 && (
+                <div className="space-y-3">
+                  <p className="text-[10px] font-black uppercase tracking-widest opacity-60">Bid Range & Average</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div className="bg-white/40 p-2 rounded-lg text-center">
+                      <p className="text-[9px] opacity-60 uppercase font-black">Min</p>
+                      <p className="text-xs font-headline font-bold">₹{(sealedBidMin/1000).toFixed(0)}k</p>
                     </div>
-                    <p className="text-[10px] font-black uppercase tracking-widest opacity-60 mt-2">Top Bids</p>
-                    {[...sealedBids].sort((a,b) => b.amount - a.amount).slice(0, 3).map((bid, i) => (
-                      <div key={bid.id} className="flex justify-between items-center bg-white/40 p-2 rounded-lg border border-white/20">
-                         <span className="text-xs font-bold truncate max-w-[100px]">{bid.vendorName}</span>
-                         <span className="text-sm font-headline font-bold">₹{bid.amount.toLocaleString()}</span>
-                      </div>
-                    ))}
+                    <div className="bg-white/60 p-2 rounded-lg text-center border border-white/40">
+                      <p className="text-[9px] opacity-60 uppercase font-black">Avg</p>
+                      <p className="text-xs font-headline font-bold">₹{(sealedBidAvg/1000).toFixed(0)}k</p>
+                    </div>
+                    <div className="bg-white/40 p-2 rounded-lg text-center">
+                      <p className="text-[9px] opacity-60 uppercase font-black">Max</p>
+                      <p className="text-xs font-headline font-bold">₹{(sealedBidMax/1000).toFixed(0)}k</p>
+                    </div>
                   </div>
-                )}
-                <div className="pt-2">
-                   <p className="text-[10px] italic leading-tight opacity-70">
-                     Use these sealed bid values to determine your optimal starting base price and tick size.
-                     Generally, a base price close to the median sealed bid encourages more competitive participation.
-                   </p>
+                  <p className="text-[10px] font-black uppercase tracking-widest opacity-60 mt-2">Top Bids</p>
+                  {[...sealedBids].sort((a,b) => b.amount - a.amount).slice(0, 3).map((bid) => (
+                    <div key={bid.id} className="flex justify-between items-center bg-white/40 p-2 rounded-lg border border-white/20">
+                      <span className="text-xs font-bold truncate max-w-[100px]">{bid.vendorName}</span>
+                      <span className="text-sm font-headline font-bold">₹{bid.amount.toLocaleString()}</span>
+                    </div>
+                  ))}
                 </div>
-             </div>
+              )}
+              <div className="pt-2">
+                <p className="text-[10px] italic leading-tight opacity-70">
+                  Use sealed bid values to set your optimal base price and tick size.
+                </p>
+              </div>
+            </div>
           </div>
 
           <div className="card p-6 border-dashed border-2 border-slate-200 bg-slate-50 dark:bg-slate-950 dark:border-slate-700">
-             <h4 className="text-xs font-black uppercase tracking-widest text-slate-500 mb-4">Auction Preview</h4>
-             <div className="space-y-3">
-                <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{listing.title}</p>
-                <div className="flex items-center gap-2 text-xs text-slate-500">
-                   <span className="material-symbols-outlined text-sm">scale</span> {listing.weight} KG
-                </div>
-                <div className="flex items-center gap-2 text-xs text-slate-500">
-                   <span className="material-symbols-outlined text-sm">location_on</span> {listing.location}
-                </div>
-             </div>
+            <h4 className="text-xs font-black uppercase tracking-widest text-slate-500 mb-4">Auction Preview</h4>
+            <div className="space-y-3">
+              <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{listing.title}</p>
+              <div className="flex items-center gap-2 text-xs text-slate-500">
+                <span className="material-symbols-outlined text-sm">scale</span> {listing.weight} KG
+              </div>
+              <div className="flex items-center gap-2 text-xs text-slate-500">
+                <span className="material-symbols-outlined text-sm">location_on</span> {listing.location}
+              </div>
+            </div>
           </div>
         </div>
       </div>

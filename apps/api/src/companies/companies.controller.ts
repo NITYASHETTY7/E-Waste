@@ -75,6 +75,29 @@ export class CompaniesController {
     return this.companiesService.updateRating(id, rating);
   }
 
+  // --- Admin Approval / Hold / Reject ---
+
+  @Patch('admin/:id/approve')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  approveCompany(@Param('id') id: string) {
+    return this.companiesService.approveCompany(id);
+  }
+
+  @Patch('admin/:id/hold')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  holdCompany(@Param('id') id: string, @Body('reason') reason?: string) {
+    return this.companiesService.holdCompany(id, reason);
+  }
+
+  @Patch('admin/:id/reject')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.ADMIN)
+  rejectCompany(@Param('id') id: string, @Body('reason') reason?: string) {
+    return this.companiesService.rejectCompany(id, reason);
+  }
+
   // --- Admin Risk Control Endpoints ---
 
   @Patch('admin/:id/lock')

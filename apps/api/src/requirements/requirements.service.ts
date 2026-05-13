@@ -2,7 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { S3Service } from '../s3/s3.service';
 import { NotificationService } from '../notifications/notification.service';
-import { RequirementStatus, AuctionStatus } from '@prisma/client';
+import { RequirementStatus, AuctionStatus, Prisma } from '@prisma/client';
 
 @Injectable()
 export class RequirementsService {
@@ -79,25 +79,51 @@ export class RequirementsService {
   }
 
   // Admin uploads the cleaned / processed sheet
-  async uploadProcessedSheet(id: string, file: Express.Multer.File) {
+  async uploadProcessedSheet(
+    id: string,
+    file: Express.Multer.File,
+    vendorIds?: string[],
+  ) {
     const req = await this.findOne(id);
     const { key } = await this.s3.upload(
       file,
       `requirements/${req.clientId}/processed`,
     );
-    return this.prisma.requirement.update({
-      where: { id },
-      data: { processedS3Key: key, status: RequirementStatus.CLIENT_REVIEW },
+    const updateData: Prisma.RequirementUpdateInput = {
+      processedS3Key: key,
+      status: RequirementStatus.CLIENT_REVIEW,
+    };
+    if (vendorIds && vendorIds.length > 0) {
+      updateData.invitedVendorIds = vendorIds;
+    }
+    const updated = await this.prisma.requirement.update({ where: { id }, data: updateData });
+
+    // Notify client that the processed sheet is ready for review
+    const clientUser = await this.prisma.user.findFirst({
+      where: { companyId: req.clientId },
+      select: { email: true, name: true },
     });
+    if (clientUser) {
+      await this.notifications.notifyClientSheetReady(
+        clientUser.email,
+        clientUser.name,
+        req.title,
+        req.id,
+      );
+    }
+
+    return updated;
   }
 
-  // Client approves the processed list with target price
+  // Client approves the processed list — creates auction and sends vendor invitations
   async clientApprove(
     id: string,
     data: { targetPrice: number; totalWeight?: number; category?: string },
   ) {
+    const req = await this.findOne(id);
     const { targetPrice, totalWeight, category } = data;
-    return this.prisma.requirement.update({
+
+    const updated = await this.prisma.requirement.update({
       where: { id },
       data: {
         targetPrice: Number(targetPrice),
@@ -106,6 +132,63 @@ export class RequirementsService {
         status: RequirementStatus.FINALIZED,
       },
     });
+
+    // Create the auction linked to this requirement
+    const now = new Date();
+    const sealedStart = req.sealedPhaseStart ?? now;
+    const sealedEnd =
+      req.sealedPhaseEnd ?? new Date(now.getTime() + 3 * 60 * 60 * 1000);
+    const auctionStatus =
+      sealedStart <= now ? AuctionStatus.SEALED_PHASE : AuctionStatus.UPCOMING;
+
+    let auction = req.auction;
+    if (!auction) {
+      auction = await this.prisma.auction.create({
+        data: {
+          title: req.title,
+          category: req.category ?? 'General',
+          description: req.description,
+          basePrice: Number(targetPrice),
+          targetPrice: Number(targetPrice),
+          clientId: req.clientId,
+          requirementId: req.id,
+          status: auctionStatus,
+          sealedPhaseStart: sealedStart,
+          sealedPhaseEnd: sealedEnd,
+        },
+      });
+    }
+
+    // Send sealed-bid invitation emails to admin-selected vendors
+    if (req.invitedVendorIds.length > 0) {
+      const vendors = await this.prisma.user.findMany({
+        where: { id: { in: req.invitedVendorIds } },
+        select: { id: true, name: true, email: true },
+      });
+
+      const sealedEndStr = sealedEnd.toLocaleString('en-IN', {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+      });
+
+      await Promise.all(
+        vendors.map((v) =>
+          this.notifications.notifySealedBidInvitation(
+            v.email,
+            v.name,
+            req.title,
+            req.id,
+            sealedEndStr,
+          ),
+        ),
+      );
+    }
+
+    return { requirement: updated, auction };
   }
 
   /**
@@ -184,7 +267,7 @@ export class RequirementsService {
             v.email,
             v.name,
             req.title,
-            auction.id,
+            req.id,
             sealedEndStr,
           ),
         ),
@@ -192,6 +275,384 @@ export class RequirementsService {
     }
 
     return { requirement: updated, auction };
+  }
+
+  async reject(id: string, reason?: string) {
+    return this.prisma.requirement.update({
+      where: { id },
+      data: { status: RequirementStatus.REJECTED },
+    });
+  }
+
+  async vendorRespond(requirementId: string, vendorUserId: string, action: 'accept' | 'decline') {
+    const req = await this.prisma.requirement.findUnique({ where: { id: requirementId } });
+    if (!req) throw new NotFoundException('Requirement not found');
+
+    if (action === 'accept') {
+      return this.prisma.requirement.update({
+        where: { id: requirementId },
+        data: {
+          acceptedVendorIds: { push: vendorUserId },
+          declinedVendorIds: req.declinedVendorIds.filter((id) => id !== vendorUserId),
+        },
+      });
+    } else {
+      return this.prisma.requirement.update({
+        where: { id: requirementId },
+        data: {
+          declinedVendorIds: { push: vendorUserId },
+          acceptedVendorIds: req.acceptedVendorIds.filter((id) => id !== vendorUserId),
+        },
+      });
+    }
+  }
+
+  // ─── STEP 2: Vendor uploads audit documents ───────────────────────────────
+
+  async uploadAuditDocs(
+    requirementId: string,
+    vendorUserId: string,
+    files: {
+      auditReport?: Express.Multer.File;
+      filledExcel?: Express.Multer.File;
+      images?: Express.Multer.File[];
+    },
+  ) {
+    const req = await this.prisma.requirement.findUnique({ where: { id: requirementId } });
+    if (!req) throw new NotFoundException('Requirement not found');
+
+    const folder = `requirements/${requirementId}/audit-docs/${vendorUserId}`;
+    let auditReportS3Key: string | undefined;
+    let auditReportFileName: string | undefined;
+    let excelS3Key: string | undefined;
+    let excelFileName: string | undefined;
+    const imageS3Keys: string[] = [];
+    const imageFileNames: string[] = [];
+
+    if (files.auditReport) {
+      const { key } = await this.s3.upload(files.auditReport, folder);
+      auditReportS3Key = key;
+      auditReportFileName = files.auditReport.originalname;
+    }
+    if (files.filledExcel) {
+      const { key } = await this.s3.upload(files.filledExcel, folder);
+      excelS3Key = key;
+      excelFileName = files.filledExcel.originalname;
+    }
+    if (files.images?.length) {
+      for (const img of files.images) {
+        const { key } = await this.s3.upload(img, `${folder}/images`);
+        imageS3Keys.push(key);
+        imageFileNames.push(img.originalname);
+      }
+    }
+
+    return this.prisma.vendorAuditDoc.upsert({
+      where: { requirementId_vendorUserId: { requirementId, vendorUserId } },
+      create: { requirementId, vendorUserId, auditReportS3Key, auditReportFileName, excelS3Key, excelFileName, imageS3Keys, imageFileNames },
+      update: { auditReportS3Key, auditReportFileName, excelS3Key, excelFileName, imageS3Keys, imageFileNames, status: 'pending' },
+    });
+  }
+
+  async getAuditDocs(requirementId: string) {
+    const docs = await this.prisma.vendorAuditDoc.findMany({
+      where: { requirementId },
+      include: { vendor: { select: { id: true, name: true, email: true } } },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    return Promise.all(docs.map(async (doc) => ({
+      ...doc,
+      auditReportUrl: doc.auditReportS3Key ? await this.s3.getSignedUrl(doc.auditReportS3Key) : null,
+      excelUrl: doc.excelS3Key ? await this.s3.getSignedUrl(doc.excelS3Key) : null,
+      imageUrls: await Promise.all(doc.imageS3Keys.map((k) => this.s3.getSignedUrl(k))),
+    })));
+  }
+
+  // ─── STEP 3: Admin reviews audit docs ─────────────────────────────────────
+
+  async reviewAuditDoc(
+    requirementId: string,
+    docId: string,
+    action: 'approve' | 'reject',
+    remarks?: string,
+  ) {
+    const doc = await this.prisma.vendorAuditDoc.findUnique({ where: { id: docId } });
+    if (!doc || doc.requirementId !== requirementId) throw new NotFoundException('Audit doc not found');
+
+    const updated = await this.prisma.vendorAuditDoc.update({
+      where: { id: docId },
+      data: { status: action === 'approve' ? 'approved' : 'rejected', adminRemarks: remarks },
+      include: { vendor: { select: { id: true, name: true, email: true } } },
+    });
+
+    // Update auditApprovedVendorIds on requirement
+    if (action === 'approve') {
+      const req = await this.prisma.requirement.findUnique({ where: { id: requirementId } });
+      if (req && !req.auditApprovedVendorIds.includes(doc.vendorUserId)) {
+        await this.prisma.requirement.update({
+          where: { id: requirementId },
+          data: { auditApprovedVendorIds: { push: doc.vendorUserId } },
+        });
+      }
+      // In-app notification to vendor
+      await this.prisma.inAppNotification.create({
+        data: {
+          userId: doc.vendorUserId,
+          type: 'audit_approved',
+          title: 'Audit Documents Approved',
+          message: `Your audit documents for the listing have been approved. Wait for the sealed bid event.`,
+        },
+      });
+    } else {
+      // Notify vendor of rejection
+      await this.prisma.inAppNotification.create({
+        data: {
+          userId: doc.vendorUserId,
+          type: 'audit_rejected',
+          title: 'Audit Documents Rejected',
+          message: `Your audit documents were rejected. ${remarks ? 'Reason: ' + remarks : 'Please resubmit.'}`,
+        },
+      });
+    }
+
+    return updated;
+  }
+
+  // ─── STEP 4: Admin creates sealed bid event ────────────────────────────────
+
+  async createSealedBidEvent(
+    requirementId: string,
+    sealedBidDeadline: string,
+  ) {
+    const req = await this.prisma.requirement.findUnique({
+      where: { id: requirementId },
+      include: { auction: true },
+    });
+    if (!req) throw new NotFoundException('Requirement not found');
+
+    const deadline = new Date(sealedBidDeadline);
+    const updated = await this.prisma.requirement.update({
+      where: { id: requirementId },
+      data: { sealedBidEventCreatedAt: new Date(), sealedBidDeadline: deadline },
+    });
+
+    // Notify all audit-approved vendors via email + in-app
+    const approvedVendors = await this.prisma.user.findMany({
+      where: { id: { in: req.auditApprovedVendorIds } },
+      select: { id: true, name: true, email: true },
+    });
+
+    const deadlineStr = deadline.toLocaleString('en-IN', {
+      day: '2-digit', month: 'long', year: 'numeric',
+      hour: '2-digit', minute: '2-digit', hour12: true,
+    });
+    const webUrl = process.env.WEB_URL || 'http://localhost:3000';
+
+    await Promise.all(approvedVendors.map(async (v) => {
+      await this.notifications.sendEmail({
+        to: v.email,
+        subject: `[WeConnect] Sealed Bid Invitation — ${req.title}`,
+        body: `
+          <h2>Sealed Bid Event Created</h2>
+          <p>Hello ${v.name},</p>
+          <p>Your audit for <strong>${req.title}</strong> has been approved. You are now invited to submit your sealed bid.</p>
+          <p><strong>Deadline:</strong> ${deadlineStr}</p>
+          <p><a href="${webUrl}/vendor/sealed-bid/${requirementId}">Submit Sealed Bid →</a></p>
+          <br/><p>— WeConnect Platform</p>
+        `,
+      });
+      await this.prisma.inAppNotification.create({
+        data: {
+          userId: v.id,
+          type: 'sealed_bid_event',
+          title: 'Submit Your Sealed Bid',
+          message: `Sealed bid event created for "${req.title}". Deadline: ${deadlineStr}`,
+          link: `/vendor/sealed-bid/${requirementId}`,
+        },
+      });
+    }));
+
+    return { requirement: updated, notifiedCount: approvedVendors.length };
+  }
+
+  // ─── STEP 5: Vendor submits sealed bid price ───────────────────────────────
+
+  async submitSealedBid(requirementId: string, vendorUserId: string, amount: number, remarks?: string) {
+    const req = await this.prisma.requirement.findUnique({
+      where: { id: requirementId },
+      include: { auction: true },
+    });
+    if (!req) throw new NotFoundException('Requirement not found');
+    if (!req.auction) throw new NotFoundException('Auction not created yet');
+    if (!req.auditApprovedVendorIds.includes(vendorUserId)) {
+      throw new NotFoundException('Your audit must be approved before submitting a bid');
+    }
+
+    const existing = await this.prisma.bid.findFirst({
+      where: { auctionId: req.auction.id, vendorId: vendorUserId, phase: 'SEALED' },
+    });
+
+    const bid = existing
+      ? await this.prisma.bid.update({ where: { id: existing.id }, data: { amount, remarks } })
+      : await this.prisma.bid.create({
+          data: { auctionId: req.auction.id, vendorId: vendorUserId, phase: 'SEALED', amount, remarks },
+        });
+
+    return bid;
+  }
+
+  // ─── STEP 6: Admin/client views sealed bids ───────────────────────────────
+
+  async getSealedBids(requirementId: string) {
+    const req = await this.prisma.requirement.findUnique({
+      where: { id: requirementId },
+      include: { auction: true },
+    });
+    if (!req?.auction) return [];
+
+    const bids = await this.prisma.bid.findMany({
+      where: { auctionId: req.auction.id, phase: 'SEALED' },
+      include: { vendor: { select: { id: true, name: true, email: true } } },
+      orderBy: { amount: 'desc' },
+    });
+
+    // Enrich with audit doc info
+    const auditDocs = await this.prisma.vendorAuditDoc.findMany({
+      where: { requirementId, vendorUserId: { in: bids.map((b) => b.vendorId) } },
+    });
+    const docMap = Object.fromEntries(auditDocs.map((d) => [d.vendorUserId, d]));
+
+    return bids.map((bid) => ({
+      ...bid,
+      auditDoc: docMap[bid.vendorId] || null,
+    }));
+  }
+
+  // ─── Notify client to approve live params ────────────────────────────────
+
+  async notifyClientForLiveApproval(requirementId: string) {
+    const req = await this.prisma.requirement.findUnique({
+      where: { id: requirementId },
+      include: { auction: true, client: { include: { users: { select: { id: true, name: true, email: true }, take: 1 } } } },
+    });
+    if (!req?.auction) throw new NotFoundException('Auction not found');
+
+    const clientUser = req.client?.users?.[0];
+    if (!clientUser) throw new NotFoundException('Client user not found');
+
+    const webUrl = process.env.WEB_URL || 'http://localhost:3000';
+    const configureUrl = `${webUrl}/client/listings/${requirementId}/configure-live`;
+
+    await this.notifications.notifyClientLiveAuctionApproval(
+      clientUser.email,
+      clientUser.name,
+      req.title,
+      configureUrl,
+    );
+
+    await this.prisma.inAppNotification.create({
+      data: {
+        userId: clientUser.id,
+        type: 'live_auction_approval',
+        title: 'Action Required: Approve Live Auction',
+        message: `Admin has set live auction parameters for "${req.title}". Review and approve to start bidding.`,
+        link: `/client/listings/${requirementId}/configure-live`,
+      },
+    });
+
+    await this.prisma.auction.update({
+      where: { id: req.auction.id },
+      data: { liveApprovalStatus: 'notified' },
+    });
+
+    return { success: true };
+  }
+
+  // ─── Client approves live auction ─────────────────────────────────────────
+
+  async clientApproveLive(requirementId: string) {
+    const req = await this.prisma.requirement.findUnique({
+      where: { id: requirementId },
+      include: { auction: { include: { bids: { where: { phase: 'SEALED', isShortlisted: true } } } } },
+    });
+    if (!req?.auction) throw new NotFoundException('Auction not found');
+
+    await this.prisma.auction.update({
+      where: { id: req.auction.id },
+      data: { liveApprovalStatus: 'approved', status: AuctionStatus.UPCOMING },
+    });
+
+    // Notify all shortlisted (audit-approved) vendors about live auction approval
+    const approvedVendors = await this.prisma.user.findMany({
+      where: { id: { in: req.auditApprovedVendorIds } },
+      select: { id: true, name: true, email: true },
+    });
+
+    const webUrl = process.env.WEB_URL || 'http://localhost:3000';
+    const auctionUrl = `${webUrl}/vendor/marketplace/${requirementId}`;
+    const openStart = req.auction.openPhaseStart
+      ? req.auction.openPhaseStart.toLocaleString('en-IN', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })
+      : 'TBD';
+
+    await Promise.all(approvedVendors.map(async (v) => {
+      await this.notifications.notifyLiveAuctionApproved(v.email, v.name, req.title, auctionUrl);
+      await this.prisma.inAppNotification.create({
+        data: {
+          userId: v.id,
+          type: 'live_auction_approved',
+          title: 'You\'re Approved for Live Auction!',
+          message: `The live open auction for "${req.title}" has been approved. Open bidding starts: ${openStart}`,
+          link: `/vendor/marketplace/${requirementId}`,
+        },
+      });
+    }));
+
+    return { success: true, notifiedCount: approvedVendors.length };
+  }
+
+  async getInvitationDetails(requirementId: string, vendorUserId: string) {
+    const req = await this.prisma.requirement.findUnique({
+      where: { id: requirementId },
+      include: { client: true, auction: true },
+    });
+    if (!req) throw new NotFoundException('Requirement not found');
+
+    let processedSheetUrl: string | null = null;
+    if (req.processedS3Key) {
+      processedSheetUrl = await this.s3.getSignedUrl(req.processedS3Key);
+    }
+
+    const auditDoc = await this.prisma.vendorAuditDoc.findUnique({
+      where: { requirementId_vendorUserId: { requirementId, vendorUserId } },
+    });
+
+    const existingBid = req.auction
+      ? await this.prisma.bid.findFirst({ where: { auctionId: req.auction.id, vendorId: vendorUserId, phase: 'SEALED' } })
+      : null;
+
+    return {
+      id: req.id,
+      title: req.title,
+      description: req.description,
+      category: req.category,
+      totalWeight: req.totalWeight,
+      sealedPhaseStart: req.sealedPhaseStart,
+      sealedPhaseEnd: req.sealedPhaseEnd,
+      sealedBidDeadline: req.sealedBidDeadline,
+      sealedBidEventCreatedAt: req.sealedBidEventCreatedAt,
+      clientName: req.client?.name,
+      processedSheetUrl,
+      isInvited: req.invitedVendorIds.includes(vendorUserId),
+      hasAccepted: req.acceptedVendorIds.includes(vendorUserId),
+      hasDeclined: req.declinedVendorIds.includes(vendorUserId),
+      auditApproved: req.auditApprovedVendorIds.includes(vendorUserId),
+      auditDoc: auditDoc ? { status: auditDoc.status, adminRemarks: auditDoc.adminRemarks } : null,
+      hasSealedBid: !!existingBid,
+      sealedBidAmount: existingBid?.amount ?? null,
+      auctionId: req.auction?.id,
+      auctionLiveApprovalStatus: req.auction?.liveApprovalStatus ?? 'pending',
+    };
   }
 
   async getSignedUrl(id: string, field: 'raw' | 'processed') {

@@ -38,13 +38,14 @@ export class CompaniesService {
   }
 
   async findAll(type?: CompanyType, status?: CompanyStatus) {
+    const where: any = {};
+    if (type) where.type = type;
+    if (status) where.status = status;
+
     const companies = await this.prisma.company.findMany({
-      where: {
-        ...(type && { type }),
-        ...(status && { status }),
-      },
+      where,
       include: {
-        users: { select: { id: true, name: true, email: true, role: true } },
+        users: { select: { id: true, name: true, email: true, role: true, phone: true } },
         kycDocuments: true,
       },
     });
@@ -66,20 +67,71 @@ export class CompaniesService {
     const company = await this.prisma.company.findUnique({
       where: { id },
       include: {
-        users: { select: { id: true, name: true, email: true, role: true } },
+        users: { select: { id: true, name: true, email: true, role: true, phone: true } },
         kycDocuments: true,
       },
     });
     if (!company) throw new NotFoundException('Company not found');
 
+    let kycDocuments = company.kycDocuments;
+
+    // If no DB records exist, fall back to listing S3 directly under kyc/{companyId}/
+    if (kycDocuments.length === 0) {
+      try {
+        const s3Files = await this.s3.listObjects(`kyc/${id}/`);
+        if (s3Files.length > 0) {
+          // Sync found files back into the DB so they persist for next time
+          const created = await Promise.all(
+            s3Files.map(file => {
+              const fileName = file.key.split('/').pop() || file.key;
+              const type = this.inferDocType(fileName);
+              return this.prisma.kycDocument.upsert({
+                where: { s3Key: file.key },
+                update: {},
+                create: {
+                  type: type as DocumentType,
+                  s3Key: file.key,
+                  s3Bucket: this.s3.getPrivateBucket(),
+                  fileName,
+                  mimeType: this.inferMimeType(fileName),
+                  companyId: id,
+                },
+              });
+            }),
+          );
+          kycDocuments = created;
+        }
+      } catch {
+        // S3 listing failed — leave docs empty
+      }
+    }
+
     const docs = await Promise.all(
-      company.kycDocuments.map(async (doc) => ({
+      kycDocuments.map(async (doc) => ({
         ...doc,
-        signedUrl: await this.s3.getSignedUrl(doc.s3Key, doc.s3Bucket),
+        signedUrl: await this.s3.getSignedUrl(doc.s3Key, doc.s3Bucket).catch(() => null),
       })),
     );
 
     return { ...company, kycDocuments: docs };
+  }
+
+  private inferDocType(fileName: string): string {
+    const lower = fileName.toLowerCase();
+    if (lower.includes('gst')) return 'GST_CERTIFICATE';
+    if (lower.includes('pan')) return 'PAN_CARD';
+    if (lower.includes('cheque') || lower.includes('bank')) return 'CANCELLED_CHEQUE';
+    if (lower.includes('incorp') || lower.includes('cert')) return 'INCORPORATION_CERTIFICATE';
+    if (lower.includes('address') || lower.includes('proof')) return 'ADDRESS_PROOF';
+    return 'OTHER';
+  }
+
+  private inferMimeType(fileName: string): string {
+    const ext = fileName.split('.').pop()?.toLowerCase();
+    if (ext === 'pdf') return 'application/pdf';
+    if (ext === 'png') return 'image/png';
+    if (ext === 'jpg' || ext === 'jpeg') return 'image/jpeg';
+    return 'application/octet-stream';
   }
 
   async updateStatus(id: string, status: CompanyStatus) {
@@ -140,6 +192,53 @@ export class CompaniesService {
       where: { id: vendorId },
       data: { rating: avgRating, ratingCount: totalRatings },
     });
+  }
+
+  // --- Admin Approval / Hold / Reject ---
+
+  async approveCompany(id: string) {
+    const company = await this.prisma.company.findUnique({ where: { id }, include: { users: true } });
+    if (!company) throw new NotFoundException('Company not found');
+
+    await this.prisma.company.update({ where: { id }, data: { status: 'APPROVED' } });
+
+    const primaryUser = company.users[0];
+    if (primaryUser) {
+      await this.prisma.user.update({ where: { id: primaryUser.id }, data: { isActive: true } });
+      await this.notifications.notifyAccountApproved(primaryUser.email, primaryUser.name, primaryUser.phone ?? undefined).catch(() => {});
+    }
+
+    return this.prisma.company.findUnique({ where: { id }, include: { users: { select: { id: true, name: true, email: true, role: true } } } });
+  }
+
+  async holdCompany(id: string, reason?: string) {
+    const company = await this.prisma.company.findUnique({ where: { id }, include: { users: true } });
+    if (!company) throw new NotFoundException('Company not found');
+
+    await this.prisma.company.update({ where: { id }, data: { status: 'BLOCKED' } });
+
+    const primaryUser = company.users[0];
+    if (primaryUser) {
+      await this.prisma.user.update({ where: { id: primaryUser.id }, data: { isActive: false } });
+      await this.notifications.notifyAccountOnHold(primaryUser.email, primaryUser.name, primaryUser.phone ?? undefined, reason).catch(() => {});
+    }
+
+    return this.prisma.company.findUnique({ where: { id }, include: { users: { select: { id: true, name: true, email: true, role: true } } } });
+  }
+
+  async rejectCompany(id: string, reason?: string) {
+    const company = await this.prisma.company.findUnique({ where: { id }, include: { users: true } });
+    if (!company) throw new NotFoundException('Company not found');
+
+    await this.prisma.company.update({ where: { id }, data: { status: 'REJECTED' } });
+
+    const primaryUser = company.users[0];
+    if (primaryUser) {
+      await this.prisma.user.update({ where: { id: primaryUser.id }, data: { isActive: false } });
+      await this.notifications.notifyAccountRejected(primaryUser.email, primaryUser.name, primaryUser.phone ?? undefined, reason).catch(() => {});
+    }
+
+    return this.prisma.company.findUnique({ where: { id }, include: { users: { select: { id: true, name: true, email: true, role: true } } } });
   }
 
   // --- Admin Risk Control ---

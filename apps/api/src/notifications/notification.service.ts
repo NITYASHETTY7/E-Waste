@@ -77,6 +77,40 @@ export class NotificationService {
     }
   }
 
+  // ─── SMS via AWS SNS ─────────────────────────────────────
+
+  async sendSms(phone: string, message: string): Promise<void> {
+    const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
+    const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+    const region = process.env.AWS_REGION || 'ap-southeast-2';
+
+    if (!accessKeyId || accessKeyId === 'your_aws_access_key') {
+      this.logger.warn(`[SMS SKIPPED — SNS NOT CONFIGURED] To: ${phone} | ${message}`);
+      return;
+    }
+
+    try {
+      const { SNSClient, PublishCommand } = await import('@aws-sdk/client-sns');
+      const sns = new SNSClient({ region, credentials: { accessKeyId, secretAccessKey: secretAccessKey! } });
+
+      let normalized = phone.replace(/\s+/g, '');
+      if (normalized.length === 10 && /^\d+$/.test(normalized)) normalized = '+91' + normalized;
+      else if (!normalized.startsWith('+')) normalized = '+' + normalized;
+
+      await sns.send(new PublishCommand({
+        PhoneNumber: normalized,
+        Message: message,
+        MessageAttributes: {
+          'AWS.SNS.SMS.SenderID': { DataType: 'String', StringValue: 'WeConnect' },
+          'AWS.SNS.SMS.SMSType': { DataType: 'String', StringValue: 'Transactional' },
+        },
+      }));
+      this.logger.log(`📱 SMS sent to ${phone}`);
+    } catch (error) {
+      this.logger.error(`Failed to send SMS to ${phone}`, error);
+    }
+  }
+
   // ─── Pre-built notification templates ────────────────────
 
   async notifyAuditInvitation(
@@ -93,6 +127,45 @@ export class NotificationService {
         <p>You have been invited to conduct a site audit for: <strong>${requirementTitle}</strong></p>
         <p>Please log in to the WeConnect portal to review details and respond.</p>
         <p><a href="${process.env.WEB_URL || 'http://localhost:3000'}/vendor/audits">View Audit Details →</a></p>
+        <br/><p>— WeConnect Platform</p>
+      `,
+    });
+  }
+
+  async notifyLiveAuctionApproved(
+    vendorEmail: string,
+    vendorName: string,
+    auctionTitle: string,
+    auctionDetailsUrl: string,
+  ) {
+    return this.sendEmail({
+      to: vendorEmail,
+      subject: `[WeConnect] Approved for Live Auction — ${auctionTitle}`,
+      body: `
+        <h2>Live Auction Approval</h2>
+        <p>Hello ${vendorName},</p>
+        <p>You have been approved to participate in the live open auction for <strong>${auctionTitle}</strong>.</p>
+        <p><a href="${auctionDetailsUrl}">View Auction Details →</a></p>
+        <br/><p>— WeConnect Platform</p>
+      `,
+    });
+  }
+
+  async notifyClientLiveAuctionApproval(
+    clientEmail: string,
+    clientName: string,
+    auctionTitle: string,
+    configureUrl: string,
+  ) {
+    return this.sendEmail({
+      to: clientEmail,
+      subject: `[WeConnect] Approval Required for Live Auction — ${auctionTitle}`,
+      body: `
+        <h2>Live Auction Parameters Review</h2>
+        <p>Hello ${clientName},</p>
+        <p>The admin has configured the live auction parameters for <strong>${auctionTitle}</strong>.</p>
+        <p>Please review and approve them to notify the participating vendors.</p>
+        <p><a href="${configureUrl}">Review and Approve →</a></p>
         <br/><p>— WeConnect Platform</p>
       `,
     });
@@ -197,42 +270,100 @@ export class NotificationService {
     });
   }
 
-  async notifyAccountApproved(userEmail: string, userName: string) {
-    return this.sendEmail({
+  async notifyAccountApproved(userEmail: string, userName: string, userPhone?: string) {
+    const portalUrl = process.env.WEB_URL || 'http://localhost:3000';
+    await this.sendEmail({
       to: userEmail,
-      subject: 'Your account has been approved - WeConnect',
+      subject: '✅ Account Approved — Welcome to WeConnect',
       body: `
-        <p>Dear ${userName},</p>
-        <p>Your account has been approved! You can now login at 
-        <a href="${process.env.WEB_URL || 'http://localhost:3000'}">
-        WeConnect Portal</a> and access your dashboard.</p>
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#1e293b">
+          <div style="background:#0f172a;padding:20px 24px;border-radius:8px 8px 0 0">
+            <h1 style="color:#fff;margin:0;font-size:20px">WeConnect Platform</h1>
+          </div>
+          <div style="border:1px solid #e2e8f0;border-top:none;padding:28px;border-radius:0 0 8px 8px">
+            <div style="background:#f0fdf4;border:1px solid #86efac;padding:16px 20px;border-radius:8px;margin-bottom:20px">
+              <h2 style="color:#166534;margin:0">✅ Your account has been approved!</h2>
+            </div>
+            <p>Dear <strong>${userName}</strong>,</p>
+            <p>We're pleased to inform you that your WeConnect account has been <strong>approved</strong> by our admin team. You can now access your full dashboard.</p>
+            <a href="${portalUrl}" style="display:inline-block;background:#166534;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:700;margin:16px 0">Login to WeConnect →</a>
+            <p style="color:#64748b;font-size:13px;margin-top:20px">If you have any questions, please contact our support team.</p>
+            <p style="color:#94a3b8;font-size:12px;margin-top:24px">— WeConnect Platform</p>
+          </div>
+        </div>
       `,
     });
+    if (userPhone) {
+      await this.sendSms(userPhone,
+        `WeConnect: Hi ${userName}, your account has been APPROVED! Login at ${portalUrl} to access your dashboard.`
+      );
+    }
   }
 
-  async notifyAccountRejected(userEmail: string, userName: string) {
-    return this.sendEmail({
+  async notifyAccountRejected(userEmail: string, userName: string, userPhone?: string, reason?: string) {
+    await this.sendEmail({
       to: userEmail,
-      subject: 'Your account application - WeConnect',
+      subject: '❌ Account Application Update — WeConnect',
       body: `
-        <p>Dear ${userName},</p>
-        <p>We regret to inform you that your account application 
-        has not been approved at this time.</p>
-        <p>Please contact support for more information.</p>
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#1e293b">
+          <div style="background:#0f172a;padding:20px 24px;border-radius:8px 8px 0 0">
+            <h1 style="color:#fff;margin:0;font-size:20px">WeConnect Platform</h1>
+          </div>
+          <div style="border:1px solid #e2e8f0;border-top:none;padding:28px;border-radius:0 0 8px 8px">
+            <div style="background:#fef2f2;border:1px solid #fca5a5;padding:16px 20px;border-radius:8px;margin-bottom:20px">
+              <h2 style="color:#991b1b;margin:0">Account Application Not Approved</h2>
+            </div>
+            <p>Dear <strong>${userName}</strong>,</p>
+            <p>We regret to inform you that your WeConnect account application has <strong>not been approved</strong> at this time.</p>
+            ${reason ? `
+            <div style="background:#f8fafc;border-left:4px solid #ef4444;padding:14px 18px;border-radius:4px;margin:16px 0">
+              <p style="margin:0;font-weight:700;font-size:13px;color:#64748b">Reason provided by admin:</p>
+              <p style="margin:6px 0 0;color:#1e293b">${reason}</p>
+            </div>` : ''}
+            <p style="color:#64748b;font-size:13px">If you believe this is an error or would like to reapply, please contact our support team with the required documentation.</p>
+            <p style="color:#94a3b8;font-size:12px;margin-top:24px">— WeConnect Platform</p>
+          </div>
+        </div>
       `,
     });
+    if (userPhone) {
+      await this.sendSms(userPhone,
+        `WeConnect: Hi ${userName}, your account application has not been approved at this time.${reason ? ` Reason: ${reason}` : ''} Contact support for assistance.`
+      );
+    }
   }
 
-  async notifyAccountOnHold(userEmail: string, userName: string) {
-    return this.sendEmail({
+  async notifyAccountOnHold(userEmail: string, userName: string, userPhone?: string, reason?: string) {
+    await this.sendEmail({
       to: userEmail,
-      subject: 'Your account is on hold - WeConnect',
+      subject: '⏸️ Account Under Additional Review — WeConnect',
       body: `
-        <p>Dear ${userName},</p>
-        <p>Your account application is currently on hold pending 
-        additional review. Our team will contact you shortly.</p>
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#1e293b">
+          <div style="background:#0f172a;padding:20px 24px;border-radius:8px 8px 0 0">
+            <h1 style="color:#fff;margin:0;font-size:20px">WeConnect Platform</h1>
+          </div>
+          <div style="border:1px solid #e2e8f0;border-top:none;padding:28px;border-radius:0 0 8px 8px">
+            <div style="background:#fffbeb;border:1px solid #fcd34d;padding:16px 20px;border-radius:8px;margin-bottom:20px">
+              <h2 style="color:#92400e;margin:0">⏸️ Your Account is On Hold</h2>
+            </div>
+            <p>Dear <strong>${userName}</strong>,</p>
+            <p>Your WeConnect account is currently <strong>on hold</strong> pending additional review by our admin team.</p>
+            ${reason ? `
+            <div style="background:#f8fafc;border-left:4px solid #f59e0b;padding:14px 18px;border-radius:4px;margin:16px 0">
+              <p style="margin:0;font-weight:700;font-size:13px;color:#64748b">Reason provided by admin:</p>
+              <p style="margin:6px 0 0;color:#1e293b">${reason}</p>
+            </div>` : ''}
+            <p style="color:#64748b;font-size:13px">Our team will review your account and contact you within 24–72 hours. Please ensure all required documents have been uploaded correctly.</p>
+            <p style="color:#94a3b8;font-size:12px;margin-top:24px">— WeConnect Platform</p>
+          </div>
+        </div>
       `,
     });
+    if (userPhone) {
+      await this.sendSms(userPhone,
+        `WeConnect: Hi ${userName}, your account is currently on hold pending additional review.${reason ? ` Reason: ${reason}` : ''} Our team will contact you within 24-72 hours.`
+      );
+    }
   }
 
   async notifyPendingApproval(userEmail: string, userName: string) {
@@ -296,20 +427,57 @@ export class NotificationService {
     });
   }
 
+  async notifyClientSheetReady(
+    clientEmail: string,
+    clientName: string,
+    requirementTitle: string,
+    requirementId: string,
+  ) {
+    const portalUrl = `${process.env.WEB_URL || 'http://localhost:3000'}/client/listings`;
+    return this.sendEmail({
+      to: clientEmail,
+      subject: `[WeConnect] Your material sheet is ready for review — ${requirementTitle}`,
+      body: `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#1e293b">
+          <div style="background:#0f172a;padding:20px 24px;border-radius:8px 8px 0 0">
+            <h1 style="color:#fff;margin:0;font-size:20px">WeConnect Platform</h1>
+          </div>
+          <div style="border:1px solid #e2e8f0;border-top:none;padding:28px;border-radius:0 0 8px 8px">
+            <div style="background:#eff6ff;border:1px solid #93c5fd;padding:16px 20px;border-radius:8px;margin-bottom:20px">
+              <h2 style="color:#1e40af;margin:0">&#128196; Processed Sheet Ready for Your Approval</h2>
+            </div>
+            <p>Dear <strong>${clientName}</strong>,</p>
+            <p>Our admin team has reviewed and cleaned the material list for your listing:</p>
+            <div style="background:#f1f5f9;border-left:4px solid #3b82f6;padding:14px 18px;border-radius:4px;margin:16px 0">
+              <p style="margin:0;font-weight:700;font-size:15px">${requirementTitle}</p>
+            </div>
+            <p>Please log in, review the processed sheet, and set your <strong>target price</strong> to approve and trigger vendor invitations.</p>
+            <a href="${portalUrl}" style="display:inline-block;background:#1e40af;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:700;margin:16px 0">Review &amp; Approve Sheet &rarr;</a>
+            <p style="color:#64748b;font-size:13px;margin-top:20px">Once you approve, invitation emails will be sent automatically to the selected vendors.</p>
+            <p style="color:#94a3b8;font-size:12px;margin-top:24px">— WeConnect Platform</p>
+          </div>
+        </div>
+      `,
+    });
+  }
+
   /**
-   * Sent to every vendor selected by the client once the admin approves the listing.
+   * Sent to every vendor selected by the admin once the client approves the processed sheet.
    */
   async notifySealedBidInvitation(
     vendorEmail: string,
     vendorName: string,
     requirementTitle: string,
-    auctionId: string,
+    requirementId: string,
     sealedBidDeadline: string,
   ) {
-    const portalUrl = `${process.env.WEB_URL || 'http://localhost:3000'}/vendor/bids`;
+    const webUrl = process.env.WEB_URL || 'http://localhost:3000';
+    const acceptUrl = `${webUrl}/vendor/invitations/${requirementId}?action=accept`;
+    const declineUrl = `${webUrl}/vendor/invitations/${requirementId}?action=decline`;
+
     return this.sendEmail({
       to: vendorEmail,
-      subject: `[WeConnect] You are invited to place a sealed bid — ${requirementTitle}`,
+      subject: `[WeConnect] Sealed Bid Invitation — ${requirementTitle}`,
       body: `
         <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#1e293b">
           <div style="background:#0f172a;padding:20px 24px;border-radius:8px 8px 0 0">
@@ -318,24 +486,29 @@ export class NotificationService {
           <div style="border:1px solid #e2e8f0;border-top:none;padding:28px;border-radius:0 0 8px 8px">
             <h2 style="color:#1e40af;margin:0 0 16px">&#128737; Sealed Bid Invitation</h2>
             <p>Dear <strong>${vendorName}</strong>,</p>
-            <p>You have been selected to participate in a <strong>sealed bid auction</strong>:</p>
+            <p>You have been selected to participate in a sealed bid auction:</p>
             <div style="background:#f1f5f9;border-left:4px solid #3b82f6;padding:14px 18px;border-radius:4px;margin:16px 0">
               <p style="margin:0;font-weight:700;font-size:15px">${requirementTitle}</p>
-              <p style="margin:6px 0 0;color:#64748b;font-size:13px">Auction ID: ${auctionId}</p>
+              <p style="margin:6px 0 0;color:#64748b;font-size:13px">Sealed Bid Deadline: ${sealedBidDeadline}</p>
             </div>
-            <p><strong>Sealed Bid Deadline:</strong> ${sealedBidDeadline}</p>
-            <p style="color:#64748b;font-size:13px">Submit your best price with a price sheet before the deadline. All bids are confidential.</p>
+            <p>Please respond to this invitation by clicking one of the buttons below:</p>
+            <div style="display:flex;gap:12px;margin:24px 0">
+              <a href="${acceptUrl}" style="display:inline-block;background:#166534;color:#fff;padding:13px 28px;border-radius:6px;text-decoration:none;font-weight:700;font-size:14px;margin-right:12px">
+                ✅ Accept Invitation
+              </a>
+              <a href="${declineUrl}" style="display:inline-block;background:#dc2626;color:#fff;padding:13px 28px;border-radius:6px;text-decoration:none;font-weight:700;font-size:14px">
+                ❌ Decline Invitation
+              </a>
+            </div>
             <div style="background:#fef3c7;border:1px solid #f59e0b;padding:12px 16px;border-radius:6px;margin:20px 0">
-              <p style="margin:0;font-size:13px;color:#92400e">&#9888;&#65039; <strong>Important:</strong> Late bids will not be accepted.</p>
+              <p style="margin:0;font-size:13px;color:#92400e">&#9888; <strong>If you accept</strong>, you will be taken to a page where you can download the material list, upload your audit report, and submit your filled price sheet before the deadline.</p>
             </div>
-            <a href="${portalUrl}" style="display:inline-block;background:#1e40af;color:#fff;padding:12px 28px;border-radius:6px;text-decoration:none;font-weight:700">Place Sealed Bid &rarr;</a>
-            <hr style="border:none;border-top:1px solid #e2e8f0;margin:28px 0"/>
-            <h3 style="margin:0 0 12px">&#128203; What Happens Next</h3>
+            <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0"/>
             <ol style="color:#475569;font-size:13px;padding-left:20px;line-height:2">
-              <li>Submit sealed bid (price + Excel sheet) before deadline</li>
-              <li>WeConnect reviews and shortlists vendors</li>
+              <li>Accept invitation &amp; download the cleaned material list</li>
+              <li>Conduct site audit and upload your report</li>
+              <li>Submit your filled price sheet with your sealed bid</li>
               <li>Shortlisted vendors join the <strong>Live Open Auction</strong></li>
-              <li>Highest bidder wins &rarr; Final quote &rarr; Payment &rarr; Pickup</li>
             </ol>
             <p style="color:#94a3b8;font-size:12px;margin-top:24px">— WeConnect Platform</p>
           </div>

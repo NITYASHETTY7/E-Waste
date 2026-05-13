@@ -86,7 +86,15 @@ export class AuctionsService {
       extensionMinutes?: number;
     },
   ) {
-    return this.prisma.auction.update({
+    const existing = await this.prisma.auction.findUnique({ where: { id }, select: { status: true } });
+    if (!existing) throw new NotFoundException('Auction not found');
+
+    // Preserve current status if already in an active phase; only set UPCOMING for DRAFT
+    const nextStatus = existing.status === AuctionStatus.DRAFT
+      ? AuctionStatus.UPCOMING
+      : existing.status;
+
+    const updated = await this.prisma.auction.update({
       where: { id },
       data: {
         sealedPhaseStart: new Date(data.sealedPhaseStart),
@@ -95,12 +103,52 @@ export class AuctionsService {
         openPhaseEnd: new Date(data.openPhaseEnd),
         ...(data.tickSize && { tickSize: data.tickSize }),
         ...(data.maxTicks && { maxTicks: data.maxTicks }),
-        ...(data.extensionMinutes && {
-          extensionMinutes: data.extensionMinutes,
-        }),
-        status: AuctionStatus.UPCOMING,
+        ...(data.extensionMinutes && { extensionMinutes: data.extensionMinutes }),
+        status: nextStatus,
+      },
+      include: { client: { include: { users: true } } },
+    });
+
+    const clientUser = updated.client?.users?.[0];
+    if (clientUser?.email) {
+      const configureUrl = `${process.env.WEB_URL || 'http://localhost:3000'}/client/listings/${updated.requirementId || id}/configure-live`;
+      await this.notifications.notifyClientLiveAuctionApproval(
+        clientUser.email,
+        clientUser.name,
+        updated.title,
+        configureUrl
+      ).catch(console.error);
+    }
+
+    return updated;
+  }
+
+  async approveLiveAuction(id: string) {
+    const auction = await this.prisma.auction.update({
+      where: { id },
+      data: { status: AuctionStatus.OPEN_PHASE }, // Optionally set state to OPEN_PHASE or just UPCOMING.
+      include: {
+        client: true,
+        bids: { include: { vendor: { select: { id: true, name: true, email: true } } } },
       },
     });
+
+    if (!auction) throw new NotFoundException('Auction not found');
+
+    const approvedBids = auction.bids.filter(b => b.phase === BidPhase.SEALED && b.clientStatus === 'approved');
+
+    for (const bid of approvedBids) {
+      if (bid.vendor?.email) {
+        await this.notifications.notifyLiveAuctionApproved(
+          bid.vendor.email,
+          bid.vendor.name,
+          auction.title,
+          `${process.env.WEB_URL || 'http://localhost:3000'}/vendor/marketplace/${auction.requirementId || auction.id}`
+        ).catch(console.error);
+      }
+    }
+
+    return { success: true, message: 'Live auction approved and vendors notified' };
   }
 
   async submitSealedBid(

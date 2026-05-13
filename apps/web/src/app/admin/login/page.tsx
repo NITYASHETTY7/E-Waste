@@ -40,8 +40,8 @@ export default function AdminLogin() {
   };
 
   const loadDemoAdmin = () => {
-    setLoginEmail(process.env.ADMIN_EMAIL as string);
-    setLoginPassword("admin123");
+    setLoginEmail("admin@weconnect.com");
+    setLoginPassword("password");
   };
 
   return (

@@ -128,6 +128,29 @@ export class UsersService {
     return safe;
   }
 
+  async createAdmin(data: { email: string; name: string; password: string }) {
+    const existing = await this.prisma.user.findUnique({ where: { email: data.email } });
+    if (existing) throw new ConflictException('Email already registered');
+
+    const { hash } = await import('bcryptjs');
+    const passwordHash = await hash(data.password, 10);
+
+    const user = await this.prisma.user.create({
+      data: {
+        email: data.email,
+        name: data.name,
+        passwordHash,
+        role: 'ADMIN',
+        isActive: true,
+        emailVerified: true,
+        phoneVerified: true,
+      },
+    });
+
+    const { passwordHash: _, ...safe } = user as any;
+    return safe;
+  }
+
   async deleteMe(userId: string) {
     await this.prisma.user.delete({ where: { id: userId } });
     return { success: true };

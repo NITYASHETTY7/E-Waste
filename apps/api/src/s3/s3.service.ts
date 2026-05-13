@@ -4,6 +4,7 @@ import {
   GetObjectCommand,
   DeleteObjectCommand,
   PutObjectCommand,
+  ListObjectsV2Command,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { randomUUID } from 'crypto';
@@ -74,5 +75,26 @@ export class S3Service {
   async delete(key: string, bucket?: string): Promise<void> {
     const b = bucket || this.privateBucket;
     await this.s3.send(new DeleteObjectCommand({ Bucket: b, Key: key }));
+  }
+
+  async listObjects(
+    prefix: string,
+    bucket?: string,
+  ): Promise<Array<{ key: string; size: number; lastModified: Date }>> {
+    const b = bucket || this.privateBucket;
+    const response = await this.s3.send(
+      new ListObjectsV2Command({ Bucket: b, Prefix: prefix }),
+    );
+    return (response.Contents || [])
+      .filter(obj => obj.Key && !obj.Key.endsWith('/'))
+      .map(obj => ({
+        key: obj.Key!,
+        size: obj.Size || 0,
+        lastModified: obj.LastModified || new Date(),
+      }));
+  }
+
+  getPrivateBucket(): string {
+    return this.privateBucket;
   }
 }

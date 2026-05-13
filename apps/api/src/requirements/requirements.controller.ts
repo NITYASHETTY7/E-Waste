@@ -9,9 +9,10 @@ import {
   UseGuards,
   Request,
   UploadedFile,
+  UploadedFiles,
   UseInterceptors,
 } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
+import { FileInterceptor, FileFieldsInterceptor } from '@nestjs/platform-express';
 import { RequirementsService } from './requirements.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import {
@@ -65,14 +66,121 @@ export class RequirementsController {
     return this.svc.findOne(id);
   }
 
-  // Admin uploads cleaned / standardised sheet
+  // Admin uploads cleaned / standardised sheet + selects invited vendors
   @Post(':id/processed-sheet')
   @UseInterceptors(FileInterceptor('file'))
   uploadProcessed(
     @Param('id') id: string,
     @UploadedFile() file: Express.Multer.File,
+    @Body() body: any,
   ) {
-    return this.svc.uploadProcessedSheet(id, file);
+    let vendorIds: string[] = [];
+    if (body.vendorIds) {
+      try {
+        vendorIds =
+          typeof body.vendorIds === 'string'
+            ? JSON.parse(body.vendorIds)
+            : body.vendorIds;
+      } catch {
+        vendorIds = [];
+      }
+    }
+    return this.svc.uploadProcessedSheet(id, file, vendorIds);
+  }
+
+  // Admin rejects the listing
+  @Patch(':id/reject')
+  reject(@Param('id') id: string, @Body() body: { reason?: string }) {
+    return this.svc.reject(id, body.reason);
+  }
+
+  // Vendor accepts or declines the sealed bid invitation
+  @Patch(':id/invitation-respond')
+  vendorRespond(
+    @Param('id') id: string,
+    @Body() body: { action: 'accept' | 'decline' },
+    @Request() req: any,
+  ) {
+    const vendorUserId = req.user?.userId;
+    return this.svc.vendorRespond(id, vendorUserId, body.action);
+  }
+
+  // Get a single requirement (for vendor invitation page)
+  @Get(':id/invitation')
+  getInvitation(@Param('id') id: string, @Request() req: any) {
+    return this.svc.getInvitationDetails(id, req.user?.userId);
+  }
+
+  // Vendor uploads audit docs (audit report + images + filled excel) — NO bid price
+  @Post(':id/audit-docs')
+  @UseInterceptors(FileFieldsInterceptor([
+    { name: 'auditReport', maxCount: 1 },
+    { name: 'filledExcel', maxCount: 1 },
+    { name: 'images', maxCount: 10 },
+  ]))
+  uploadAuditDocs(
+    @Param('id') id: string,
+    @UploadedFiles() files: { auditReport?: Express.Multer.File[]; filledExcel?: Express.Multer.File[]; images?: Express.Multer.File[] },
+    @Request() req: any,
+  ) {
+    return this.svc.uploadAuditDocs(id, req.user?.userId, {
+      auditReport: files.auditReport?.[0],
+      filledExcel: files.filledExcel?.[0],
+      images: files.images,
+    });
+  }
+
+  // Admin/client get all audit submissions for a requirement
+  @Get(':id/audit-docs')
+  getAuditDocs(@Param('id') id: string) {
+    return this.svc.getAuditDocs(id);
+  }
+
+  // Admin approves or rejects a vendor's audit submission
+  @Patch(':id/audit-docs/:docId/review')
+  reviewAuditDoc(
+    @Param('id') id: string,
+    @Param('docId') docId: string,
+    @Body() body: { action: 'approve' | 'reject'; remarks?: string },
+  ) {
+    return this.svc.reviewAuditDoc(id, docId, body.action, body.remarks);
+  }
+
+  // Admin creates sealed bid event → notifies approved vendors
+  @Post(':id/sealed-bid-event')
+  createSealedBidEvent(
+    @Param('id') id: string,
+    @Body() body: { sealedBidDeadline: string },
+  ) {
+    return this.svc.createSealedBidEvent(id, body.sealedBidDeadline);
+  }
+
+  // Vendor submits sealed bid price (after audit approved + event created)
+  @Post(':id/sealed-bid')
+  submitSealedBid(
+    @Param('id') id: string,
+    @Body() body: { amount: number; remarks?: string },
+    @Request() req: any,
+  ) {
+    return this.svc.submitSealedBid(id, req.user?.userId, Number(body.amount), body.remarks);
+  }
+
+  // Admin/client get all sealed bids for a requirement
+  @Get(':id/sealed-bids')
+  getSealedBids(@Param('id') id: string) {
+    return this.svc.getSealedBids(id);
+  }
+
+  // Admin notifies client to approve live auction params
+  @Post(':id/notify-client-live')
+  notifyClientForLiveApproval(@Param('id') id: string) {
+    return this.svc.notifyClientForLiveApproval(id);
+  }
+
+  // Client approves live auction → vendors get notified
+  @Patch(':id/client-approve-live')
+  clientApproveLive(@Param('id') id: string) {
+    return this.svc.clientApproveLive(id);
   }
 
   // Client approves the processed sheet with target price

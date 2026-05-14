@@ -8,7 +8,11 @@ import { useAuctionSocket } from './useAuctionSocket';
 export function useAuction(listingId: string) {
   const { listings, bids, addBid, editListing, currentUser, addNotification } = useApp();
   const listing = listings.find(l => l.id === listingId);
-  const auctionBids = bids.filter(b => b.listingId === listingId).sort((a, b) => b.amount - a.amount);
+  const auctionBids = bids.filter(b =>
+    b.listingId === listingId ||
+    (listing?.auctionId && b.auctionId === listing.auctionId) ||
+    b.auctionId === listingId
+  ).sort((a, b) => b.amount - a.amount);
   const currentHighBid = auctionBids[0];
   const currentHighAmount = currentHighBid?.amount || listing?.basePrice || 0;
 

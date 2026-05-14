@@ -15,16 +15,11 @@ export default function AdminSealedBids() {
 
   const sealedPhaseAuctions = listings.filter(l => l.auctionPhase === "sealed_bid" || l.auctionPhase === "open_configuration");
 
-  const fetchBids = async (auctionId: string) => {
+  const fetchBids = async (requirementId: string) => {
     try {
       setLoading(true);
-      const res = await api.get(`/auctions/bids?auctionId=${auctionId}`);
-      // Filter for sealed bids only
-      const sealedBids = res.data.filter((b: any) => b.phase === "SEALED");
-      
-      // Auto-sort by amount (highest first for seller/client. Or lowest first? Usually e-waste seller wants HIGHEST price. The prompt says "lowest/best price at top = Rank 1" but for selling scrap, highest is best. Assuming HIGHEST is best for e-waste selling)
-      // Standard auction: Highest bidder wins.
-      sealedBids.sort((a: any, b: any) => b.amount - a.amount);
+      const res = await api.get(`/requirements/${requirementId}/sealed-bids`);
+      const sealedBids = (res.data || []).slice().sort((a: any, b: any) => b.amount - a.amount);
       
       // Assign ranks based on sorted position
       sealedBids.forEach((b: any, i: number) => b.calculatedRank = i + 1);
@@ -54,11 +49,15 @@ export default function AdminSealedBids() {
 
   const handleShareWithClient = async () => {
     if (!selectedAuction) return;
+    const shortlistedIds = bids.filter(b => b.isShortlisted).map(b => b.id);
+    if (shortlistedIds.length === 0) {
+      showToast("Please shortlist at least one bid before sharing.", "error");
+      return;
+    }
     try {
       setSubmitting(true);
-      const shortlistedIds = bids.filter(b => b.isShortlisted).map(b => b.id);
-      await api.patch(`/auctions/${selectedAuction}/share-with-client`, { bidIds: shortlistedIds });
-      showToast("Shortlisted bids successfully shared with client.");
+      await api.patch(`/requirements/${selectedAuction}/share-bids-with-client`, { bidIds: shortlistedIds });
+      showToast("Shortlisted bids shared with client via email and in-app notification.");
     } catch (err: any) {
       showToast(err.response?.data?.message || "Failed to share bids.", "error");
     } finally {

@@ -6,13 +6,14 @@ import Link from "next/link";
 import { formatDate, formatTime } from "@/utils/format";
 
 function InvitationCard({ listing, status }: { listing: Listing; status: "pending" | "accepted" | "declined"; myId?: string }) {
-  const borderColor = status === "accepted" ? "border-emerald-500/30 bg-emerald-50/10" : status === "declined" ? "border-red-500/20 bg-red-50/5 opacity-70" : "border-blue-500/20 bg-blue-50/10";
-  const iconColor = status === "accepted" ? "bg-emerald-600" : status === "declined" ? "bg-red-500" : "bg-blue-600";
-  const icon = status === "accepted" ? "check_circle" : status === "declined" ? "cancel" : "mail";
-  const badgeColor = status === "accepted" ? "bg-emerald-600" : status === "declined" ? "bg-red-500" : "bg-blue-600";
-  const badgeText = status === "accepted" ? "Accepted" : status === "declined" ? "Declined" : "New Invitation";
+  const isLive = listing.auctionPhase === 'live';
+  const borderColor = isLive ? "border-red-500/30 bg-red-50/10" : status === "accepted" ? "border-emerald-500/30 bg-emerald-50/10" : status === "declined" ? "border-red-500/20 bg-red-50/5 opacity-70" : "border-blue-500/20 bg-blue-50/10";
+  const iconColor = isLive ? "bg-red-600" : status === "accepted" ? "bg-emerald-600" : status === "declined" ? "bg-red-500" : "bg-blue-600";
+  const icon = isLive ? "sensors" : status === "accepted" ? "check_circle" : status === "declined" ? "cancel" : "mail";
+  const badgeColor = isLive ? "bg-red-600" : status === "accepted" ? "bg-emerald-600" : status === "declined" ? "bg-red-500" : "bg-blue-600";
+  const badgeText = isLive ? "Live Now" : status === "accepted" ? "Accepted" : status === "declined" ? "Declined" : "New Invitation";
   const linkHref = status === "accepted" ? `/vendor/invitations/${listing.id}` : `/vendor/marketplace/${listing.id}`;
-  const linkText = status === "accepted" ? "Continue Process" : status === "declined" ? "View Details" : "View Invitation";
+  const linkText = isLive ? "View Invitation & Live Auction" : status === "accepted" ? "Continue Process" : status === "declined" ? "View Details" : "View Invitation";
 
   return (
     <div className={`card p-0 flex flex-col group overflow-hidden border-2 ${borderColor}`}>
@@ -72,9 +73,9 @@ export default function VendorInvitations() {
   const { listings, currentUser } = useApp();
 
   const myId = currentUser?.id || "";
-  // Show all listings the vendor is invited to (pending, accepted, or declined)
+  // Show all listings the vendor is invited to (pending, accepted, or declined) — including live phase
   const invitationListings = listings.filter(l =>
-    (l.auctionPhase === 'invitation_window' || l.auctionPhase === 'sealed_bid') &&
+    (l.auctionPhase === 'invitation_window' || l.auctionPhase === 'sealed_bid' || l.auctionPhase === 'live') &&
     l.invitedVendorIds?.includes(myId)
   );
 

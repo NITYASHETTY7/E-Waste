@@ -2,23 +2,24 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useApp } from "@/context/AppContext";
-
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+import api from "@/lib/api";
 
 interface InvitationDetails {
-  listing: { title: string; category: string; weight: number; location: string };
+  id: string;
+  title: string;
+  category?: string;
+  totalWeight?: number;
+  location?: string;
   sealedBidDeadline?: string;
   sealedBidEventCreatedAt?: string;
   auditApproved: boolean;
   hasSealedBid: boolean;
-  sealedBidAmount?: number;
+  sealedBidAmount?: number | null;
 }
 
 export default function VendorSealedBidPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { currentUser } = useApp();
 
   const [details, setDetails] = useState<InvitationDetails | null>(null);
   const [loading, setLoading] = useState(true);
@@ -29,20 +30,16 @@ export default function VendorSealedBidPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!currentUser) return;
-    const token = localStorage.getItem("token");
-    fetch(`${API}/requirements/${id}/invitation-details`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => r.json())
-      .then((data) => {
+    api.get(`/requirements/${id}/invitation`)
+      .then((res) => {
+        const data = res.data;
         setDetails(data);
         if (data.hasSealedBid) setSubmitted(true);
         if (data.sealedBidAmount) setAmount(String(data.sealedBidAmount));
       })
       .catch(() => setError("Failed to load details."))
       .finally(() => setLoading(false));
-  }, [id, currentUser]);
+  }, [id]);
 
   const handleSubmit = async () => {
     const parsed = parseFloat(amount);
@@ -53,22 +50,10 @@ export default function VendorSealedBidPage() {
     setError("");
     setSubmitting(true);
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${API}/requirements/${id}/sealed-bid`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ amount: parsed, remarks: remarks || undefined }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || "Submission failed.");
-      }
+      await api.post(`/requirements/${id}/sealed-bid`, { amount: parsed, remarks: remarks || undefined });
       setSubmitted(true);
     } catch (e: any) {
-      setError(e.message || "Submission failed.");
+      setError(e?.response?.data?.message || e.message || "Submission failed.");
     } finally {
       setSubmitting(false);
     }
@@ -121,20 +106,20 @@ export default function VendorSealedBidPage() {
       {/* Listing Info */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 space-y-3">
         <h2 className="text-xs font-black uppercase tracking-widest text-slate-400">Listing Details</h2>
-        <p className="text-lg font-bold text-slate-900 dark:text-white">{details.listing.title}</p>
+        <p className="text-lg font-bold text-slate-900 dark:text-white">{details.title}</p>
         <div className="flex flex-wrap gap-4 text-sm text-slate-500">
-          <span className="flex items-center gap-1.5">
-            <span className="material-symbols-outlined text-base">category</span>
-            {details.listing.category}
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="material-symbols-outlined text-base">scale</span>
-            {details.listing.weight} kg
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="material-symbols-outlined text-base">location_on</span>
-            {details.listing.location}
-          </span>
+          {details.category && (
+            <span className="flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-base">category</span>
+              {details.category}
+            </span>
+          )}
+          {details.totalWeight && (
+            <span className="flex items-center gap-1.5">
+              <span className="material-symbols-outlined text-base">scale</span>
+              {details.totalWeight} kg
+            </span>
+          )}
         </div>
       </div>
 

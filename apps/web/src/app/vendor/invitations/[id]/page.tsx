@@ -14,6 +14,8 @@ interface InvitationDetails {
   sealedPhaseEnd?: string;
   sealedBidDeadline?: string;
   sealedBidEventCreatedAt?: string;
+  openPhaseStart?: string | null;
+  openPhaseEnd?: string | null;
   clientName?: string;
   processedSheetUrl?: string;
   isInvited: boolean;
@@ -24,6 +26,7 @@ interface InvitationDetails {
   hasSealedBid: boolean;
   sealedBidAmount?: number | null;
   auctionId?: string;
+  auctionStatus?: string | null;
   auctionLiveApprovalStatus?: string;
 }
 
@@ -33,6 +36,7 @@ export default function VendorInvitationPage() {
   const router = useRouter();
 
   const [details, setDetails] = useState<InvitationDetails | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [responding, setResponding] = useState(false);
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
@@ -56,8 +60,11 @@ export default function VendorInvitationPage() {
     try {
       const res = await api.get(`/requirements/${id}/invitation`);
       setDetails(res.data);
-    } catch {
-      showToast("Failed to load invitation details.", "error");
+      setFetchError(null);
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || "Failed to load invitation details.";
+      setFetchError(msg);
+      showToast(msg, "error");
     } finally {
       setLoading(false);
     }
@@ -119,6 +126,7 @@ export default function VendorInvitationPage() {
     <div className="max-w-2xl mx-auto py-16 text-center">
       <span className="material-symbols-outlined text-5xl text-slate-300 block mb-4">error</span>
       <h2 className="text-xl font-bold text-[color:var(--color-on-surface)]">Invitation not found</h2>
+      {fetchError && <p className="text-sm text-slate-500 mt-2">{fetchError}</p>}
     </div>
   );
 
@@ -155,8 +163,8 @@ export default function VendorInvitationPage() {
           {[
             { label: "Category", value: details.category || "—" },
             { label: "Weight", value: details.totalWeight ? `${details.totalWeight} KG` : "—" },
-            { label: "Bid Opens", value: fmtDate(details.sealedPhaseStart) },
-            { label: "Bid Closes", value: fmtDate(details.sealedBidDeadline || details.sealedPhaseEnd) },
+            { label: "Sealed Bid Opens", value: fmtDate(details.sealedPhaseStart) },
+            { label: "Sealed Bid Closes", value: fmtDate(details.sealedBidDeadline || details.sealedPhaseEnd) },
           ].map(d => (
             <div key={d.label} className="bg-[color:var(--color-surface-container-low)] rounded-xl p-3">
               <p className="text-[10px] font-black text-[color:var(--color-on-surface-variant)] uppercase tracking-widest mb-0.5">{d.label}</p>
@@ -194,34 +202,33 @@ export default function VendorInvitationPage() {
 
       {details.hasAccepted && (
         <>
-          {/* Step 1 — Download Sheet */}
-          <div className="card p-6 space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-black">1</div>
-              <h4 className="text-sm font-black uppercase tracking-widest text-[color:var(--color-on-surface-variant)]">Download Material Sheet</h4>
-            </div>
-            <p className="text-sm text-[color:var(--color-on-surface-variant)]">Download the processed material list and review it before your site visit.</p>
-            {details.processedSheetUrl ? (
-              <a href={details.processedSheetUrl} target="_blank" rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-600 text-white font-black text-sm hover:bg-blue-700 transition-all">
-                <span className="material-symbols-outlined text-sm">download</span>Download Processed Material Sheet
-              </a>
-            ) : (
-              <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-700 flex items-center gap-2">
-                <span className="material-symbols-outlined text-sm">warning</span>Sheet not available yet.
-              </div>
-            )}
-          </div>
-
-          {/* Step 2 — Upload Audit Docs */}
+          {/* Step 1 — Upload Audit Docs (includes material sheet download) */}
           {!auditStatus || auditStatus === "pending" ? (
-            <div className={`card p-6 space-y-5 ${auditStatus === "pending" && !docsSubmitted ? "" : ""}`}>
+            <div className="card p-6 space-y-5">
               <div className="flex items-center gap-3">
-                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-black text-white ${auditStatus === "pending" ? "bg-amber-500" : "bg-slate-400"}`}>2</div>
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-black text-white ${auditStatus === "pending" ? "bg-amber-500" : "bg-blue-600"}`}>1</div>
                 <h4 className="text-sm font-black uppercase tracking-widest text-[color:var(--color-on-surface-variant)]">
                   {auditStatus === "pending" ? "Audit Docs Submitted — Awaiting Admin Review" : "Upload Audit Documents"}
                 </h4>
               </div>
+
+              {/* Material sheet download (embedded in step 1) */}
+              {!auditStatus && (
+                <div className="flex items-center justify-between gap-4 px-4 py-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
+                  <div>
+                    <p className="text-sm font-bold text-blue-700 dark:text-blue-400">Material Sheet</p>
+                    <p className="text-xs text-blue-600 dark:text-blue-400 mt-0.5">Download and review before uploading your audit report</p>
+                  </div>
+                  {details.processedSheetUrl ? (
+                    <a href={details.processedSheetUrl} target="_blank" rel="noopener noreferrer"
+                      className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 text-white font-bold text-xs hover:bg-blue-700 transition-all">
+                      <span className="material-symbols-outlined text-sm">download</span>Download
+                    </a>
+                  ) : (
+                    <span className="text-xs text-amber-600 font-bold">Not available yet</span>
+                  )}
+                </div>
+              )}
 
               {auditStatus === "pending" ? (
                 <div className="text-center py-8">
@@ -296,7 +303,7 @@ export default function VendorInvitationPage() {
           ) : auditStatus === "rejected" ? (
             <div className="card p-6 space-y-4 border-2 border-red-200">
               <div className="flex items-center gap-3">
-                <div className="w-7 h-7 rounded-full bg-red-500 text-white flex items-center justify-center text-xs font-black">2</div>
+                <div className="w-7 h-7 rounded-full bg-red-500 text-white flex items-center justify-center text-xs font-black">1</div>
                 <h4 className="text-sm font-black uppercase tracking-widest text-red-600">Audit Documents Rejected</h4>
               </div>
               <div className="p-4 bg-red-50 rounded-xl">
@@ -311,12 +318,12 @@ export default function VendorInvitationPage() {
             </div>
           ) : null}
 
-          {/* Step 3 — Sealed Bid (only after audit approved AND event created) */}
+          {/* Step 2 — Sealed Bid (only after audit approved AND event created) */}
           {details.auditApproved && (
             <div className={`card p-6 space-y-4 ${details.sealedBidEventCreatedAt ? "border-2 border-purple-200" : "opacity-60"}`}>
               <div className="flex items-center gap-3">
                 <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-black text-white ${details.hasSealedBid ? "bg-emerald-600" : details.sealedBidEventCreatedAt ? "bg-purple-600" : "bg-slate-400"}`}>
-                  {details.hasSealedBid ? <span className="material-symbols-outlined text-xs">check</span> : "3"}
+                  {details.hasSealedBid ? <span className="material-symbols-outlined text-xs">check</span> : "2"}
                 </div>
                 <h4 className="text-sm font-black uppercase tracking-widest text-[color:var(--color-on-surface-variant)]">Submit Sealed Bid</h4>
               </div>
@@ -347,28 +354,38 @@ export default function VendorInvitationPage() {
             </div>
           )}
 
-          {/* Step 4 — Live Auction notification */}
-          {details.hasSealedBid && (
-            <div className={`card p-6 space-y-4 ${details.auctionLiveApprovalStatus === 'approved' ? "border-2 border-emerald-300" : "opacity-60"}`}>
-              <div className="flex items-center gap-3">
-                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-black text-white ${details.auctionLiveApprovalStatus === 'approved' ? "bg-emerald-600" : "bg-slate-400"}`}>4</div>
-                <h4 className="text-sm font-black uppercase tracking-widest text-[color:var(--color-on-surface-variant)]">Open Auction Approval</h4>
+          {/* Live Auction notice (no step number) */}
+          {details.hasSealedBid && details.auctionLiveApprovalStatus === 'approved' && (
+            <div className="card p-6 space-y-4 border-2 border-emerald-300">
+              <div className="text-center py-4">
+                <span className="material-symbols-outlined text-5xl text-emerald-400 block mb-3">celebration</span>
+                <p className="font-bold text-emerald-700">You're approved for the live open auction!</p>
               </div>
-              {details.auctionLiveApprovalStatus === 'approved' ? (
-                <div className="text-center py-6">
-                  <span className="material-symbols-outlined text-5xl text-emerald-400 block mb-3">celebration</span>
-                  <p className="font-bold text-emerald-700">You're approved for the live open auction!</p>
-                  <p className="text-sm text-slate-500 mt-1">Check your email and notifications for auction details.</p>
-                  <button onClick={() => router.push(`/vendor/marketplace/${id}`)} className="btn-primary mt-4 inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white border-none py-3 px-6 rounded-xl text-sm font-black">
-                    <span className="material-symbols-outlined text-sm">sensors</span>View Live Auction
-                  </button>
-                </div>
-              ) : (
-                <div className="text-center py-6">
-                  <span className="material-symbols-outlined text-4xl text-slate-300 block mb-2">pending</span>
-                  <p className="text-sm font-bold text-slate-500">Awaiting client approval of live auction parameters.</p>
+              {(details.openPhaseStart || details.openPhaseEnd) && (
+                <div className="grid grid-cols-2 gap-3">
+                  {details.openPhaseStart && (
+                    <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-3 text-center">
+                      <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-0.5">Live Bidding Starts</p>
+                      <p className="text-sm font-bold text-emerald-800 dark:text-emerald-300">{fmtDate(details.openPhaseStart)}</p>
+                    </div>
+                  )}
+                  {details.openPhaseEnd && (
+                    <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-3 text-center">
+                      <p className="text-[10px] font-black text-red-600 uppercase tracking-widest mb-0.5">Auction Ends</p>
+                      <p className="text-sm font-bold text-red-800 dark:text-red-300">{fmtDate(details.openPhaseEnd)}</p>
+                    </div>
+                  )}
                 </div>
               )}
+              <button onClick={() => router.push(`/vendor/live-auction`)} className="btn-primary w-full py-3 rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white border-none">
+                <span className="material-symbols-outlined text-sm">sensors</span>Join Live Auction
+              </button>
+            </div>
+          )}
+          {details.hasSealedBid && details.auctionLiveApprovalStatus !== 'approved' && (
+            <div className="px-5 py-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 flex items-center gap-3">
+              <span className="material-symbols-outlined text-slate-400">pending</span>
+              <p className="text-sm text-slate-500 font-bold">Awaiting client approval of live auction parameters.</p>
             </div>
           )}
         </>

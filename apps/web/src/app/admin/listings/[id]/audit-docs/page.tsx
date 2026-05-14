@@ -3,8 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
-
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+import api from "@/lib/api";
 
 interface AuditDoc {
   id: string;
@@ -43,6 +42,7 @@ export default function AdminAuditDocsPage() {
   const [docs, setDocs] = useState<AuditDoc[]>([]);
   const [listing, setListing] = useState<ListingDetails | null>(null);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [reviewingId, setReviewingId] = useState<string | null>(null);
   const [remarks, setRemarks] = useState("");
   const [saving, setSaving] = useState(false);
@@ -50,6 +50,7 @@ export default function AdminAuditDocsPage() {
 
   // Sealed bid event modal
   const [sbeModal, setSbeModal] = useState(false);
+  const [sbeStart, setSbeStart] = useState("");
   const [sbeDeadline, setSbeDeadline] = useState("");
   const [creatingSbe, setCreatingSbe] = useState(false);
 
@@ -59,15 +60,15 @@ export default function AdminAuditDocsPage() {
   };
 
   const fetchData = useCallback(async () => {
-    const token = localStorage.getItem("token");
+    setFetchError(null);
     try {
       const [docsRes, reqRes] = await Promise.all([
-        fetch(`${API}/requirements/${id}/audit-docs`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch(`${API}/requirements/${id}`, { headers: { Authorization: `Bearer ${token}` } }),
+        api.get(`/requirements/${id}/audit-docs`).catch((e: any) => { throw new Error(e?.response?.data?.message || e?.message || "Failed to load audit docs"); }),
+        api.get(`/requirements/${id}`).catch(() => null),
       ]);
-      if (docsRes.ok) setDocs(await docsRes.json());
-      if (reqRes.ok) {
-        const data = await reqRes.json();
+      setDocs(docsRes.data || []);
+      if (reqRes) {
+        const data = reqRes.data;
         setListing({
           id: data.id,
           title: data.title,
@@ -80,8 +81,8 @@ export default function AdminAuditDocsPage() {
           sealedBidDeadline: data.sealedBidDeadline,
         });
       }
-    } catch {
-      // ignore
+    } catch (err: any) {
+      setFetchError(err?.message || "Could not reach server");
     } finally {
       setLoading(false);
     }
@@ -101,13 +102,7 @@ export default function AdminAuditDocsPage() {
     }
     setSaving(true);
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${API}/requirements/${id}/audit-docs/${docId}/review`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ action, remarks: remarks || undefined }),
-      });
-      if (!res.ok) throw new Error();
+      await api.patch(`/requirements/${id}/audit-docs/${docId}/review`, { action, remarks: remarks || undefined });
       showToast(action === "approve" ? "Audit doc approved." : "Audit doc rejected.");
       setReviewingId(null);
       setRemarks("");
@@ -120,21 +115,23 @@ export default function AdminAuditDocsPage() {
   };
 
   const handleCreateSealedBidEvent = async () => {
-    if (!sbeDeadline) {
-      showToast("Please set a deadline.", "error");
+    if (!sbeStart || !sbeDeadline) {
+      showToast("Please set both start time and deadline.", "error");
+      return;
+    }
+    if (new Date(sbeDeadline) <= new Date(sbeStart)) {
+      showToast("Deadline must be after start time.", "error");
       return;
     }
     setCreatingSbe(true);
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${API}/requirements/${id}/sealed-bid-event`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ sealedBidDeadline: new Date(sbeDeadline).toISOString() }),
+      await api.post(`/requirements/${id}/sealed-bid-event`, {
+        sealedBidStart: new Date(sbeStart).toISOString(),
+        sealedBidDeadline: new Date(sbeDeadline).toISOString(),
       });
-      if (!res.ok) throw new Error();
       showToast("Sealed bid event created! Vendors notified.");
       setSbeModal(false);
+      setSbeStart("");
       setSbeDeadline("");
       await fetchData();
     } catch {
@@ -219,8 +216,20 @@ export default function AdminAuditDocsPage() {
         ))}
       </div>
 
+      {/* Error banner */}
+      {fetchError && (
+        <div className="px-5 py-4 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 flex items-start gap-3">
+          <span className="material-symbols-outlined text-red-500 text-xl shrink-0 mt-0.5">error</span>
+          <div>
+            <p className="font-bold text-red-700 dark:text-red-400 text-sm">Could not load audit documents</p>
+            <p className="text-xs text-red-600 dark:text-red-400 mt-0.5">{fetchError}</p>
+            <button onClick={fetchData} className="mt-2 text-xs font-bold text-red-700 dark:text-red-400 underline">Retry</button>
+          </div>
+        </div>
+      )}
+
       {/* Audit doc cards */}
-      {docs.length === 0 ? (
+      {!fetchError && docs.length === 0 ? (
         <div className="text-center py-16 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
           <span className="material-symbols-outlined text-5xl text-slate-300 block mb-3">folder_open</span>
           <p className="text-slate-500 font-bold">No audit documents submitted yet.</p>
@@ -384,16 +393,30 @@ export default function AdminAuditDocsPage() {
 
             <div className="space-y-1.5">
               <label className="text-sm font-bold text-slate-700 dark:text-slate-300">
-                Sealed Bid Deadline <span className="text-red-500">*</span>
+                Bidding Start Time <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="datetime-local"
+                value={sbeStart}
+                onChange={e => setSbeStart(e.target.value)}
+                min={new Date().toISOString().slice(0, 16)}
+                className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-bold focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition"
+              />
+              <p className="text-[11px] text-slate-400">When vendors can begin submitting sealed bids.</p>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm font-bold text-slate-700 dark:text-slate-300">
+                Bidding Deadline <span className="text-red-500">*</span>
               </label>
               <input
                 type="datetime-local"
                 value={sbeDeadline}
                 onChange={e => setSbeDeadline(e.target.value)}
-                min={new Date().toISOString().slice(0, 16)}
+                min={sbeStart || new Date().toISOString().slice(0, 16)}
                 className="w-full px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white font-bold focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition"
               />
-              <p className="text-[11px] text-slate-400">Vendors must submit their sealed bid before this deadline.</p>
+              <p className="text-[11px] text-slate-400">Vendors must submit their sealed bid before this time.</p>
             </div>
 
             <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl px-4 py-3 text-sm text-amber-700 dark:text-amber-400 font-bold">
@@ -406,7 +429,7 @@ export default function AdminAuditDocsPage() {
                 className="flex-1 py-3 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800">
                 Cancel
               </button>
-              <button onClick={handleCreateSealedBidEvent} disabled={!sbeDeadline || creatingSbe}
+              <button onClick={handleCreateSealedBidEvent} disabled={!sbeStart || !sbeDeadline || creatingSbe}
                 className="flex-1 py-3 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2">
                 {creatingSbe
                   ? <><span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>Creating...</>

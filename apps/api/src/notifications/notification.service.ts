@@ -137,16 +137,42 @@ export class NotificationService {
     vendorName: string,
     auctionTitle: string,
     auctionDetailsUrl: string,
+    openPhaseStart?: string | null,
+    openPhaseEnd?: string | null,
   ) {
+    const webUrl = process.env.WEB_URL || 'http://localhost:3000';
+    const timingBlock = (openPhaseStart || openPhaseEnd) ? `
+      <div style="background:#f0fdf4;border:1px solid #86efac;padding:14px 18px;border-radius:6px;margin:16px 0">
+        ${openPhaseStart ? `<p style="margin:0 0 6px;font-size:13px;color:#166534"><strong>🟢 Open Bidding Starts:</strong> ${openPhaseStart}</p>` : ''}
+        ${openPhaseEnd ? `<p style="margin:0;font-size:13px;color:#166534"><strong>🔴 Open Bidding Ends:</strong> ${openPhaseEnd}</p>` : ''}
+      </div>` : '';
+
     return this.sendEmail({
       to: vendorEmail,
-      subject: `[WeConnect] Approved for Live Auction — ${auctionTitle}`,
+      subject: `[WeConnect] You're Approved for Live Auction — ${auctionTitle}`,
       body: `
-        <h2>Live Auction Approval</h2>
-        <p>Hello ${vendorName},</p>
-        <p>You have been approved to participate in the live open auction for <strong>${auctionTitle}</strong>.</p>
-        <p><a href="${auctionDetailsUrl}">View Auction Details →</a></p>
-        <br/><p>— WeConnect Platform</p>
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#1e293b">
+          <div style="background:#0f172a;padding:20px 24px;border-radius:8px 8px 0 0">
+            <h1 style="color:#fff;margin:0;font-size:20px">WeConnect Platform</h1>
+          </div>
+          <div style="border:1px solid #e2e8f0;border-top:none;padding:28px;border-radius:0 0 8px 8px">
+            <div style="background:#f0fdf4;border:1px solid #86efac;padding:16px 20px;border-radius:8px;margin-bottom:20px">
+              <h2 style="color:#166534;margin:0">🎉 You're Approved for Live Open Auction!</h2>
+            </div>
+            <p>Dear <strong>${vendorName}</strong>,</p>
+            <p>Congratulations! You have been approved to participate in the live open auction for:</p>
+            <div style="background:#f1f5f9;border-left:4px solid #166534;padding:14px 18px;border-radius:4px;margin:16px 0">
+              <p style="margin:0;font-weight:700;font-size:15px">${auctionTitle}</p>
+            </div>
+            ${timingBlock}
+            <p>Join the live auction floor to place your open bids in real time.</p>
+            <a href="${webUrl}/vendor/live-auction" style="display:inline-block;background:#166534;color:#fff;padding:13px 28px;border-radius:6px;text-decoration:none;font-weight:700;font-size:14px;margin:16px 0">
+              Join Live Auction →
+            </a>
+            <p style="color:#64748b;font-size:13px;margin-top:16px">You can also view full auction details at: <a href="${auctionDetailsUrl}" style="color:#3b82f6">${auctionDetailsUrl}</a></p>
+            <p style="color:#94a3b8;font-size:12px;margin-top:24px">— WeConnect Platform</p>
+          </div>
+        </div>
       `,
     });
   }

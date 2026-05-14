@@ -17,8 +17,11 @@ export default function VendorMarketplace() {
   const now = new Date();
 
   const getAuctionStatus = (listing: Listing) => {
-    if (listing.auctionPhase === 'live') return "ongoing";
     if (listing.auctionPhase === 'completed') return "past";
+    if (listing.auctionPhase === 'live') {
+      if (listing.auctionEndDate && now > new Date(listing.auctionEndDate)) return "past";
+      return "ongoing";
+    }
     if (!listing.auctionStartDate || !listing.auctionEndDate) return "ongoing";
     const start = new Date(listing.auctionStartDate);
     const end = new Date(listing.auctionEndDate);
@@ -117,7 +120,7 @@ export default function VendorMarketplace() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <h3 className="font-headline font-bold text-[color:var(--color-on-surface)] text-lg leading-tight line-clamp-1 group-hover:text-[color:var(--color-primary)] transition-colors">{listing.title}</h3>
-                        {listing.auctionPhase === 'live' && (
+                        {listing.auctionPhase === 'live' && !(listing.auctionEndDate && now > new Date(listing.auctionEndDate)) && (
                           <span className="flex items-center gap-1.5 px-2 py-0.5 bg-red-50 text-red-600 border border-red-200 rounded text-[9px] font-black uppercase animate-pulse shrink-0">
                             <span className="w-1.5 h-1.5 rounded-full bg-red-600" />
                             Live
@@ -136,9 +139,21 @@ export default function VendorMarketplace() {
                      <span className="font-semibold">{listing.weight} KG</span>
                    </div>
                    <div className="flex items-center gap-2 text-xs text-[color:var(--color-on-surface-variant)]">
-                     <span className="material-symbols-outlined text-sm text-[color:var(--color-primary)]">calendar_clock</span>
-                     <span>Starts: {listing.auctionStartDate ? formatDate(listing.auctionStartDate) : "Pending"}</span>
+                     <span className="material-symbols-outlined text-sm text-[color:var(--color-primary)]">location_on</span>
+                     <span>{listing.location || "Location TBD"}</span>
                    </div>
+                   {listing.auctionStartDate && (
+                     <div className="flex items-center gap-2 text-xs text-[color:var(--color-on-surface-variant)]">
+                       <span className="material-symbols-outlined text-sm text-[color:var(--color-primary)]">calendar_today</span>
+                       <span>Starts: {formatDate(listing.auctionStartDate)}</span>
+                     </div>
+                   )}
+                   {listing.auctionEndDate && (
+                     <div className="flex items-center gap-2 text-xs text-[color:var(--color-on-surface-variant)]">
+                       <span className="material-symbols-outlined text-sm text-[color:var(--color-primary)]">event_busy</span>
+                       <span>Ends: {formatDate(listing.auctionEndDate)}</span>
+                     </div>
+                   )}
                  </div>
 
                  <div className="flex items-center justify-between bg-slate-50 border border-slate-100 rounded-xl mb-4 mt-auto p-3 dark:bg-slate-950 dark:border-slate-800">
@@ -165,10 +180,10 @@ export default function VendorMarketplace() {
                         <span className="text-sm font-bold text-[color:var(--color-primary)]">Bid Active</span>
                       </div>
                       {listing.auctionPhase === 'live' && (
-                        <div className="btn-primary w-full py-3 rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg bg-red-600 hover:bg-red-700">
+                        <Link href="/vendor/live-auction" className="btn-primary w-full py-3 rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg bg-red-600 hover:bg-red-700" onClick={e => e.stopPropagation()}>
                           <span className="material-symbols-outlined text-sm">sensors</span>
                           Join Live Auction
-                        </div>
+                        </Link>
                       )}
                     </div>
                  ) : (

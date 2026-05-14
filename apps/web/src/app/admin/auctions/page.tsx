@@ -5,8 +5,6 @@ import { useApp } from "@/context/AppContext";
 import Link from "next/link";
 import api from "@/lib/api";
 
-const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-
 const PHASE_ORDER = ["invitation_window", "sealed_bid", "open_configuration", "live", "completed"] as const;
 type Phase = typeof PHASE_ORDER[number];
 
@@ -23,7 +21,7 @@ export default function AdminAuctions() {
   const [filter, setFilter] = useState<Phase | "all">("all");
   const [search, setSearch] = useState("");
   const [configModal, setConfigModal] = useState<{isOpen: boolean, listingId: string | null}>({isOpen: false, listingId: null});
-  const [configForm, setConfigForm] = useState({ tickSize: "", maxTick: "", extensionTime: "3", openPhaseStart: "", openPhaseEnd: "", basePrice: "", targetPrice: "" });
+  const [configForm, setConfigForm] = useState({ tickSize: "", maxTick: "", extensionTime: "3" });
   const [launching, setLaunching] = useState(false);
   const [notifyingClient, setNotifyingClient] = useState<string | null>(null);
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
@@ -37,13 +35,8 @@ export default function AdminAuctions() {
     const requirementId = listing.requirementId || listing.id;
     setNotifyingClient(requirementId);
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`${API}/requirements/${requirementId}/notify-client-live`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error();
-      showToast("Client notified for live auction approval.");
+      await api.post(`/requirements/${requirementId}/notify-client-live`);
+      showToast("Client notified for live auction approval via email and in-app notification.");
       await refreshData();
     } catch {
       showToast("Failed to notify client.", "error");
@@ -153,7 +146,7 @@ export default function AdminAuctions() {
                         <button
                           onClick={() => {
                             setConfigModal({ isOpen: true, listingId: listing.id });
-                            setConfigForm({ tickSize: "", maxTick: "", extensionTime: "3", openPhaseStart: "", openPhaseEnd: "", basePrice: "", targetPrice: "" });
+                            setConfigForm({ tickSize: "", maxTick: "", extensionTime: "3" });
                           }}
                           className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-orange-600 text-white text-xs font-black uppercase hover:bg-orange-700 transition-colors"
                         >
@@ -184,7 +177,7 @@ export default function AdminAuctions() {
                       <button
                         onClick={() => {
                           setConfigModal({ isOpen: true, listingId: listing.id });
-                          setConfigForm({ tickSize: "", maxTick: "", extensionTime: "3", openPhaseStart: "", openPhaseEnd: "", basePrice: "", targetPrice: "" });
+                          setConfigForm({ tickSize: "", maxTick: "", extensionTime: "3" });
                         }}
                         className="px-4 py-2 rounded-xl bg-orange-600 text-white text-xs font-black uppercase hover:bg-orange-700 transition-colors"
                       >
@@ -215,26 +208,9 @@ export default function AdminAuctions() {
               <p className="text-sm text-slate-500 mt-1">Set the final parameters to launch the live auction.</p>
             </div>
             
-            <div className="space-y-4 max-h-[60vh] overflow-y-auto px-1">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="label">Base Price (₹) *</label>
-                  <input type="number" className="input-base" value={configForm.basePrice} onChange={e => setConfigForm({...configForm, basePrice: e.target.value})} placeholder="e.g. 50000" />
-                </div>
-                <div>
-                  <label className="label">EMD Amount (₹) *</label>
-                  <input type="number" className="input-base" value={configForm.targetPrice} onChange={e => setConfigForm({...configForm, targetPrice: e.target.value})} placeholder="e.g. 5000" />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="label">Start Date & Time *</label>
-                  <input type="datetime-local" className="input-base" value={configForm.openPhaseStart} onChange={e => setConfigForm({...configForm, openPhaseStart: e.target.value})} />
-                </div>
-                <div>
-                  <label className="label">End Date & Time *</label>
-                  <input type="datetime-local" className="input-base" value={configForm.openPhaseEnd} onChange={e => setConfigForm({...configForm, openPhaseEnd: e.target.value})} />
-                </div>
+            <div className="space-y-4 px-1">
+              <div className="p-3 bg-blue-50 border border-blue-100 rounded-xl text-xs text-blue-700 dark:bg-blue-950/30 dark:border-blue-900 dark:text-blue-300">
+                These governance parameters will be sent to the client as read-only. The client sets their own pricing and schedule.
               </div>
               <div>
                 <label className="label">Tick Size / Increment (₹) *</label>
@@ -264,36 +240,36 @@ export default function AdminAuctions() {
                   try {
                     const listing = listings.find(l => l.id === configModal.listingId);
                     const auctionId = listing?.auctionId;
+                    const requirementId = listing?.requirementId || listing?.id;
                     if (auctionId) {
-                      // Persist tick settings + keep existing schedule
                       await api.patch(`/auctions/${auctionId}/schedule`, {
                         sealedPhaseStart: listing.sealedBidStartDate || new Date().toISOString(),
                         sealedPhaseEnd: listing.sealedBidEndDate || new Date().toISOString(),
-                        openPhaseStart: configForm.openPhaseStart ? new Date(configForm.openPhaseStart).toISOString() : listing.auctionStartDate || new Date().toISOString(),
-                        openPhaseEnd: configForm.openPhaseEnd ? new Date(configForm.openPhaseEnd).toISOString() : listing.auctionEndDate || new Date(Date.now() + 86400000).toISOString(),
+                        openPhaseStart: listing.auctionStartDate || new Date().toISOString(),
+                        openPhaseEnd: listing.auctionEndDate || new Date(Date.now() + 86400000).toISOString(),
                         tickSize: Number(configForm.tickSize),
-                        maxTicks: Number(configForm.maxTick) || Number(configForm.tickSize) * 10,
+                        maxTicks: configForm.maxTick ? Number(configForm.maxTick) : Number(configForm.tickSize) * 10,
                         extensionMinutes: Number(configForm.extensionTime),
                       }).catch(() => {});
                     }
-                    // Do not transition to "live" right away. Wait for client approval.
-                    // The backend API sets status to UPCOMING if it was DRAFT. Or we can explicitly leave it until client approves.
-                    // So we might just update listing locally to reflect changes
+                    // Notify client via email + in-app notification for live auction approval
+                    if (requirementId) {
+                      await api.post(`/requirements/${requirementId}/notify-client-live`).catch(() => {});
+                    }
                     editListing(configModal.listingId, {
-                       basePrice: configForm.basePrice ? Number(configForm.basePrice) : listing?.basePrice,
-                       targetPrice: configForm.targetPrice ? Number(configForm.targetPrice) : listing?.targetPrice,
-                       auctionStartDate: configForm.openPhaseStart ? new Date(configForm.openPhaseStart).toISOString() : listing?.auctionStartDate,
-                       auctionEndDate: configForm.openPhaseEnd ? new Date(configForm.openPhaseEnd).toISOString() : listing?.auctionEndDate,
-                       bidIncrement: Number(configForm.tickSize),
-                       liveConfigured: true,
+                      bidIncrement: Number(configForm.tickSize),
+                      maximumTickSize: configForm.maxTick ? Number(configForm.maxTick) : undefined,
+                      extensionTime: Number(configForm.extensionTime),
+                      liveConfigured: true,
                     });
+                    showToast("Governance parameters sent to client for review.");
                     await refreshData().catch(() => {});
                   } finally {
                     setLaunching(false);
                     setConfigModal({isOpen: false, listingId: null});
                   }
                 }}
-                disabled={!configForm.tickSize || !configForm.openPhaseStart || !configForm.openPhaseEnd || !configForm.basePrice || !configForm.targetPrice || launching}
+                disabled={!configForm.tickSize || launching}
                 className="flex-1 py-3 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary/90 disabled:opacity-50 flex items-center justify-center gap-2"
               >
                 {launching

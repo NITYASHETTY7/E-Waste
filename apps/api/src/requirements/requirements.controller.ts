@@ -61,6 +61,11 @@ export class RequirementsController {
     return this.svc.findAll(clientId);
   }
 
+  @Get('audit-docs/all')
+  getAllAuditDocs() {
+    return this.svc.getAllAuditDocs();
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.svc.findOne(id);
@@ -150,9 +155,9 @@ export class RequirementsController {
   @Post(':id/sealed-bid-event')
   createSealedBidEvent(
     @Param('id') id: string,
-    @Body() body: { sealedBidDeadline: string },
+    @Body() body: { sealedBidDeadline: string; sealedBidStart?: string },
   ) {
-    return this.svc.createSealedBidEvent(id, body.sealedBidDeadline);
+    return this.svc.createSealedBidEvent(id, body.sealedBidDeadline, body.sealedBidStart);
   }
 
   // Vendor submits sealed bid price (after audit approved + event created)
@@ -171,16 +176,37 @@ export class RequirementsController {
     return this.svc.getSealedBids(id);
   }
 
+  // Admin shortlists bids and shares with client
+  @Patch(':id/share-bids-with-client')
+  shareShortlistedBidsWithClient(
+    @Param('id') id: string,
+    @Body() body: { bidIds: string[] },
+  ) {
+    return this.svc.shareShortlistedBidsWithClient(id, body.bidIds || []);
+  }
+
   // Admin notifies client to approve live auction params
   @Post(':id/notify-client-live')
   notifyClientForLiveApproval(@Param('id') id: string) {
     return this.svc.notifyClientForLiveApproval(id);
   }
 
+  // Client requests changes to admin-set governance params
+  @Post(':id/client-request-changes')
+  clientRequestChanges(
+    @Param('id') id: string,
+    @Body() body: { message?: string },
+  ) {
+    return this.svc.clientRequestParamChanges(id, body.message);
+  }
+
   // Client approves live auction → vendors get notified
   @Patch(':id/client-approve-live')
-  clientApproveLive(@Param('id') id: string) {
-    return this.svc.clientApproveLive(id);
+  clientApproveLive(
+    @Param('id') id: string,
+    @Body() body: { basePrice?: number; targetPrice?: number; startDate?: string; endDate?: string },
+  ) {
+    return this.svc.clientApproveLive(id, body);
   }
 
   // Client approves the processed sheet with target price

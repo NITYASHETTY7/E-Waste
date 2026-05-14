@@ -1,0 +1,229 @@
+E-Waste Aggregator Platform – Complete Operational Flow 
+
+1. Client Requirement Creation 
+
+Client uploads asset/scrap Excel sheet 
+↓ 
+System/Admin cleans and standardizes data 
+↓ 
+Client reviews and approves: 
+
+Asset quantities  
+
+Categories  
+
+Pickup locations  
+
+Target/expected price 
+↓ 
+Requirement status marked as Finalized  
+
+ 
+
+2. Vendor Invitation & Qualification 
+
+Admin sends audit invitation to approved vendors 
+↓ 
+Vendors Accept / Reject participation 
+↓ 
+Interested vendors submit: 
+
+PAN India/service capability 
+↓ 
+Admin verifies and approves vendors  
+
+ 
+
+3. Physical Audit Process 
+
+Approved vendors schedule physical audit with client 
+↓ 
+Vendor visits client site for: 
+
+Quantity verification  
+
+Condition checking  
+
+Serial number verification  
+
+Weight estimation  
+
+Material grading 
+↓ 
+Vendor uploads audit report/photos 
+↓ 
+Client/Admin reviews audit report 
+↓ 
+Audit marked as Completed  
+
+ 
+
+4. Sealed Bid Process 
+
+Admin creates sealed bid event 
+(only for audit-completed vendors) 
+↓ 
+Vendors submit confidential bids before deadline 
+↓ 
+System locks bids after closing time 
+↓ 
+Admin reviews submitted bids 
+↓ 
+Top vendors shortlisted 
+
+ 
+
+5. Client Review & Open Auction 
+
+Client reviews shortlisted bids 
+↓ 
+Optional open auction/live negotiation starts 
+↓ 
+Vendors revise pricing in real-time 
+↓ 
+Highest/Best vendor selected 
+↓ 
+Auction marked as Winner Finalized 
+
+ 
+
+6. Purchase Order & Payment Security 
+
+System generates: 
+
+Purchase Order (PO)  
+
+Work Order  
+
+Agreement copy 
+↓ 
+Vendor submits:  
+
+EMD/Security deposit (optional)  
+
+Advance payment (if applicable) 
+↓ 
+Pickup schedule finalized  
+
+ 
+
+7. Pickup & Material Handover 
+
+Client generates gate pass/handover approval 
+↓ 
+Vendor arranges vehicle/logistics 
+↓ 
+Material pickup completed 
+↓ 
+Handover documents signed: 
+
+Delivery challan  
+
+Asset handover form  
+
+Weight slip  
+
+Material acknowledgement  
+
+ 
+
+8. Final Reconciliation 
+
+Final weight/quantity verified 
+↓ 
+Shortage or excess reconciliation 
+↓ 
+Final commercial value confirmed 
+↓ 
+Invoice generated 
+
+ 
+
+9. Compliance & Documentation 
+
+Vendor uploads compliance documents: 
+
+E-Waste recycling certificate  
+
+Data destruction certificate  
+
+Form 6 / manifests  
+
+E-way bill  
+
+Disposal certificate 
+↓ 
+Client verifies documents  
+
+ 
+
+10. Payment Closure & Completion 
+
+Final payment released 
+↓ 
+Transaction closed 
+↓ 
+Client & vendor ratings/feedback collected 
+↓ 
+Project status marked as Completed 
+
+ 
+
+Recommended User Roles 
+
+Client 
+
+Upload requirements  
+
+Approve audits  
+
+Review bids  
+
+Approve winner  
+
+Verify compliance  
+
+Admin 
+
+Manage vendors  
+
+Clean data  
+
+Control auction  
+
+Verify documents  
+
+Track operations  
+
+Vendor 
+
+Accept invitation  
+
+Conduct audit  
+
+Submit bids  
+
+Pickup material  
+
+Upload compliance documents  
+
+ 
+
+Recommended Status Flow for System 
+
+Draft 
+→ Finalized 
+→ Vendor Invitation Sent 
+→ Audit In Progress 
+→ Audit Completed 
+→ Sealed Bid Live 
+→ Shortlisted 
+→ Open Auction Live 
+→ Winner Finalized 
+→ Pickup Scheduled 
+→ Pickup Completed 
+→ Compliance Pending 
+→ Payment Closed 
+→ Completed 
+
+ 

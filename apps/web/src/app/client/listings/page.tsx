@@ -43,7 +43,10 @@ export default function ClientListings() {
     finally { setReviewingBidId(null); }
   };
 
-  const myListings = listings.filter(l => l.userId === currentUser?.id);
+  const myListings = listings.filter(l =>
+    l.userId === currentUser?.id ||
+    l.userId === currentUser?.companyId
+  );
   const reviewListings = myListings.filter(l => l.requirementStatus === 'client_review');
 
   const handleApproveSheet = async () => {
@@ -456,11 +459,7 @@ export default function ClientListings() {
                 </div>
               ) : (
                 sealedBids.map((bid: any) => (
-                  <div key={bid.id} className={`rounded-2xl border-2 p-5 space-y-4 ${
-                    bid.clientStatus === 'approved' ? 'border-emerald-300 bg-emerald-50/30' :
-                    bid.clientStatus === 'rejected' ? 'border-red-200 bg-red-50/20 opacity-70' :
-                    'border-slate-200 bg-white dark:bg-slate-900 dark:border-slate-700'
-                  }`}>
+                  <div key={bid.id} className="rounded-2xl border-2 p-5 space-y-4 border-emerald-200 bg-emerald-50/20 dark:bg-slate-900 dark:border-emerald-900">
                     {/* Vendor header */}
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex items-center gap-3">
@@ -480,12 +479,8 @@ export default function ClientListings() {
 
                     {/* Status badge */}
                     <div className="flex items-center gap-2">
-                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                        bid.clientStatus === 'approved' ? 'bg-emerald-100 text-emerald-700' :
-                        bid.clientStatus === 'rejected' ? 'bg-red-100 text-red-700' :
-                        'bg-amber-100 text-amber-700 animate-pulse'
-                      }`}>
-                        {bid.clientStatus === 'approved' ? 'Accepted' : bid.clientStatus === 'rejected' ? 'Rejected' : 'Pending Review'}
+                      <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-emerald-100 text-emerald-700">
+                        Shortlisted
                       </span>
                       <span className="text-[10px] text-slate-400">{new Date(bid.createdAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
                     </div>
@@ -544,26 +539,6 @@ export default function ClientListings() {
                       </div>
                     )}
 
-                    {/* Review actions */}
-                    {bid.clientStatus === 'pending' && (
-                      <div className="flex gap-3 pt-2 border-t border-slate-100 dark:border-slate-800">
-                        <button
-                          onClick={() => sealedBidModal.listingId && handleReviewBid(sealedBidModal.listingId, bid.id, 'reject')}
-                          disabled={reviewingBidId === bid.id}
-                          className="flex-1 py-2.5 rounded-xl border-2 border-red-200 text-red-600 font-black text-xs hover:bg-red-50 disabled:opacity-50 flex items-center justify-center gap-2 transition-all uppercase tracking-widest">
-                          <span className="material-symbols-outlined text-sm">cancel</span>
-                          Reject
-                        </button>
-                        <button
-                          onClick={() => sealedBidModal.listingId && handleReviewBid(sealedBidModal.listingId, bid.id, 'approve')}
-                          disabled={reviewingBidId === bid.id}
-                          className="flex-1 py-2.5 rounded-xl bg-emerald-600 text-white font-black text-xs hover:bg-emerald-700 disabled:opacity-50 flex items-center justify-center gap-2 transition-all uppercase tracking-widest">
-                          {reviewingBidId === bid.id
-                            ? <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
-                            : <><span className="material-symbols-outlined text-sm">check_circle</span>Accept</>}
-                        </button>
-                      </div>
-                    )}
                   </div>
                 ))
               )}
@@ -571,9 +546,7 @@ export default function ClientListings() {
               {sealedBids.length > 0 && (
                 <div className="pt-4 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
                   <p className="text-xs text-slate-500">
-                    <span className="font-black text-emerald-600">{sealedBids.filter(b => b.clientStatus === 'approved').length}</span> accepted ·{" "}
-                    <span className="font-black text-red-500">{sealedBids.filter(b => b.clientStatus === 'rejected').length}</span> rejected ·{" "}
-                    <span className="font-black text-amber-600">{sealedBids.filter(b => b.clientStatus === 'pending').length}</span> pending
+                    <span className="font-black text-emerald-600">{sealedBids.length}</span> shortlisted vendors shared by admin
                   </p>
                   {sealedBidModal.listingId && (
                     <Link href={`/client/listings/${sealedBidModal.listingId}/configure-live`}

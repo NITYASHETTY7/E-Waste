@@ -141,14 +141,37 @@ export default function LiveAuctionScreen() {
   const currentHighest = currentHighAmount;
   const nextBidAmount = currentHighest + increment;
 
+  // Build anonymized vendor code prefix from listing title (e.g. "mac book" → "MB")
+  const titlePrefix = listing.title.split(' ')
+    .map((w: string) => w[0]?.toUpperCase() || '')
+    .join('')
+    .slice(0, 3) || 'V';
+
+  // Assign codes by first-appearance order (sorted by createdAt asc)
+  const vendorCodeMap = new Map<string, string>();
+  const sortedByTime = [...auctionBids].sort((a: any, b: any) =>
+    new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+  );
+  sortedByTime.forEach((bid: any) => {
+    if (!vendorCodeMap.has(bid.vendorId)) {
+      const code = `${titlePrefix}-${String(vendorCodeMap.size + 1).padStart(3, '0')}`;
+      vendorCodeMap.set(bid.vendorId, code);
+    }
+  });
+
+  const getVendorLabel = (vendorId: string) => {
+    const code = vendorCodeMap.get(vendorId) || `${titlePrefix}-???`;
+    return vendorId === currentUser?.id ? `${code} (You)` : code;
+  };
+
   // Process data for chart
   const vendorBidsMap = new Map();
   const sortedBids = [...auctionBids].reverse();
-  sortedBids.forEach((bid, globalIndex) => {
+  sortedBids.forEach((bid: any, globalIndex: number) => {
     if (!vendorBidsMap.has(bid.vendorId)) {
       vendorBidsMap.set(bid.vendorId, {
         id: bid.vendorId,
-        name: bid.vendorId === currentUser?.id ? "B-001 (You)" : "Anonymous",
+        name: getVendorLabel(bid.vendorId),
         color: ["#1E8E3E", "#0B5ED7", "#FFC107", "#DC3545", "#6F42C1"][vendorBidsMap.size % 5],
         displayPoints: []
       });
@@ -247,7 +270,7 @@ export default function LiveAuctionScreen() {
 
       {isActive && currentHighBid && (
         <div className={`py-2 text-center text-xs font-black uppercase tracking-widest transition-colors ${isLeading ? "bg-[#E8F5E9] text-[#1E8E3E]" : "bg-orange-100 text-orange-600"}`}>
-          {isLeading ? "YOU ARE LEADING" : `OUTBID BY ${(currentHighBid as any).vendorName || (currentHighBid as any).vendor?.name || "Another Vendor"}`}
+          {isLeading ? "YOU ARE LEADING" : `OUTBID BY ${getVendorLabel((currentHighBid as any).vendorId)}`}
         </div>
       )}
 
@@ -283,7 +306,7 @@ export default function LiveAuctionScreen() {
                 <div key={e.id} className={`flex items-center justify-between py-2 px-3 rounded-lg text-xs transition-all ${e.vendorId === currentUser?.id ? "bg-[#E8F5E9] border-l-4 border-l-[#1E8E3E]" : "bg-white border border-slate-100"}`}>
                   <div className="flex items-center gap-2">
                     <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: vendorBidsMap.get(e.vendorId)?.color || "#CBD5E1" }} />
-                    <span className={`font-bold ${e.vendorId === currentUser?.id ? "text-[#1E8E3E]" : "text-[#1A1A2E]"}`}>{e.vendorName || e.vendor?.name || "Anonymous"}</span>
+                    <span className={`font-bold ${e.vendorId === currentUser?.id ? "text-[#1E8E3E]" : "text-[#1A1A2E]"}`}>{getVendorLabel(e.vendorId)}</span>
                     <span className="text-[10px] text-slate-400">{safeFormatTime(e.createdAt)}</span>
                   </div>
                   <span className={`font-mono font-bold ${e.vendorId === currentUser?.id ? "text-[#1E8E3E]" : "text-slate-600"}`}>{fmtINR(e.amount)}</span>

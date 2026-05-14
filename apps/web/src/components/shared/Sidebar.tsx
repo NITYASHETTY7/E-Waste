@@ -24,6 +24,7 @@ const ADMIN_SECTIONS = [
     links: [
       { href: "/admin/purchase-orders", icon: "description", label: "Purchase Orders" },
       { href: "/admin/audits", icon: "fact_check", label: "Audit Management" },
+      { href: "/admin/sealed-bids", icon: "lock", label: "Sealed Bids" },
       { href: "/admin/logistics", icon: "local_shipping", label: "Pickups & Logistics" },
       { href: "/admin/reconciliation", icon: "balance", label: "Reconciliation" },
       { href: "/admin/compliance", icon: "shield", label: "Compliance" },

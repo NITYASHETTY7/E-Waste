@@ -38,7 +38,7 @@ export default function ClientPost() {
   const [form, setForm] = useState({
     title: "", weight: "", description: "", location: "",
     pickupAddress: "", urgency: "medium" as "low" | "medium" | "high",
-    sealedBidStartDate: "", sealedBidEndDate: "", invitationDeadline: "",
+    invitationDeadline: "",
   });
   const [images, setImages] = useState<string[]>([]);
   const [documents, setDocuments] = useState<{name: string, url: string, type: string}[]>([]);
@@ -63,9 +63,6 @@ export default function ClientPost() {
       if (Object.keys(errs).length > 0) { setErrors(errs); return; }
       setStep("auction");
     } else if (step === "auction") {
-      if (!form.sealedBidStartDate) errs.sealedBidStartDate = "Required";
-      if (!form.sealedBidEndDate) errs.sealedBidEndDate = "Required";
-      if (Object.keys(errs).length > 0) { setErrors(errs); return; }
       setStep("media");
     }
   };
@@ -90,8 +87,6 @@ export default function ClientPost() {
         description: form.description,
         urgency: form.urgency,
         pickupAddress: form.pickupAddress,
-        sealedBidStartDate: new Date(form.sealedBidStartDate).toISOString(),
-        sealedBidEndDate: new Date(form.sealedBidEndDate).toISOString(),
         invitationDeadline: form.invitationDeadline ? new Date(form.invitationDeadline).toISOString() : undefined,
         images,
         documents,
@@ -122,7 +117,7 @@ export default function ClientPost() {
     );
   }
 
-  const stepsList = ["Category", "Details", "Sealed Bid", "Documents"];
+  const stepsList = ["Category", "Details", "Timeline", "Documents"];
   const currentStepIndex = step === "category" ? 0 : step === "details" ? 1 : step === "auction" ? 2 : 3;
 
   return (
@@ -236,39 +231,19 @@ export default function ClientPost() {
         <div className="animate-fade-in space-y-6">
           <div className="card p-6 space-y-6">
             <div>
-              <h3 className="text-sm font-black uppercase tracking-widest text-[color:var(--color-on-surface-variant)]">Sealed Bid Window</h3>
-              <p className="text-xs text-[color:var(--color-on-surface-variant)] mt-1">Set when the sealed bidding phase opens and closes. Typically 2–3 hours. Vendors invited by the admin will bid privately during this window.</p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="label">Sealed Bid Opens *</label>
-                <input type="datetime-local" className={`input-base ${errors.sealedBidStartDate ? "ring-2 ring-red-400" : ""}`}
-                  value={form.sealedBidStartDate} onChange={e => set("sealedBidStartDate", e.target.value)} />
-                {errors.sealedBidStartDate && <p className="text-red-500 text-xs mt-1">{errors.sealedBidStartDate}</p>}
-              </div>
-              <div>
-                <label className="label">Sealed Bid Closes *</label>
-                <input type="datetime-local" className={`input-base ${errors.sealedBidEndDate ? "ring-2 ring-red-400" : ""}`}
-                  value={form.sealedBidEndDate} onChange={e => set("sealedBidEndDate", e.target.value)} />
-                {errors.sealedBidEndDate && <p className="text-red-500 text-xs mt-1">{errors.sealedBidEndDate}</p>}
-              </div>
-            </div>
-            <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl flex items-start gap-3">
-              <span className="material-symbols-outlined text-blue-400 text-base mt-0.5">info</span>
-              <p className="text-xs text-blue-200 leading-relaxed">
-                <strong>Vendor invitations</strong> are handled by the admin after they review and clean your material list. Invitation emails go out automatically once you approve the cleaned document.
-              </p>
-            </div>
-          </div>
-          <div className="card p-6 space-y-4">
-            <div>
               <h3 className="text-sm font-black uppercase tracking-widest text-[color:var(--color-on-surface-variant)]">Invitation Deadline</h3>
-              <p className="text-xs text-[color:var(--color-on-surface-variant)] mt-1">Optional: deadline by which invited vendors must respond.</p>
+              <p className="text-xs text-[color:var(--color-on-surface-variant)] mt-1">Optional: deadline by which invited vendors must respond to the invitation.</p>
             </div>
             <div>
               <label className="label">Vendor Response Deadline (optional)</label>
               <input type="datetime-local" className="input-base" value={form.invitationDeadline}
                 onChange={e => set("invitationDeadline", e.target.value)} />
+            </div>
+            <div className="p-4 bg-blue-500/10 border border-blue-500/20 rounded-xl flex items-start gap-3">
+              <span className="material-symbols-outlined text-blue-400 text-base mt-0.5">info</span>
+              <p className="text-xs text-blue-200 leading-relaxed">
+                <strong>Sealed bid open/close times</strong> are set by the admin when they create the sealed bid event after your audit is complete. You don't need to configure them here.
+              </p>
             </div>
           </div>
           <div className="flex flex-col-reverse sm:flex-row gap-4 justify-between mt-8">

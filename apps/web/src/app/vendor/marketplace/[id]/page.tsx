@@ -19,6 +19,8 @@ export default function VendorAuctionDetail() {
   // States
   const [customBid, setCustomBid] = useState<string>("");
   const [alertMsg, setAlertMsg] = useState<{type: "success"|"info"|"error", msg: string} | null>(null);
+  const [localAccepted, setLocalAccepted] = useState(false);
+  const [localDeclined, setLocalDeclined] = useState(false);
 
   if (!listing) return <div className="p-20 text-center">Auction Not Found</div>;
 
@@ -26,12 +28,12 @@ export default function VendorAuctionDetail() {
   const myBids = listingBids.filter(b => b.vendorId === currentUser?.id);
   const topBid = listingBids.sort((a, b) => b.amount - a.amount)[0];
   const requiredBidAmount = topBid ? topBid.amount + (listing.bidIncrement || 0) : (listing.basePrice || 0);
-  
+
   const isSealedPhase = listing.auctionPhase === 'sealed_bid';
   const isInvitationPhase = listing.auctionPhase === 'invitation_window';
   const canRespondToInvitation = isInvitationPhase || isSealedPhase;
-  const hasAccepted = listing.acceptedVendorIds?.includes(currentUser?.id || "");
-  const hasDeclined = listing.declinedVendorIds?.includes(currentUser?.id || "");
+  const hasAccepted = localAccepted || listing.acceptedVendorIds?.includes(currentUser?.id || "");
+  const hasDeclined = localDeclined || listing.declinedVendorIds?.includes(currentUser?.id || "");
   const hasSubmittedSealed = myBids.some(b => b.type === 'sealed');
 
   const handleInvitation = async (status: 'interested' | 'declined') => {
@@ -39,14 +41,13 @@ export default function VendorAuctionDetail() {
     const action = status === 'interested' ? 'accept' : 'decline';
     try {
       await api.patch(`/requirements/${listing.id}/invitation-respond`, { action });
-      setAlertMsg({
-        type: status === 'interested' ? "success" : "info",
-        msg: status === 'interested'
-          ? "Invitation accepted! Please download the material sheet and upload your documents."
-          : "Invitation declined.",
-      });
-      if (status === 'declined') {
-        setTimeout(() => router.push('/vendor/marketplace'), 2000);
+      if (status === 'interested') {
+        setLocalAccepted(true);
+        // Redirect to invitation page where vendor uploads audit documents
+        router.push(`/vendor/invitations/${listing.requirementId || listing.id}`);
+      } else {
+        setLocalDeclined(true);
+        setTimeout(() => router.push('/vendor/marketplace'), 1500);
       }
     } catch {
       setAlertMsg({ type: "error", msg: "Failed to respond. Please try again." });
@@ -303,7 +304,7 @@ export default function VendorAuctionDetail() {
                             {isSealedPhase ? "Submit Sealed Offer" : "Confirm Open Bid"}
                          </button>
                          {listing.auctionPhase === 'live' && (
-                            <button onClick={() => router.push(`/vendor/auctions/${listing.id}/live`)} 
+                            <button onClick={() => router.push(`/vendor/live-auction`)}
                               className="w-full py-4 rounded-xl text-xs font-black uppercase tracking-widest transition-all bg-red-600 hover:bg-red-700 text-white flex justify-center items-center gap-2">
                                 <span className="material-symbols-outlined text-sm">sensors</span>
                                 Join Live Floor

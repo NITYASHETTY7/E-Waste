@@ -369,6 +369,17 @@ export class RequirementsService {
     })));
   }
 
+  async getAllAuditDocs() {
+    const docs = await this.prisma.vendorAuditDoc.findMany({
+      include: {
+        vendor: { select: { id: true, name: true, email: true } },
+        requirement: { select: { id: true, title: true, category: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    return docs;
+  }
+
   // ─── STEP 3: Admin reviews audit docs ─────────────────────────────────────
 
   async reviewAuditDoc(
@@ -424,6 +435,7 @@ export class RequirementsService {
   async createSealedBidEvent(
     requirementId: string,
     sealedBidDeadline: string,
+    sealedBidStart?: string,
   ) {
     const req = await this.prisma.requirement.findUnique({
       where: { id: requirementId },
@@ -432,10 +444,23 @@ export class RequirementsService {
     if (!req) throw new NotFoundException('Requirement not found');
 
     const deadline = new Date(sealedBidDeadline);
+    const start = sealedBidStart ? new Date(sealedBidStart) : new Date();
     const updated = await this.prisma.requirement.update({
       where: { id: requirementId },
-      data: { sealedBidEventCreatedAt: new Date(), sealedBidDeadline: deadline },
+      data: {
+        sealedBidEventCreatedAt: new Date(),
+        sealedBidDeadline: deadline,
+        sealedPhaseStart: start,
+      },
     });
+
+    // Transition auction to SEALED_PHASE so admin sees Sealed Bids + Set Params buttons
+    if (req.auction) {
+      await this.prisma.auction.update({
+        where: { id: req.auction.id },
+        data: { status: AuctionStatus.SEALED_PHASE },
+      });
+    }
 
     // Notify all audit-approved vendors via email + in-app
     const approvedVendors = await this.prisma.user.findMany({
@@ -529,6 +554,62 @@ export class RequirementsService {
     }));
   }
 
+  // ─── STEP 6b: Admin shortlists bids and shares with client ──────────────
+
+  async shareShortlistedBidsWithClient(requirementId: string, bidIds: string[]) {
+    const req = await this.prisma.requirement.findUnique({
+      where: { id: requirementId },
+      include: {
+        auction: true,
+        client: { include: { users: { select: { id: true, name: true, email: true }, take: 1 } } },
+      },
+    });
+    if (!req?.auction) throw new NotFoundException('Auction not found');
+
+    // Mark selected bids as shortlisted, clear others
+    await this.prisma.bid.updateMany({
+      where: { auctionId: req.auction.id, phase: 'SEALED' },
+      data: { isShortlisted: false },
+    });
+    if (bidIds.length > 0) {
+      await this.prisma.bid.updateMany({
+        where: { id: { in: bidIds }, auctionId: req.auction.id },
+        data: { isShortlisted: true },
+      });
+    }
+
+    // Notify client via in-app + email
+    const clientUser = req.client?.users?.[0];
+    if (clientUser) {
+      const webUrl = process.env.WEB_URL || 'http://localhost:3000';
+      const link = `/client/sealed-bids`;
+
+      await this.prisma.inAppNotification.create({
+        data: {
+          userId: clientUser.id,
+          type: 'sealed_bids_shared',
+          title: 'Shortlisted Bids Ready for Review',
+          message: `Admin has shortlisted sealed bids for "${req.title}". Review them now.`,
+          link,
+        },
+      });
+
+      await this.notifications.sendEmail({
+        to: clientUser.email,
+        subject: `[WeConnect] Sealed Bids Ready for Review — ${req.title}`,
+        body: `
+          <h2>Shortlisted Sealed Bids</h2>
+          <p>Hello ${clientUser.name},</p>
+          <p>The admin team has reviewed all sealed bids for <strong>${req.title}</strong> and shortlisted the top vendors for your review.</p>
+          <p><a href="${webUrl}${link}">View Shortlisted Bids →</a></p>
+          <br/><p>— WeConnect Platform</p>
+        `,
+      });
+    }
+
+    return { success: true, shortlistedCount: bidIds.length };
+  }
+
   // ─── Notify client to approve live params ────────────────────────────────
 
   async notifyClientForLiveApproval(requirementId: string) {
@@ -569,18 +650,62 @@ export class RequirementsService {
     return { success: true };
   }
 
+  // ─── Client requests governance param changes ────────────────────────────
+
+  async clientRequestParamChanges(requirementId: string, message?: string) {
+    const req = await this.prisma.requirement.findUnique({
+      where: { id: requirementId },
+      include: { auction: true, client: { include: { users: { select: { id: true, name: true, email: true }, take: 1 } } } },
+    });
+    if (!req?.auction) throw new NotFoundException('Auction not found');
+
+    const clientUser = req.client?.users?.[0];
+    const admins = await this.prisma.user.findMany({ where: { role: 'ADMIN', isActive: true }, select: { id: true, name: true, email: true } });
+
+    const note = message ? `: "${message}"` : '';
+    for (const admin of admins) {
+      await this.notifications.sendEmail({
+        to: admin.email,
+        subject: `Client requests param changes — ${req.title}`,
+        body: `<p>${clientUser?.name || 'Client'} has requested changes to the governance parameters for "${req.title}"${note}.</p><p>Please review and update the parameters in the admin dashboard.</p>`,
+      }).catch(() => {});
+      await this.prisma.inAppNotification.create({
+        data: {
+          userId: admin.id,
+          type: 'param_change_request',
+          title: `Change Request: ${req.title}`,
+          message: `Client requested changes to auction governance params${note}.`,
+          link: `/admin/auctions`,
+        },
+      });
+    }
+
+    await this.prisma.auction.update({
+      where: { id: req.auction.id },
+      data: { liveApprovalStatus: 'change_requested' },
+    });
+
+    return { success: true };
+  }
+
   // ─── Client approves live auction ─────────────────────────────────────────
 
-  async clientApproveLive(requirementId: string) {
+  async clientApproveLive(requirementId: string, body: { basePrice?: number; targetPrice?: number; startDate?: string; endDate?: string } = {}) {
     const req = await this.prisma.requirement.findUnique({
       where: { id: requirementId },
       include: { auction: { include: { bids: { where: { phase: 'SEALED', isShortlisted: true } } } } },
     });
     if (!req?.auction) throw new NotFoundException('Auction not found');
 
+    const auctionUpdateData: any = { liveApprovalStatus: 'approved', status: AuctionStatus.OPEN_PHASE };
+    if (body.basePrice !== undefined) auctionUpdateData.basePrice = Number(body.basePrice);
+    if (body.targetPrice !== undefined) auctionUpdateData.targetPrice = Number(body.targetPrice);
+    if (body.startDate) auctionUpdateData.openPhaseStart = new Date(body.startDate);
+    if (body.endDate) auctionUpdateData.openPhaseEnd = new Date(body.endDate);
+
     await this.prisma.auction.update({
       where: { id: req.auction.id },
-      data: { liveApprovalStatus: 'approved', status: AuctionStatus.UPCOMING },
+      data: auctionUpdateData,
     });
 
     // Notify all shortlisted (audit-approved) vendors about live auction approval
@@ -591,19 +716,24 @@ export class RequirementsService {
 
     const webUrl = process.env.WEB_URL || 'http://localhost:3000';
     const auctionUrl = `${webUrl}/vendor/marketplace/${requirementId}`;
-    const openStart = req.auction.openPhaseStart
-      ? req.auction.openPhaseStart.toLocaleString('en-IN', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })
-      : 'TBD';
+
+    const openStart = auctionUpdateData.openPhaseStart
+      ? new Date(auctionUpdateData.openPhaseStart).toLocaleString('en-IN', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })
+      : null;
+    const openEnd = auctionUpdateData.openPhaseEnd
+      ? new Date(auctionUpdateData.openPhaseEnd).toLocaleString('en-IN', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })
+      : null;
 
     await Promise.all(approvedVendors.map(async (v) => {
-      await this.notifications.notifyLiveAuctionApproved(v.email, v.name, req.title, auctionUrl);
+      await this.notifications.notifyLiveAuctionApproved(v.email, v.name, req.title, auctionUrl, openStart, openEnd);
+      const timingNote = openStart ? ` Open bidding starts: ${openStart}${openEnd ? ` and closes: ${openEnd}` : ''}.` : '';
       await this.prisma.inAppNotification.create({
         data: {
           userId: v.id,
           type: 'live_auction_approved',
           title: 'You\'re Approved for Live Auction!',
-          message: `The live open auction for "${req.title}" has been approved. Open bidding starts: ${openStart}`,
-          link: `/vendor/marketplace/${requirementId}`,
+          message: `The live open auction for "${req.title}" is now active.${timingNote} Join the bidding now.`,
+          link: `/vendor/live-auction`,
         },
       });
     }));
@@ -612,6 +742,8 @@ export class RequirementsService {
   }
 
   async getInvitationDetails(requirementId: string, vendorUserId: string) {
+    if (!vendorUserId) throw new NotFoundException('Vendor user not identified');
+
     const req = await this.prisma.requirement.findUnique({
       where: { id: requirementId },
       include: { client: true, auction: true },
@@ -641,6 +773,8 @@ export class RequirementsService {
       sealedPhaseEnd: req.sealedPhaseEnd,
       sealedBidDeadline: req.sealedBidDeadline,
       sealedBidEventCreatedAt: req.sealedBidEventCreatedAt,
+      openPhaseStart: req.auction?.openPhaseStart ?? null,
+      openPhaseEnd: req.auction?.openPhaseEnd ?? null,
       clientName: req.client?.name,
       processedSheetUrl,
       isInvited: req.invitedVendorIds.includes(vendorUserId),
@@ -651,6 +785,7 @@ export class RequirementsService {
       hasSealedBid: !!existingBid,
       sealedBidAmount: existingBid?.amount ?? null,
       auctionId: req.auction?.id,
+      auctionStatus: req.auction?.status ?? null,
       auctionLiveApprovalStatus: req.auction?.liveApprovalStatus ?? 'pending',
     };
   }

@@ -203,15 +203,25 @@ export class AuctionsService {
     });
   }
 
-  async selectWinner(id: string, vendorId: string) {
+  async selectWinner(id: string, vendorUserId: string) {
+    // vendorId from bids is a User ID; winnerId on Auction is a Company ID
+    const vendorUser = await this.prisma.user.findUnique({
+      where: { id: vendorUserId },
+      select: { companyId: true, name: true, email: true },
+    });
+    const winnerCompanyId = vendorUser?.companyId ?? null;
+
     const auction = await this.prisma.auction.update({
       where: { id },
-      data: { winnerId: vendorId, status: AuctionStatus.COMPLETED },
+      data: {
+        ...(winnerCompanyId ? { winnerId: winnerCompanyId } : {}),
+        status: AuctionStatus.COMPLETED,
+      },
       include: {
         client: true,
         requirement: true,
         bids: {
-          where: { vendorId },
+          where: { vendorId: vendorUserId },
           orderBy: { amount: 'desc' },
           take: 1,
           include: {
@@ -262,6 +272,125 @@ export class AuctionsService {
         .catch(() => {});
     }
 
+    return auction;
+  }
+
+  async generatePostAuctionDocs(id: string) {
+    const auction = await this.prisma.auction.findUnique({
+      where: { id },
+      include: {
+        client: true,
+        winner: true,
+        requirement: true,
+        bids: { orderBy: { amount: 'desc' }, take: 1 },
+        auctionDocs: true,
+      },
+    });
+    if (!auction) throw new NotFoundException('Auction not found');
+
+    const winningAmount = auction.bids[0]?.amount ?? auction.basePrice;
+    const commissionAmount = Math.round(winningAmount * 0.05);
+    const totalWeight = auction.requirement?.totalWeight ?? 0;
+    const vendorName = auction.winner?.name ?? 'Vendor';
+    const clientName = auction.client.name;
+    const poNumber = `PO-${new Date().getFullYear()}-${id.substring(0, 8).toUpperCase()}`;
+    const date = new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+    const bucket = process.env.AWS_S3_BUCKET_NAME ?? 'ecoloop-docs';
+
+    const results: { type: string; s3Key: string; fileName: string }[] = [];
+
+    // Generate Purchase Order PDF
+    try {
+      const poKey = await this.documents.generatePoPdf({
+        auctionId: id, poNumber,
+        clientName, clientAddress: auction.client.address ?? '',
+        clientGst: auction.client.gstNumber ?? '',
+        vendorName, vendorAddress: auction.winner?.address ?? '',
+        vendorGst: auction.winner?.gstNumber ?? '',
+        auctionTitle: auction.title,
+        category: auction.category,
+        totalWeight, winningAmount, commissionAmount,
+        date,
+      });
+      await this.prisma.auctionDocument.create({
+        data: {
+          auctionId: id, type: DocumentType.PURCHASE_ORDER,
+          s3Key: poKey, s3Bucket: bucket,
+          fileName: `${poNumber}.pdf`, mimeType: 'application/pdf',
+        },
+      });
+      results.push({ type: 'PURCHASE_ORDER', s3Key: poKey, fileName: `${poNumber}.pdf` });
+    } catch (e) { console.error('PO generation failed', e); }
+
+    // Generate Agreement PDF
+    try {
+      const agrKey = await this.documents.generateAgreementPdf({
+        auctionId: id,
+        clientName, vendorName,
+        auctionTitle: auction.title,
+        totalWeight, winningAmount, date,
+      });
+      await this.prisma.auctionDocument.create({
+        data: {
+          auctionId: id, type: DocumentType.AGREEMENT,
+          s3Key: agrKey, s3Bucket: bucket,
+          fileName: `AGR-${poNumber}.pdf`, mimeType: 'application/pdf',
+        },
+      });
+      results.push({ type: 'AGREEMENT', s3Key: agrKey, fileName: `AGR-${poNumber}.pdf` });
+    } catch (e) { console.error('Agreement generation failed', e); }
+
+    // Ensure Work Order exists — generate if missing
+    const hasWO = auction.auctionDocs.some(d => d.type === DocumentType.WORK_ORDER);
+    if (!hasWO) {
+      try {
+        const woKey = await this.documents.generateWorkOrderPdf(
+          id, clientName, vendorName, auction.winner?.address ?? '',
+          auction.title, totalWeight, winningAmount,
+        );
+        await this.prisma.auctionDocument.create({
+          data: {
+            auctionId: id, type: DocumentType.WORK_ORDER,
+            s3Key: woKey, s3Bucket: bucket,
+            fileName: `WO-${id.substring(0, 8).toUpperCase()}.pdf`, mimeType: 'application/pdf',
+          },
+        });
+        results.push({ type: 'WORK_ORDER', s3Key: woKey, fileName: `WO-${id.substring(0, 8).toUpperCase()}.pdf` });
+      } catch (e) { console.error('WO generation failed', e); }
+    }
+
+    // Upsert payment record
+    await this.prisma.payment.upsert({
+      where: { auctionId: id },
+      create: { auctionId: id, clientAmount: winningAmount, commissionAmount, totalAmount: winningAmount + commissionAmount },
+      update: {},
+    });
+
+    // Upsert pickup record
+    await this.prisma.pickup.upsert({
+      where: { auctionId: id },
+      create: { auctionId: id },
+      update: {},
+    });
+
+    return { success: true, documents: results, poNumber };
+  }
+
+  async getAuctionWithPostDocs(id: string) {
+    const auction = await this.prisma.auction.findUnique({
+      where: { id },
+      include: {
+        client: true,
+        winner: true,
+        requirement: true,
+        auctionDocs: true,
+        bids: { orderBy: { amount: 'desc' }, take: 1 },
+        pickup: { include: { pickupDocs: true, payment: true } },
+        payment: true,
+        ratings: true,
+      },
+    });
+    if (!auction) throw new NotFoundException('Auction not found');
     return auction;
   }
 

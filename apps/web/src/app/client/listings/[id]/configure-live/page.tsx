@@ -10,7 +10,7 @@ export default function ConfigureLiveAuction() {
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
-  const { listings, bids, users, editListing, refreshData } = useApp();
+  const { listings, bids, users, editListing, refreshData, currentUser, addNotification } = useApp();
 
   const listing = listings.find(l => l.id === id);
   const sealedBids = bids.filter(b =>
@@ -89,11 +89,22 @@ export default function ConfigureLiveAuction() {
       await api.patch(`/requirements/${requirementId}/client-approve-live`, {
         basePrice: Number(form.basePrice),
         targetPrice: form.targetPrice ? Number(form.targetPrice) : undefined,
-        startDate: form.auctionStartDate,
-        endDate: form.auctionEndDate,
+        startDate: new Date(form.auctionStartDate).toISOString(),
+        endDate: new Date(form.auctionEndDate).toISOString(),
       });
 
-      editListing(id, { liveConfigured: true, auctionPhase: 'live' });
+      // Phase stays as 'open_configuration' until the scheduled start time
+      editListing(id, { liveConfigured: true, auctionPhase: 'open_configuration',
+        auctionStartDate: new Date(form.auctionStartDate).toISOString(),
+        auctionEndDate: new Date(form.auctionEndDate).toISOString(),
+      });
+      addNotification({
+        userId: currentUser?.id || "",
+        type: "live_auction_approved",
+        title: "Live Auction Scheduled",
+        message: `Your live auction for "${listing?.title}" has been configured. It will go live at ${new Date(form.auctionStartDate).toLocaleString('en-IN')}.`,
+        link: "/client/listings",
+      });
       await refreshData().catch(() => {});
       router.push("/client/listings");
     } catch (err: any) {

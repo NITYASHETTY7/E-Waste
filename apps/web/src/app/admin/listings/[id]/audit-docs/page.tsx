@@ -37,7 +37,7 @@ interface ListingDetails {
 export default function AdminAuditDocsPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { listings } = useApp();
+  const { listings, addNotification } = useApp();
 
   const [docs, setDocs] = useState<AuditDoc[]>([]);
   const [listing, setListing] = useState<ListingDetails | null>(null);
@@ -103,6 +103,20 @@ export default function AdminAuditDocsPage() {
     setSaving(true);
     try {
       await api.patch(`/requirements/${id}/audit-docs/${docId}/review`, { action, remarks: remarks || undefined });
+      const doc = docs.find(d => d.id === docId);
+      const vendorId = doc?.vendor?.id || doc?.vendorUserId;
+      if (vendorId) {
+        const listingTitle = listing?.title || contextListing?.title || "your auction";
+        addNotification({
+          userId: vendorId,
+          type: action === "approve" ? "audit_approved" : "audit_rejected",
+          title: action === "approve" ? "Audit Approved" : "Audit Rejected",
+          message: action === "approve"
+            ? `Your audit documents for "${listingTitle}" have been approved. You may now submit a sealed bid.`
+            : `Your audit documents for "${listingTitle}" were rejected${remarks ? `: ${remarks}` : "."}`,
+          link: `/vendor/invitations/${id}`,
+        });
+      }
       showToast(action === "approve" ? "Audit doc approved." : "Audit doc rejected.");
       setReviewingId(null);
       setRemarks("");
@@ -128,6 +142,20 @@ export default function AdminAuditDocsPage() {
       await api.post(`/requirements/${id}/sealed-bid-event`, {
         sealedBidStart: new Date(sbeStart).toISOString(),
         sealedBidDeadline: new Date(sbeDeadline).toISOString(),
+      });
+      const listingTitle = listing?.title || contextListing?.title || "an auction";
+      const approvedDocs = docs.filter(d => d.status === "approved");
+      approvedDocs.forEach(doc => {
+        const vendorId = doc.vendor?.id || doc.vendorUserId;
+        if (vendorId) {
+          addNotification({
+            userId: vendorId,
+            type: "sealed_bid_event",
+            title: "Sealed Bid Window Open",
+            message: `The sealed bid window for "${listingTitle}" is now open. Submit your bid before the deadline.`,
+            link: `/vendor/invitations/${id}`,
+          });
+        }
       });
       showToast("Sealed bid event created! Vendors notified.");
       setSbeModal(false);

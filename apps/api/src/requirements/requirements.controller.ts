@@ -26,13 +26,15 @@ export class RequirementsController {
   constructor(private svc: RequirementsService) {}
 
   @Post()
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileFieldsInterceptor([
+    { name: 'file', maxCount: 1 },
+    { name: 'documents', maxCount: 20 },
+  ]))
   create(
     @Body() body: CreateRequirementDto,
-    @UploadedFile() file: Express.Multer.File,
+    @UploadedFiles() files: { file?: Express.Multer.File[]; documents?: Express.Multer.File[] },
     @Request() req: any,
   ) {
-    // invitedVendorIds may come as a comma-separated string or a JSON array
     let invitedVendorIds: string[] = [];
     if (body.invitedVendorIds) {
       try {
@@ -48,11 +50,25 @@ export class RequirementsController {
       }
     }
 
+    let documentTypes: string[] = [];
+    if (body.documentTypes) {
+      try {
+        documentTypes =
+          typeof body.documentTypes === 'string'
+            ? JSON.parse(body.documentTypes)
+            : body.documentTypes;
+      } catch {
+        documentTypes = [];
+      }
+    }
+
     return this.svc.create({
       ...body,
       clientId: body.clientId || req.user.companyId,
       invitedVendorIds,
-      file,
+      file: files?.file?.[0],
+      documentFiles: files?.documents,
+      documentTypes,
     });
   }
 

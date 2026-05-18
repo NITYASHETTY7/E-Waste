@@ -4,21 +4,27 @@ import React, { useState } from "react";
 import { useAuction } from "@/hooks/useAuction";
 import { useApp } from "@/context/AppContext";
 import { Listing } from "@/types";
-import { formatTime } from "@/utils/format";
+import { formatTimeMs } from "@/utils/format";
 
 export default function LiveAuctionEmbed({ listing: initialListing, userRole = "client" }: { listing?: Listing, userRole?: "client" | "vendor" | "admin" }) {
-  const { 
-    listing, 
-    auctionBids, 
-    currentHighAmount, 
-    currentHighBid, 
-    formatTime: auctionTimer, 
+  const {
+    listing,
+    auctionBids,
+    leaderboard,
+    currentHighAmount,
+    currentHighBid,
+    formatTime: auctionTimer,
     placeBid,
-    isActive 
+    isActive
   } = useAuction(initialListing?.id || "");
 
-  const { editListing } = useApp();
+  const { updateAuctionPhase } = useApp();
   const [vendorBid, setVendorBid] = useState("");
+
+  const getRankLabel = (vendorId: string): string => {
+    const rank = leaderboard.findIndex((l: any) => l.vendorId === vendorId);
+    return rank >= 0 ? `L${rank + 1}` : '—';
+  };
 
   if (!listing) return <div className="p-10 text-center">Listing not found</div>;
 
@@ -32,14 +38,13 @@ export default function LiveAuctionEmbed({ listing: initialListing, userRole = "
   const location = listing.location;
   const emd = listing.highestEmdAmount || 0;
 
-  // Group bids by vendor for the chart
+  // Group bids by vendor for the chart — auctionBids is already chronological (oldest first)
   const vendorBidsMap = new Map();
-  const sortedBids = [...auctionBids].reverse();
-  sortedBids.forEach((bid, globalIndex) => {
+  auctionBids.forEach((bid, globalIndex) => {
     if (!vendorBidsMap.has(bid.vendorId)) {
       vendorBidsMap.set(bid.vendorId, {
-        name: userRole === "vendor" && bid.vendorId !== initialListing?.userId 
-          ? "Anonymous" 
+        name: userRole === "vendor" && bid.vendorId !== initialListing?.userId
+          ? "Anonymous"
           : ((bid as any).vendorName || (bid as any).vendor?.name || "Unknown Vendor"),
         id: bid.vendorId,
         bids: []
@@ -55,6 +60,20 @@ export default function LiveAuctionEmbed({ listing: initialListing, userRole = "
   }));
 
   const maxRound = auctionBids.length;
+
+  // Y-axis scale based on actual bid range — prevents bids from being invisible
+  const allAmounts = auctionBids.map(b => b.amount).filter(a => a > 0);
+  const bidMin = allAmounts.length > 0 ? Math.min(...allAmounts) : basePrice;
+  const bidMax = allAmounts.length > 0 ? Math.max(...allAmounts) : (basePrice || 1);
+  const yPadding = Math.max((bidMax - bidMin) * 0.15, bidMax * 0.05, 500);
+  const yMin = Math.max(0, bidMin - yPadding);
+  const yMax = bidMax + yPadding;
+  const getChartX = (r: number) => 50 + ((r - 1) / Math.max(maxRound - 1, 1)) * 430;
+  const getChartY = (a: number) => yMax === yMin ? 100 : 20 + (1 - (a - yMin) / (yMax - yMin)) * 160;
+  const yAxisLabels = [0, 1, 2, 3, 4].map(i => ({
+    y: 20 + i * 40,
+    val: Math.round(yMax - i * (yMax - yMin) / 4),
+  }));
 
   const handleSubmitBid = () => {
     const amount = parseInt(vendorBid);
@@ -72,10 +91,28 @@ export default function LiveAuctionEmbed({ listing: initialListing, userRole = "
     placeBid(amount);
   };
 
-  const handleEndAuction = () => {
+  const handleEndAuction = async () => {
     if (confirm("Are you sure you want to end this auction now?")) {
-      editListing(listing.id, { auctionPhase: 'completed', status: 'completed' });
+      await updateAuctionPhase(listing.id, 'completed');
     }
+  };
+
+  const handleDownloadBidHistory = () => {
+    const rows = [
+      ["Round", "Vendor", "Amount (₹)", "Timestamp"],
+      ...[...auctionBids].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()).map((bid, i) => {
+        const vendorName = (bid as any).vendorName || (bid as any).vendor?.name || bid.vendorId;
+        return [i + 1, vendorName, bid.amount, new Date(bid.createdAt).toLocaleString("en-IN")];
+      }),
+    ];
+    const csv = rows.map(r => r.map(c => `"${c}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `bid-history-${listing.id}-${Date.now()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -118,54 +155,45 @@ export default function LiveAuctionEmbed({ listing: initialListing, userRole = "
                 <p className="text-[#1A1A2E] text-xs font-bold mt-0.5">{auctionBids.length} bids placed</p>
               </div>
               <div className="flex items-center gap-3 flex-wrap">
-                {competitors.slice(0,5).map(c => (
-                  <div key={c.id} className="flex items-center gap-1.5 px-2 py-1 border border-slate-200 rounded-md bg-white shadow-sm dark:bg-slate-900 dark:border-slate-700">
-                    <span className="w-2.5 h-2.5 rounded-full" style={{background: c.color}}></span>
-                    <span className="text-[9px] text-[#1A1A2E] font-bold">{c.name}</span>
-                  </div>
-                ))}
+                {competitors.slice(0,5).map(c => {
+                  const rankLabel = getRankLabel(c.id);
+                  return (
+                    <div key={c.id} className="flex items-center gap-1.5 px-2 py-1 border border-slate-200 rounded-md bg-white shadow-sm dark:bg-slate-900 dark:border-slate-700">
+                      <span className="w-2.5 h-2.5 rounded-full" style={{background: c.color}}></span>
+                      <span className="text-[9px] text-[#1A1A2E] font-bold">{rankLabel}</span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
             <div className="p-5 h-[240px] w-full">
               {auctionBids.length > 0 ? (
                 <svg viewBox="0 0 500 200" className="w-full h-full bg-white dark:bg-slate-900">
                   {/* Y Axis Grid Lines */}
-                  {[0, 1, 2, 3, 4].map(i => {
-                    const y = 20 + i * 40;
-                    const maxVal = Math.max(currentHigh * 1.2, basePrice * 1.5);
-                    const val = Math.round(maxVal - (i * (maxVal / 4)));
-                    return (
-                      <g key={`y-${i}`}>
-                        <line x1="50" y1={y} x2="480" y2={y} stroke="#E2E8F0" strokeWidth="1" strokeDasharray="4 4" />
-                        <text x="40" y={y + 3} fontSize="9" fill="#64748B" textAnchor="end">₹{Math.round(val/1000)}k</text>
-                      </g>
-                    )
-                  })}
+                  {yAxisLabels.map(({ y, val }) => (
+                    <g key={y}>
+                      <line x1="50" y1={y} x2="480" y2={y} stroke="#E2E8F0" strokeWidth="1" strokeDasharray="4 4" />
+                      <text x="48" y={y + 3} fontSize="9" fill="#64748B" textAnchor="end">
+                        {val >= 100000 ? `₹${(val/100000).toFixed(2)}L` : `₹${Math.round(val/1000)}k`}
+                      </text>
+                    </g>
+                  ))}
                   <line x1="50" y1="20" x2="50" y2="180" stroke="#CBD5E1" strokeWidth="1" />
                   <line x1="50" y1="180" x2="480" y2="180" stroke="#CBD5E1" strokeWidth="1" />
 
-                  {/* Lines for each competitor */}
+                  {/* Lines + dots for each competitor */}
                   {competitors.map(comp => {
-                    const maxVal = Math.max(currentHigh * 1.2, basePrice * 1.5);
-                    const getX = (r: number) => 50 + ((r - 1) / Math.max(maxRound - 1, 1)) * 430;
-                    const getY = (a: number) => 180 - (a / maxVal) * 160;
-
-                    const pts = comp.displayBids.map((b: any) => {
-                      return `${getX(b.r)},${getY(b.a)}`;
-                    }).join(" ");
-
+                    const pts = comp.displayBids
+                      .map((b: any) => `${getChartX(b.r)},${getChartY(b.a)}`)
+                      .join(" ");
                     return (
                       <g key={comp.id}>
                         {comp.displayBids.length > 1 && (
                           <polyline points={pts} fill="none" stroke={comp.color} strokeWidth="2.5" strokeLinejoin="round" />
                         )}
-                        {comp.displayBids.map((b: any, i: number) => {
-                          return (
-                            <g key={i}>
-                              <circle cx={getX(b.r)} cy={getY(b.a)} r="4" fill={comp.color} stroke="#FFF" strokeWidth="1.5" />
-                            </g>
-                          )
-                        })}
+                        {comp.displayBids.map((b: any, i: number) => (
+                          <circle key={i} cx={getChartX(b.r)} cy={getChartY(b.a)} r="4" fill={comp.color} stroke="#FFF" strokeWidth="1.5" />
+                        ))}
                       </g>
                     );
                   })}
@@ -187,24 +215,38 @@ export default function LiveAuctionEmbed({ listing: initialListing, userRole = "
               </span>
             </div>
             <div className="p-3 space-y-2 max-h-[350px] overflow-y-auto">
-              {auctionBids.map((bid, idx) => (
-                <div key={bid.id} className={`flex items-center justify-between p-3 rounded-lg text-xs transition-colors ${idx === 0 ? "bg-[#E8F5E9] border-l-4 border-[#1E8E3E]" : "bg-white border border-slate-100 hover:bg-slate-50"}`}>
-                  <div className="flex items-center gap-3">
-                    <span className="w-2.5 h-2.5 rounded-full shadow-sm" style={{background: competitors.find(c => c.id === bid.vendorId)?.color || "#CBD5E1"}}></span>
-                    <span className={`font-bold ${idx === 0 ? "text-[#1E8E3E]" : "text-[#1A1A2E]"}`}>
-                      {idx === 0 ? "Leader" : `Rank ${idx + 1}`} • {userRole === "vendor" && bid.vendorId !== initialListing?.userId 
-                        ? "Anonymous Vendor" 
-                        : ((bid as any).vendorName || (bid as any).vendor?.name || "Unknown Vendor")}
-                    </span>
-                    <span className="text-[10px] text-slate-400">
-                      {formatTime(bid.createdAt)}
+              {[...auctionBids].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map((bid) => {
+                const rank = leaderboard.findIndex(l => l.vendorId === bid.vendorId);
+                const isLeader = rank === 0;
+                const vendorName = userRole === "vendor" && bid.vendorId !== initialListing?.userId
+                  ? "Anonymous Vendor"
+                  : ((bid as any).vendorName || (bid as any).vendor?.name || "Unknown Vendor");
+                return (
+                  <div key={bid.id} className={`flex items-center justify-between p-3 rounded-lg text-xs transition-colors ${isLeader ? "bg-[#E8F5E9] border-l-4 border-[#1E8E3E]" : "bg-white border border-slate-100 hover:bg-slate-50 dark:bg-slate-950 dark:border-slate-800"}`}>
+                    <div className="flex items-center gap-3">
+                      <span className="w-2.5 h-2.5 rounded-full shadow-sm shrink-0" style={{background: competitors.find(c => c.id === bid.vendorId)?.color || "#CBD5E1"}}></span>
+                      <div>
+                        <span className={`font-bold ${isLeader ? "text-[#1E8E3E]" : "text-[#1A1A2E] dark:text-slate-200"}`}>
+                          {vendorName}
+                        </span>
+                        {getRankLabel(bid.vendorId) !== '—' && (
+                          <span className={`text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider ml-1.5 ${
+                            getRankLabel(bid.vendorId) === 'L1' ? 'bg-emerald-600 text-white' :
+                            getRankLabel(bid.vendorId) === 'L2' ? 'bg-blue-500 text-white' :
+                            getRankLabel(bid.vendorId) === 'L3' ? 'bg-amber-500 text-white' : 'bg-slate-300 text-slate-700'
+                          }`}>{getRankLabel(bid.vendorId)}</span>
+                        )}
+                        <span className="font-mono text-[10px] text-slate-400 ml-2 tracking-tight">
+                          {formatTimeMs(bid.createdAt)}
+                        </span>
+                      </div>
+                    </div>
+                    <span className={`font-mono font-bold text-sm ${isLeader ? "text-[#1E8E3E]" : "text-slate-600 dark:text-slate-300"}`}>
+                      ₹{bid.amount.toLocaleString()}
                     </span>
                   </div>
-                  <span className={`font-mono font-bold text-sm ${idx === 0 ? "text-[#1E8E3E]" : "text-slate-600"}`}>
-                    ₹{bid.amount.toLocaleString()}
-                  </span>
-                </div>
-              ))}
+                );
+              })}
               {auctionBids.length === 0 && (
                 <div className="text-center py-10 text-slate-400">No bids yet</div>
               )}
@@ -294,7 +336,11 @@ export default function LiveAuctionEmbed({ listing: initialListing, userRole = "
                   <span className="material-symbols-outlined text-[18px]">stop_circle</span>
                   End Auction Now
                 </button>
-                <button className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold text-xs bg-[#EFF6FF] text-[#0B5ED7] border border-[#0B5ED7]/30 hover:bg-blue-50 transition-all shadow-sm">
+                <button
+                  onClick={handleDownloadBidHistory}
+                  disabled={auctionBids.length === 0}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold text-xs bg-[#EFF6FF] text-[#0B5ED7] border border-[#0B5ED7]/30 hover:bg-blue-50 transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                >
                   <span className="material-symbols-outlined text-[18px]">download</span>
                   Download Bid History
                 </button>

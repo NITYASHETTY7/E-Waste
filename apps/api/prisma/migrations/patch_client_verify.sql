@@ -1,0 +1,1 @@
+ALTER TABLE "Pickup" ADD COLUMN IF NOT EXISTS "clientVerifiedAt" TIMESTAMP(3);

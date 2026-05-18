@@ -5,7 +5,7 @@ import { useApp } from '@/context/AppContext';
 import { Listing, Bid } from '@/types';
 import { useAuctionSocket } from './useAuctionSocket';
 
-export function useAuction(listingId: string) {
+export function useAuction(listingId: string, options: { forceConnect?: boolean } = {}) {
   const { listings, bids, addBid, editListing, currentUser, addNotification } = useApp();
   const listing = listings.find(l => l.id === listingId);
   const auctionBids = bids.filter(b =>
@@ -17,48 +17,42 @@ export function useAuction(listingId: string) {
   const currentHighAmount = currentHighBid?.amount || listing?.basePrice || 0;
 
   // Use WebSocket for live auctions
-  const isLive = listing?.auctionPhase === 'live';
+  const isLive = options.forceConnect || listing?.auctionPhase === 'live';
   const socket = useAuctionSocket({
-    auctionId: listingId,
+    auctionId: listing?.auctionId || listingId,
     enabled: isLive,
   });
 
   const [localTimeLeft, setLocalTimeLeft] = useState<number>(0);
   const [isActive, setIsActive] = useState(false);
 
-  // Use socket time when live, local countdown otherwise
-  // eslint-disable-next-line
+  // Effective end time: listing.auctionEndDate is authoritative; only accept socket.endTime
+  // if it is LATER (i.e. a timer extension fired after the listing was last fetched)
+  const listingEndMs = listing?.auctionEndDate ? new Date(listing.auctionEndDate).getTime() : 0;
+  const socketEndMs = socket.endTime?.getTime() ?? 0;
+  const effectiveEndMs = socketEndMs > listingEndMs ? socketEndMs : listingEndMs;
+
+  const isAuctionCompleted = socket.auctionState?.status === 'COMPLETED' || socket.auctionState?.status === 'PENDING_SELECTION';
+
   useEffect(() => {
-    if (isLive && socket.connected) {
-      // WebSocket is handling the timer
-      setIsActive(socket.isActive);
-      return;
-    }
-
-    if (!listing || listing.auctionPhase !== 'live') {
+    if (!isLive || !effectiveEndMs || socket.isEnded || isAuctionCompleted) {
       setIsActive(false);
+      setLocalTimeLeft(0);
       return;
     }
 
-    const calculateTimeLeft = () => {
-      const end = new Date(listing.auctionEndDate || '').getTime();
-      const now = new Date().getTime();
-      const diff = Math.max(0, Math.floor((end - now) / 1000));
+    const tick = () => {
+      const diff = Math.max(0, Math.floor((effectiveEndMs - Date.now()) / 1000));
       setLocalTimeLeft(diff);
-
-      if (diff <= 0 && listing.auctionPhase === 'live') {
-        setIsActive(false);
-      } else {
-        setIsActive(true);
-      }
+      setIsActive(diff > 0);
     };
 
-    calculateTimeLeft();
-    const timer = setInterval(calculateTimeLeft, 1000);
+    tick();
+    const timer = setInterval(tick, 1000);
     return () => clearInterval(timer);
-  }, [listing, isLive, socket.connected, socket.isActive]);
+  }, [isLive, effectiveEndMs, socket.isEnded, isAuctionCompleted]);
 
-  const timeLeft = isLive && socket.connected ? socket.timeLeft : localTimeLeft;
+  const timeLeft = localTimeLeft;
 
   const placeBid = useCallback((amount: number) => {
     if (!listing || !currentUser) return { success: false, message: 'Not logged in' };
@@ -86,20 +80,26 @@ export function useAuction(listingId: string) {
     return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  // Merge socket leaderboard with local bids for the best view
+  // All bids in chronological order for graph + ledger
+  const effectiveAllBids = isLive && socket.connected && socket.allBids.length > 0
+    ? socket.allBids
+    : [...auctionBids].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+  // Top bid per vendor for leaderboard / current high
   const effectiveLeaderboard = isLive && socket.connected && socket.leaderboard.length > 0
     ? socket.leaderboard
     : auctionBids;
 
   return {
     listing,
-    auctionBids: effectiveLeaderboard,
+    auctionBids: effectiveAllBids,
+    leaderboard: effectiveLeaderboard,
     currentHighAmount: isLive && socket.connected && socket.leaderboard[0]
       ? socket.leaderboard[0].amount
       : currentHighAmount,
     currentHighBid,
     timeLeft,
-    formatTime: isLive && socket.connected ? socket.formattedTime : formatTimeStr(localTimeLeft),
+    formatTime: formatTimeStr(localTimeLeft),
     isActive,
     placeBid,
     // Real-time extras
@@ -107,5 +107,7 @@ export function useAuction(listingId: string) {
     extensionCount: socket.extensionCount,
     bidError: socket.bidError,
     latestBid: socket.latestBid,
+    announcedWinnerId: socket.announcedWinnerId,
+    approvedWinnerId: socket.approvedWinnerId,
   };
 }

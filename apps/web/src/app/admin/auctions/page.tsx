@@ -17,7 +17,7 @@ const PHASE_META: Record<Phase, { label: string; color: string; next?: Phase }> 
 };
 
 export default function AdminAuctions() {
-  const { listings, bids, updateAuctionPhase, editListing, refreshData } = useApp();
+  const { listings, bids, updateAuctionPhase, editListing, refreshData, addNotification } = useApp();
   const [filter, setFilter] = useState<Phase | "all">("all");
   const [search, setSearch] = useState("");
   const [configModal, setConfigModal] = useState<{isOpen: boolean, listingId: string | null}>({isOpen: false, listingId: null});
@@ -36,6 +36,13 @@ export default function AdminAuctions() {
     setNotifyingClient(requirementId);
     try {
       await api.post(`/requirements/${requirementId}/notify-client-live`);
+      addNotification({
+        userId: listing.userId,
+        type: "live_auction_approval",
+        title: "Action Required: Configure Live Auction",
+        message: `The live auction for "${listing.title}" is ready to configure. Please set your pricing and schedule.`,
+        link: `/client/listings/${requirementId || listing.id}/configure-live`,
+      });
       showToast("Client notified for live auction approval via email and in-app notification.");
       await refreshData();
     } catch {
@@ -167,10 +174,30 @@ export default function AdminAuctions() {
                         }
                       </button>
                     )}
-                    {phase === "live" && (
+                    {phase === "live" && (!listing.auctionStartDate || new Date() >= new Date(listing.auctionStartDate)) && (
                       <Link href={`/admin/auctions/${listing.id}/live`}
-                        className="px-4 py-2 rounded-xl bg-red-600 text-white text-xs font-black uppercase hover:bg-red-700 transition-colors">
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-600 text-white text-xs font-black uppercase hover:bg-red-700 transition-colors">
+                        <span className="material-symbols-outlined text-sm">visibility</span>
                         View Live
+                      </Link>
+                    )}
+                    {phase === "live" && listing.auctionStartDate && new Date() < new Date(listing.auctionStartDate) && (
+                      <span className="text-xs text-slate-400 italic px-2">
+                        Starts {new Date(listing.auctionStartDate).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    )}
+                    {phase === "completed" && listing.auctionId && (
+                      <Link href={`/admin/auctions/${listing.auctionId}/manage`}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-black uppercase hover:bg-emerald-700 transition-colors">
+                        <span className="material-symbols-outlined text-sm">manage_accounts</span>
+                        Manage
+                      </Link>
+                    )}
+                    {phase === "completed" && !listing.auctionId && (
+                      <Link href={`/admin/auctions/${listing.id}/live`}
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-purple-600 text-white text-xs font-black uppercase hover:bg-purple-700 transition-colors">
+                        <span className="material-symbols-outlined text-sm">gavel</span>
+                        Approve Winner
                       </Link>
                     )}
                     {meta.next && phase === "open_configuration" && (
@@ -256,12 +283,22 @@ export default function AdminAuctions() {
                     if (requirementId) {
                       await api.post(`/requirements/${requirementId}/notify-client-live`).catch(() => {});
                     }
+                    const configListing = listings.find(l => l.id === configModal.listingId);
                     editListing(configModal.listingId, {
                       bidIncrement: Number(configForm.tickSize),
                       maximumTickSize: configForm.maxTick ? Number(configForm.maxTick) : undefined,
                       extensionTime: Number(configForm.extensionTime),
                       liveConfigured: true,
                     });
+                    if (configListing) {
+                      addNotification({
+                        userId: configListing.userId,
+                        type: "live_auction_approval",
+                        title: "Action Required: Configure Live Auction",
+                        message: `Admin has set the auction parameters for "${configListing.title}". Please review and configure your live auction.`,
+                        link: `/client/listings/${configListing.requirementId || configListing.id}/configure-live`,
+                      });
+                    }
                     showToast("Governance parameters sent to client for review.");
                     await refreshData().catch(() => {});
                   } finally {

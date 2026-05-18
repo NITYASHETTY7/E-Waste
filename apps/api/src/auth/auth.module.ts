@@ -19,7 +19,7 @@ import { JwtStrategy } from './jwt.strategy';
         ? process.env.JWT_PUBLIC_KEY.replace(/\\n/g, '\n')
         : undefined,
       signOptions: {
-        expiresIn: '24h',
+        expiresIn: '7d',
         algorithm: 'RS256',
       },
     }),

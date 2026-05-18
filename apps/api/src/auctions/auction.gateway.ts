@@ -78,6 +78,13 @@ export class AuctionGateway
       return;
     }
 
+    // Reject bids placed before the scheduled start time
+    if (auction.openPhaseStart && new Date() < new Date(auction.openPhaseStart)) {
+      const startsAt = new Date(auction.openPhaseStart).toLocaleString('en-IN');
+      client.emit('bidError', { message: `Auction has not started yet. Bidding opens at ${startsAt}` });
+      return;
+    }
+
     const highestBid = auction.bids[0]?.amount || auction.basePrice;
     const minRequired = highestBid + auction.tickSize;
 
@@ -104,7 +111,8 @@ export class AuctionGateway
     const now = new Date();
     const endTime = auction.openPhaseEnd!;
     const msToEnd = endTime.getTime() - now.getTime();
-    if (msToEnd > 0 && msToEnd < auction.extensionMinutes * 60 * 1000) {
+    const extMinutes = auction.extensionMinutes ?? 3;
+    if (extMinutes > 0 && msToEnd > 0 && msToEnd < extMinutes * 60 * 1000) {
       const updatedAuction = await this.auctionsService.extendTimer(
         payload.auctionId,
       );
@@ -124,10 +132,10 @@ export class AuctionGateway
   private async recomputeRanks(auctionId: string) {
     const bids = await this.prisma.bid.findMany({
       where: { auctionId, phase: BidPhase.OPEN },
-      orderBy: { amount: 'desc' },
+      orderBy: [{ amount: 'desc' }, { createdAt: 'asc' }],
     });
 
-    // Group by vendor — keep highest bid per vendor
+    // Group by vendor — keep highest bid per vendor; earlier bid wins on tie
     const seen = new Set<string>();
     let rank = 1;
     for (const bid of bids) {
@@ -137,6 +145,16 @@ export class AuctionGateway
         rank++;
       }
     }
+  }
+
+  async broadcastAuctionEnded(auctionId: string) {
+    const leaderboard = await this.getLeaderboard(auctionId);
+    const winnerId = leaderboard[0]?.vendorId ?? null;
+    this.server.to(auctionId).emit('auctionEnded', { auctionId, winnerId });
+  }
+
+  broadcastWinnerSelected(auctionId: string, vendorId: string) {
+    this.server.to(auctionId).emit('winnerSelected', { auctionId, vendorId });
   }
 
   async getLeaderboard(auctionId: string) {

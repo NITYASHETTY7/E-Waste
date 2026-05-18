@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import api from "@/lib/api";
+import { useApp } from "@/context/AppContext";
 
 interface InvitationDetails {
   id: string;
@@ -34,6 +35,7 @@ export default function VendorInvitationPage() {
   const { id } = useParams<{ id: string }>();
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { currentUser, addNotification } = useApp();
 
   const [details, setDetails] = useState<InvitationDetails | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
@@ -111,6 +113,13 @@ export default function VendorInvitationPage() {
       await api.post(`/requirements/${id}/audit-docs`, fd, { headers: { "Content-Type": "multipart/form-data" } });
       setDocsSubmitted(true);
       await fetchDetails();
+      addNotification({
+        userId: currentUser?.id || "",
+        type: "general",
+        title: "Audit Docs Submitted",
+        message: `Your audit documents for "${details?.title || 'the listing'}" have been submitted. The admin will review them shortly.`,
+        link: `/vendor/invitations/${id}`,
+      });
       showToast("Audit documents submitted! Admin will review them.");
     } catch { showToast("Upload failed. Please try again.", "error"); }
     finally { setUploading(false); }

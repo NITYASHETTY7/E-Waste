@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import { useAuction } from "@/hooks/useAuction";
-import { formatTime as safeFormatTime } from "@/utils/format";
+import { formatTimeMs } from "@/utils/format";
 import { motion } from "framer-motion";
 
 /* ─── SVG Line Chart ─────────────────────────────────────────── */
@@ -28,8 +28,13 @@ function BidChart({
   const chartW = W - PL - PR;
   const chartH = H - PT - PB;
 
-  const minPrice = basePrice * 0.95;
-  const maxPrice = Math.max(currentHighest * 1.08, basePrice * 1.15);
+  // Dynamic Y-scale based on actual bid range so bids are always visible
+  const allAmounts = vendorLines.flatMap((v) => v.displayPoints.map((p: any) => p.amount));
+  const bidMin = allAmounts.length > 0 ? Math.min(...allAmounts) : basePrice;
+  const bidMax = allAmounts.length > 0 ? Math.max(...allAmounts) : basePrice;
+  const padding = Math.max((bidMax - bidMin) * 0.15, basePrice * 0.02, 1000);
+  const minPrice = bidMin - padding;
+  const maxPrice = bidMax + padding;
 
   const toX = (round: number) => {
     if (maxRound <= 1) return PL + chartW / 2;
@@ -58,8 +63,8 @@ function BidChart({
             fontSize="9" fill="#64748B" textAnchor="end"
           >
             {v >= 100000
-              ? `₹${(v / 100000).toFixed(1)}L`
-              : `₹${(v / 1000).toFixed(0)}K`}
+              ? `₹${(v / 100000).toFixed(2)}L`
+              : `₹${(v / 1000).toFixed(1)}K`}
           </text>
         </g>
       ))}
@@ -115,22 +120,18 @@ export default function LiveAuctionScreen() {
   const {
     listing,
     auctionBids,
+    leaderboard,
     currentHighAmount,
     currentHighBid,
     formatTime: auctionTimer,
     placeBid,
-    isActive
-  } = useAuction(listingId);
+    isActive,
+    approvedWinnerId,
+    announcedWinnerId,
+  } = useAuction(listingId, { forceConnect: true });
 
   const [customBid, setCustomBid] = useState("");
   const ledgerRef = useRef<HTMLDivElement>(null);
-
-  // Auto-scroll ledger
-  useEffect(() => {
-    if (ledgerRef.current) {
-      ledgerRef.current.scrollTop = ledgerRef.current.scrollHeight;
-    }
-  }, [auctionBids]);
 
   if (!listing) {
     return <div className="p-10 text-center text-slate-500">Listing not found</div>;
@@ -164,10 +165,9 @@ export default function LiveAuctionScreen() {
     return vendorId === currentUser?.id ? `${code} (You)` : code;
   };
 
-  // Process data for chart
+  // Process data for chart — auctionBids is oldest-first, so globalIndex is chronological
   const vendorBidsMap = new Map();
-  const sortedBids = [...auctionBids].reverse();
-  sortedBids.forEach((bid: any, globalIndex: number) => {
+  auctionBids.forEach((bid: any, globalIndex: number) => {
     if (!vendorBidsMap.has(bid.vendorId)) {
       vendorBidsMap.set(bid.vendorId, {
         id: bid.vendorId,
@@ -197,6 +197,11 @@ export default function LiveAuctionScreen() {
 
   const isLeading = currentHighBid?.vendorId === currentUser?.id;
   const fmtINR = (n: number) => `₹${n.toLocaleString("en-IN")}`;
+
+  const getRankLabel = (vendorId: string): string => {
+    const rank = leaderboard.findIndex((l: any) => l.vendorId === vendorId);
+    return rank >= 0 ? `L${rank + 1}` : '—';
+  };
 
   return (
     <div className="min-h-screen font-sans bg-slate-50 dark:bg-slate-950">
@@ -286,7 +291,9 @@ export default function LiveAuctionScreen() {
                 {vendorLines.slice(0, 5).map((v) => (
                   <div key={v.id} className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-md border border-slate-200 dark:bg-slate-950 dark:border-slate-700">
                     <span className="inline-block w-3 h-3 rounded-full" style={{ background: v.color }} />
-                    <span className="text-[10px] text-[#1A1A2E] font-bold">{v.name}</span>
+                    <span className="text-[10px] text-[#1A1A2E] font-bold">
+                      {getRankLabel(v.id)}{v.id === currentUser?.id ? ' (You)' : ''}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -302,16 +309,27 @@ export default function LiveAuctionScreen() {
               <span className="text-[10px] font-bold text-[#0B5ED7] bg-[#EFF6FF] px-2 py-0.5 rounded-full border border-blue-200">{auctionBids.length} events</span>
             </div>
             <div ref={ledgerRef} className="overflow-y-auto p-4 space-y-1.5" style={{ maxHeight: 250 }}>
-              {(auctionBids as any[]).map((e, i) => (
-                <div key={e.id} className={`flex items-center justify-between py-2 px-3 rounded-lg text-xs transition-all ${e.vendorId === currentUser?.id ? "bg-[#E8F5E9] border-l-4 border-l-[#1E8E3E]" : "bg-white border border-slate-100"}`}>
-                  <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: vendorBidsMap.get(e.vendorId)?.color || "#CBD5E1" }} />
-                    <span className={`font-bold ${e.vendorId === currentUser?.id ? "text-[#1E8E3E]" : "text-[#1A1A2E]"}`}>{getVendorLabel(e.vendorId)}</span>
-                    <span className="text-[10px] text-slate-400">{safeFormatTime(e.createdAt)}</span>
+              {[...(auctionBids as any[])].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map((e) => {
+                const isLeadingBid = leaderboard.findIndex((l: any) => l.vendorId === e.vendorId) === 0;
+                const isMe = e.vendorId === currentUser?.id;
+                return (
+                  <div key={e.id} className={`flex items-center justify-between py-2 px-3 rounded-lg text-xs transition-all ${isMe ? "bg-[#E8F5E9] border-l-4 border-l-[#1E8E3E]" : isLeadingBid ? "bg-blue-50 border border-blue-200" : "bg-white border border-slate-100"}`}>
+                    <div className="flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: vendorBidsMap.get(e.vendorId)?.color || "#CBD5E1" }} />
+                      <span className={`font-bold ${isMe ? "text-[#1E8E3E]" : "text-[#1A1A2E]"}`}>{getVendorLabel(e.vendorId)}</span>
+                      {getRankLabel(e.vendorId) !== '—' && (
+                        <span className={`text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider ${
+                          getRankLabel(e.vendorId) === 'L1' ? 'bg-emerald-600 text-white' :
+                          getRankLabel(e.vendorId) === 'L2' ? 'bg-blue-500 text-white' :
+                          getRankLabel(e.vendorId) === 'L3' ? 'bg-amber-500 text-white' : 'bg-slate-300 text-slate-700'
+                        }`}>{getRankLabel(e.vendorId)}</span>
+                      )}
+                      <span className="text-[10px] text-slate-400">{formatTimeMs(e.createdAt)}</span>
+                    </div>
+                    <span className={`font-mono font-bold ${isMe ? "text-[#1E8E3E]" : "text-slate-600"}`}>{fmtINR(e.amount)}</span>
                   </div>
-                  <span className={`font-mono font-bold ${e.vendorId === currentUser?.id ? "text-[#1E8E3E]" : "text-slate-600"}`}>{fmtINR(e.amount)}</span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
@@ -335,12 +353,35 @@ export default function LiveAuctionScreen() {
             </div>
           </div>
 
-          {!isActive && isLeading && (
-            <div className="rounded-2xl bg-gradient-to-br from-[#E8F5E9] to-[#D1FAE5] border border-[#1E8E3E] p-5 text-center shadow-sm">
-              <span className="material-symbols-outlined text-[#1E8E3E] text-4xl">emoji_events</span>
-              <p className="text-[#1A1A2E] font-black text-lg mt-2">Auction Won!</p>
-              <p className="text-slate-600 text-xs mt-1 dark:text-slate-400">Winning bid: <span className="text-[#1E8E3E] font-bold">{fmtINR(currentHighest)}</span></p>
-              <p className="text-slate-500 text-[10px] mt-2">Wait for compliance verification.</p>
+          {!isActive && leaderboard.length > 0 && (
+            <div className="flex flex-col gap-3">
+              {/* My position */}
+              {leaderboard.slice(0, 3).map((l: any, idx: number) => {
+                const isMe = l.vendorId === currentUser?.id;
+                if (!isMe) return null;
+                return (
+                  <div key={l.vendorId} className={`rounded-2xl border p-5 text-center shadow-sm ${idx === 0 ? 'bg-gradient-to-br from-[#E8F5E9] to-[#D1FAE5] border-[#1E8E3E]' : 'bg-gradient-to-br from-blue-50 to-blue-100 border-blue-300'}`}>
+                    <span className={`text-2xl font-black ${idx === 0 ? 'text-[#1E8E3E]' : 'text-blue-600'}`}>L{idx + 1}</span>
+                    <p className="text-[#1A1A2E] font-black text-base mt-1">{idx === 0 ? 'You Have the Highest Bid!' : `You Are in Position L${idx + 1}`}</p>
+                    {idx === 0 && approvedWinnerId === currentUser?.id ? (
+                      <><span className="material-symbols-outlined text-[#1E8E3E] text-3xl mt-2">emoji_events</span>
+                      <p className="text-[#1E8E3E] font-bold text-sm mt-1">Winner Confirmed!</p>
+                      <p className="text-slate-600 text-xs mt-1">Check your email for document collection and pickup instructions.</p></>
+                    ) : idx === 0 ? (
+                      <><span className="material-symbols-outlined text-amber-500 text-3xl mt-2">hourglass_top</span>
+                      <p className="text-slate-700 font-bold text-xs mt-1">Awaiting admin approval</p>
+                      <p className="text-slate-500 text-[10px] mt-1">You will receive an email once the admin confirms you as the winner.</p></>
+                    ) : null}
+                  </div>
+                );
+              })}
+              {/* Not in top 3 */}
+              {leaderboard.findIndex((l: any) => l.vendorId === currentUser?.id) === -1 || leaderboard.findIndex((l: any) => l.vendorId === currentUser?.id) >= 3 ? (
+                <div className="rounded-2xl bg-slate-100 border border-slate-200 p-4 text-center">
+                  <p className="text-slate-600 font-bold text-sm">Auction Concluded</p>
+                  <p className="text-slate-500 text-xs mt-1">Thank you for participating.</p>
+                </div>
+              ) : null}
             </div>
           )}
         </div>

@@ -1,216 +1,327 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useApp } from "@/context/AppContext";
+import api from "@/lib/api";
+
+const fmtINR = (n: number) => `₹${(n || 0).toLocaleString("en-IN")}`;
+
+const PAYMENT_STATUS: Record<string, { color: string; label: string }> = {
+  PENDING:   { color: "bg-amber-100 text-amber-700",    label: "Payment Due" },
+  SUBMITTED: { color: "bg-blue-100 text-blue-700",      label: "Proof Uploaded" },
+  CONFIRMED: { color: "bg-emerald-100 text-emerald-700", label: "Confirmed" },
+  REJECTED:  { color: "bg-red-100 text-red-700",        label: "Rejected" },
+};
+
+const WECONNECT_BANK = {
+  name: "WeConnect E-Waste Pvt Ltd",
+  bank: "ICICI Bank",
+  account: "001401000876",
+  ifsc:    "ICIC0000014",
+};
 
 export default function VendorPayments() {
-  const { listings, bids, users, currentUser, submitPaymentProof } = useApp();
-  const [proofModal, setProofModal] = useState<{ open: boolean; listingId: string | null }>({ open: false, listingId: null });
-  const [proofFile, setProofFile] = useState<File | null>(null);
+  const { currentUser } = useApp();
+  const [auctions, setAuctions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [modal, setModal] = useState<{ auctionId: string; pickupId: string | null; title: string } | null>(null);
   const [utr, setUtr] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [logistics, setLogistics] = useState({ vehicleNumber: "", driverName: "", preferredDate: "" });
   const [uploading, setUploading] = useState(false);
+  const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
 
-  // Listings where this vendor has an accepted bid and final quote is approved
-  const paymentListings = listings.filter(l => {
-    const win = bids.find(b => b.listingId === l.id && b.vendorId === currentUser?.id && b.status === "accepted");
-    return !!win && l.finalQuoteStatus === "approved";
-  });
-
-  const getWinBid = (listingId: string) =>
-    bids.find(b => b.listingId === listingId && b.vendorId === currentUser?.id && b.status === "accepted");
-
-  const getClientBankDetails = (listing: (typeof listings)[number]) => {
-    const client = users.find(u => u.id === listing.userId);
-    return client?.bankDetails;
+  const showToast = (msg: string, type: "success" | "error" = "success") => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3500);
   };
 
+  const fetchAuctions = useCallback(async () => {
+    if (!currentUser?.companyId) return;
+    try {
+      const res = await api.get("/auctions?status=COMPLETED");
+      const won = (res.data ?? []).filter((a: any) => a.winnerId === currentUser.companyId);
+      const enriched = await Promise.all(won.map(async (a: any) => {
+        try {
+          const [postRes, payRes] = await Promise.allSettled([
+            api.get(`/auctions/${a.id}/post-auction`),
+            api.get(`/payments/auction/${a.id}`),
+          ]);
+          return {
+            ...(postRes.status === "fulfilled" ? postRes.value.data : a),
+            payment: payRes.status === "fulfilled" ? payRes.value.data : a.payment,
+          };
+        } catch {
+          return a;
+        }
+      }));
+      setAuctions(enriched);
+    } catch { /* silently fail */ }
+    finally { setLoading(false); }
+  }, [currentUser?.companyId]);
+
+  useEffect(() => { fetchAuctions(); }, [fetchAuctions]);
+
   const handleUpload = async () => {
-    if (!proofModal.listingId || !proofFile || !utr) return;
+    if (!modal || !utr) return;
     setUploading(true);
     try {
-      await submitPaymentProof(proofModal.listingId, proofFile, utr);
-    } finally {
-      setProofModal({ open: false, listingId: null });
-      setProofFile(null);
+      const fd = new FormData();
+      fd.append("utrNumber", utr);
+      if (file) fd.append("file", file);
+      await api.post(`/payments/auction/${modal.auctionId}/proof`, fd, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      // Save vendor logistics details to pickup
+      if (logistics.vehicleNumber || logistics.driverName || logistics.preferredDate) {
+        await api.patch(`/pickups/by-auction/${modal.auctionId}/vendor-logistics`, {
+          vehicleNumber: logistics.vehicleNumber || undefined,
+          driverName: logistics.driverName || undefined,
+          preferredDate: logistics.preferredDate || undefined,
+        }).catch(() => {});
+      }
+      showToast("Payment proof submitted successfully");
+      setModal(null);
       setUtr("");
+      setFile(null);
+      setLogistics({ vehicleNumber: "", driverName: "", preferredDate: "" });
+      await fetchAuctions();
+    } catch {
+      showToast("Failed to upload proof", "error");
+    } finally {
       setUploading(false);
     }
   };
 
-  const statusMeta = (status?: string) => {
-    if (status === "confirmed") return { color: "bg-emerald-100 text-emerald-700", label: "Payment Confirmed" };
-    if (status === "proof_uploaded") return { color: "bg-blue-100 text-blue-700", label: "Proof Uploaded" };
-    return { color: "bg-amber-100 text-amber-700", label: "Payment Due" };
-  };
-
-  // WeConnect bank details (mock)
-  const WECONNECT_BANK = {
-    name: "WeConnect E-Waste Pvt Ltd",
-    bank: "ICICI Bank",
-    account: "001401000876",
-    ifsc: "ICIC0000014",
-  };
+  if (!currentUser) return null;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6 pb-20">
+    <div className="max-w-4xl mx-auto space-y-6 pb-20 p-6">
+      {toast && (
+        <div className={`fixed top-5 right-5 z-50 px-5 py-3 rounded-xl shadow-xl text-sm font-bold text-white ${toast.type === "error" ? "bg-red-600" : "bg-emerald-600"}`}>
+          {toast.msg}
+        </div>
+      )}
+
       <div>
-        <h2 className="text-3xl font-headline font-extrabold tracking-tight text-[color:var(--color-on-surface)]">Payments</h2>
-        <p className="text-[color:var(--color-on-surface-variant)] mt-1">View payment details and upload proof for completed deals.</p>
+        <h2 className="text-2xl font-black text-slate-900 dark:text-white">Payments</h2>
+        <p className="text-sm text-slate-500 mt-1">View payment details and upload proof of payment for auctions you have won.</p>
       </div>
 
-      {paymentListings.length === 0 ? (
-        <div className="card p-20 text-center border-2 border-dashed border-slate-200 dark:border-slate-700">
-          <span className="material-symbols-outlined text-6xl text-slate-300 mb-4 block">payments</span>
-          <h3 className="text-xl font-bold text-slate-900 dark:text-white">No Pending Payments</h3>
-          <p className="text-slate-500 mt-2">Payment details appear here once a client approves your final quote.</p>
+      {loading ? (
+        <div className="py-20 text-center text-slate-400">
+          <span className="material-symbols-outlined text-4xl animate-spin block mb-2">progress_activity</span>
+        </div>
+      ) : auctions.length === 0 ? (
+        <div className="py-20 text-center text-slate-400 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-2xl">
+          <span className="material-symbols-outlined text-6xl mb-3 block">payments</span>
+          <p className="font-bold text-slate-900 dark:text-white">No Payments Due</p>
+          <p className="text-sm mt-1">Payment records will appear here once you win an auction.</p>
         </div>
       ) : (
         <div className="space-y-5">
-          {paymentListings.map(listing => {
-            const winBid = getWinBid(listing.id);
-            const meta = statusMeta(listing.paymentStatus);
-            const clientBank = getClientBankDetails(listing);
-            const commission = Math.round((winBid?.amount || 0) * 0.05);
-            const clientAmount = (winBid?.amount || 0) - commission;
+          {auctions.map(auction => {
+            const payment = auction.payment;
+            const topBid = auction.bids?.[0];
+            const winningAmount = payment?.clientAmount ?? topBid?.amount ?? auction.basePrice ?? 0;
+            const commission = payment?.commissionAmount ?? Math.round(winningAmount * 0.05);
+            const total = winningAmount + commission;
+            const status = payment?.status ?? "PENDING";
+            const meta = PAYMENT_STATUS[status] ?? PAYMENT_STATUS.PENDING;
 
             return (
-              <div key={listing.id} className={`card p-0 overflow-hidden border-2 ${listing.paymentStatus === "confirmed" ? "border-emerald-200" : "border-slate-100"}`}>
-                <div className="p-5 border-b border-slate-100 bg-slate-50/50 flex items-start justify-between gap-4 dark:border-slate-800">
+              <div key={auction.id} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+                {/* Header */}
+                <div className="flex items-start justify-between gap-4 px-6 py-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
                   <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-black text-slate-400">{listing.id}</span>
-                      <span className={`text-[9px] px-2.5 py-0.5 rounded-full font-black uppercase ${meta.color}`}>{meta.label}</span>
-                    </div>
-                    <h3 className="font-bold text-slate-900 dark:text-white">{listing.title}</h3>
-                    <p className="text-xs text-slate-500 mt-0.5">{listing.location} · {listing.weight} KG</p>
+                    <p className="font-black text-slate-900 dark:text-white">{auction.title}</p>
+                    <p className="text-xs text-slate-500 mt-0.5">{auction.id.substring(0, 12)} · {auction.category} · Client: {auction.client?.name}</p>
                   </div>
-                  {!listing.paymentStatus || listing.paymentStatus === "pending" ? (
-                    <button
-                      onClick={() => setProofModal({ open: true, listingId: listing.id })}
-                      className="px-5 py-2.5 rounded-xl bg-primary text-white text-xs font-black uppercase hover:bg-primary/90 shrink-0"
-                    >
-                      Upload Proof
-                    </button>
-                  ) : listing.paymentStatus === "proof_uploaded" ? (
-                    <span className="px-4 py-2 rounded-xl bg-blue-100 text-blue-700 text-xs font-black uppercase">Under Review</span>
-                  ) : (
-                    <span className="material-symbols-outlined text-2xl text-emerald-600 shrink-0">verified</span>
-                  )}
+                  <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase shrink-0 ${meta.color}`}>{meta.label}</span>
                 </div>
 
-                <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Payment breakdown */}
-                  <div className="space-y-3">
-                    <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Payment Breakdown</p>
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Payment Breakdown</p>
                     <div className="space-y-2">
                       {[
-                        { label: "Total Bid Amount", value: winBid?.amount || 0, color: "text-primary" },
-                        { label: "WeConnect Commission (5%)", value: commission, color: "text-red-600", prefix: "−" },
-                        { label: "Amount to Client", value: clientAmount, color: "text-slate-900", bold: true },
+                        { label: "Amount to Client (Full Bid)", value: winningAmount, color: "text-emerald-700 font-black" },
+                        { label: "Platform Commission (5%)", value: commission, color: "text-blue-700 font-bold" },
+                        { label: "Total You Pay", value: total, color: "text-slate-900 dark:text-white font-black" },
                       ].map(row => (
-                        <div key={row.label} className="flex justify-between items-center py-1.5 border-b border-slate-100 last:border-0 dark:border-slate-800">
+                        <div key={row.label} className="flex justify-between items-center py-1.5 border-b border-slate-100 dark:border-slate-800 last:border-0">
                           <span className="text-sm text-slate-600 dark:text-slate-400">{row.label}</span>
-                          <span className={`font-black ${row.color}`}>{row.prefix || ""}₹{row.value.toLocaleString()}</span>
+                          <span className={`text-sm ${row.color}`}>{row.prefix ?? ""}{fmtINR(row.value)}</span>
                         </div>
                       ))}
                     </div>
                   </div>
 
-                  {/* Bank account details */}
-                  <div className="space-y-3">
-                    <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Transfer To</p>
+                  {/* Bank accounts */}
+                  <div>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Transfer To</p>
                     <div className="space-y-2">
-                      {/* Client account */}
-                      <div className="p-3 bg-primary/5 rounded-xl border border-primary/10">
-                        <p className="text-[9px] font-black text-primary uppercase mb-2">Client Account (Main Amount)</p>
-                        {clientBank ? (
-                          <div className="space-y-1 text-xs">
-                            <p><span className="font-bold text-slate-600 dark:text-slate-400">Name:</span> {clientBank.accountHolderName}</p>
-                            <p><span className="font-bold text-slate-600 dark:text-slate-400">Bank:</span> {clientBank.bankName}</p>
-                            <p><span className="font-bold text-slate-600 dark:text-slate-400">A/C:</span> {clientBank.accountNumber}</p>
-                            <p><span className="font-bold text-slate-600 dark:text-slate-400">IFSC:</span> {clientBank.ifscCode}</p>
+                      {/* Client */}
+                      <div className="p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl border border-emerald-100 dark:border-emerald-800/30">
+                        <p className="text-[9px] font-black text-emerald-700 uppercase mb-2">Client Account (Main Amount)</p>
+                        {auction.client?.bankDetails ? (
+                          <div className="space-y-0.5 text-xs text-slate-700 dark:text-slate-300">
+                            <p><span className="font-bold">Name:</span> {auction.client.bankDetails.accountHolderName}</p>
+                            <p><span className="font-bold">Bank:</span> {auction.client.bankDetails.bankName}</p>
+                            <p><span className="font-bold">A/C:</span> {auction.client.bankDetails.accountNumber}</p>
+                            <p><span className="font-bold">IFSC:</span> {auction.client.bankDetails.ifscCode}</p>
                           </div>
                         ) : (
-                          <p className="text-xs text-slate-400">Bank details not on file — contact admin</p>
+                          <p className="text-xs text-slate-400 italic">Bank details not on file — contact admin</p>
                         )}
-                        <div className="mt-2 pt-2 border-t border-primary/10">
-                          <p className="text-xs font-black text-primary">Amount: ₹{clientAmount.toLocaleString()}</p>
-                        </div>
+                        <p className="text-xs font-black text-emerald-700 mt-2 pt-2 border-t border-emerald-100">{fmtINR(winningAmount)}</p>
                       </div>
-
-                      {/* WeConnect commission */}
-                      <div className="p-3 bg-blue-50 rounded-xl border border-blue-100">
+                      {/* Platform */}
+                      <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800/30">
                         <p className="text-[9px] font-black text-blue-700 uppercase mb-2">WeConnect (Commission)</p>
-                        <div className="space-y-1 text-xs">
-                          <p><span className="font-bold text-slate-600 dark:text-slate-400">Name:</span> {WECONNECT_BANK.name}</p>
-                          <p><span className="font-bold text-slate-600 dark:text-slate-400">Bank:</span> {WECONNECT_BANK.bank}</p>
-                          <p><span className="font-bold text-slate-600 dark:text-slate-400">A/C:</span> {WECONNECT_BANK.account}</p>
-                          <p><span className="font-bold text-slate-600 dark:text-slate-400">IFSC:</span> {WECONNECT_BANK.ifsc}</p>
+                        <div className="space-y-0.5 text-xs text-slate-700 dark:text-slate-300">
+                          <p><span className="font-bold">Name:</span> {WECONNECT_BANK.name}</p>
+                          <p><span className="font-bold">Bank:</span> {WECONNECT_BANK.bank}</p>
+                          <p><span className="font-bold">A/C:</span> {WECONNECT_BANK.account}</p>
+                          <p><span className="font-bold">IFSC:</span> {WECONNECT_BANK.ifsc}</p>
                         </div>
-                        <div className="mt-2 pt-2 border-t border-blue-100">
-                          <p className="text-xs font-black text-blue-700">Amount: ₹{commission.toLocaleString()}</p>
-                        </div>
+                        <p className="text-xs font-black text-blue-700 mt-2 pt-2 border-t border-blue-100">{fmtINR(commission)}</p>
                       </div>
                     </div>
                   </div>
                 </div>
 
-                {listing.paymentStatus === "proof_uploaded" && (
-                  <div className="px-5 pb-4">
-                    <div className="p-3 bg-blue-50 rounded-xl border border-blue-100 flex items-center gap-3">
-                      <span className="material-symbols-outlined text-blue-600">upload_file</span>
-                      <div>
-                        <p className="text-xs font-bold text-blue-700">Proof Submitted</p>
-                        <p className="text-xs text-slate-500">UTR: {listing.paymentUTR} · Submitted: {listing.paymentSubmittedAt ? new Date(listing.paymentSubmittedAt).toLocaleDateString("en-IN") : "—"}</p>
+                {/* Proof submitted info */}
+                {payment?.utrNumber && (
+                  <div className="px-6 pb-4">
+                    <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800/30 flex items-center gap-3">
+                      <span className="material-symbols-outlined text-blue-600">receipt_long</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-blue-700 dark:text-blue-400">Proof Submitted</p>
+                        <p className="text-xs text-slate-500">UTR: {payment.utrNumber}</p>
                       </div>
-                      {listing.paymentProofUrl && (
-                        <a href={listing.paymentProofUrl} download className="ml-auto text-xs text-primary hover:underline flex items-center gap-1">
-                          <span className="material-symbols-outlined text-sm">download</span>View
-                        </a>
+                      {status === "CONFIRMED" && (
+                        <span className="material-symbols-outlined text-emerald-600 text-xl">verified</span>
                       )}
                     </div>
                   </div>
                 )}
+
+                {/* Action */}
+                {status === "PENDING" || status === "REJECTED" ? (
+                  <div className="px-6 pb-5">
+                    {status === "REJECTED" && (
+                      <p className="text-xs text-red-600 mb-2 font-bold">Payment proof was rejected. Please re-upload with the correct details.</p>
+                    )}
+                    <button
+                      onClick={() => setModal({ auctionId: auction.id, pickupId: auction.pickup?.id ?? null, title: auction.title })}
+                      className="px-5 py-2.5 bg-primary hover:bg-primary/90 text-white rounded-xl text-sm font-black flex items-center gap-2"
+                    >
+                      <span className="material-symbols-outlined text-base">upload_file</span>
+                      Upload Payment Proof
+                    </button>
+                  </div>
+                ) : status === "SUBMITTED" ? (
+                  <div className="px-6 pb-5">
+                    <span className="text-xs text-blue-700 font-bold bg-blue-50 px-4 py-2 rounded-xl inline-block">Under Review by Admin</span>
+                  </div>
+                ) : null}
               </div>
             );
           })}
         </div>
       )}
 
-      {/* Upload proof modal */}
-      {proofModal.open && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-5">
-            <h3 className="text-xl font-headline font-extrabold text-slate-900 dark:text-white">Upload Payment Proof</h3>
-
+      {/* Upload modal */}
+      {modal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-lg p-6 space-y-5 my-4">
             <div>
-              <label className="label">UTR / Transaction Reference Number</label>
-              <input className="input-base" placeholder="Enter UTR number" value={utr} onChange={e => setUtr(e.target.value)} />
+              <h3 className="text-xl font-black text-slate-900 dark:text-white">Submit Payment & Schedule Pickup</h3>
+              <p className="text-xs text-slate-500 mt-0.5 truncate">{modal.title}</p>
             </div>
 
-            <div>
-              <label className="label">Payment Screenshot / Receipt</label>
-              <div className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer hover:border-primary transition-colors ${proofFile ? "border-emerald-400 bg-emerald-50" : "border-slate-200"}`}
-                onClick={() => document.getElementById("proof-file-input")?.click()}>
-                <input id="proof-file-input" type="file" accept="image/*,.pdf" className="hidden"
-                  onChange={e => setProofFile(e.target.files?.[0] || null)} />
-                {proofFile ? (
-                  <p className="text-sm font-bold text-emerald-700">{proofFile.name}</p>
-                ) : (
-                  <>
-                    <span className="material-symbols-outlined text-3xl text-slate-300 block mb-2">receipt</span>
-                    <p className="text-sm text-slate-500">Click to upload screenshot or PDF</p>
-                  </>
-                )}
+            {/* Payment proof */}
+            <div className="space-y-4">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800 pb-2">Payment Proof</p>
+              <div>
+                <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">UTR / Transaction Reference Number <span className="text-red-500">*</span></label>
+                <input
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  placeholder="Enter UTR number"
+                  value={utr}
+                  onChange={e => setUtr(e.target.value)}
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Payment Screenshot / Receipt (optional)</label>
+                <div
+                  className={`border-2 border-dashed rounded-xl p-5 text-center cursor-pointer hover:border-primary transition-colors ${file ? "border-emerald-400 bg-emerald-50 dark:bg-emerald-900/20" : "border-slate-200 dark:border-slate-700"}`}
+                  onClick={() => document.getElementById("payment-proof-input")?.click()}
+                >
+                  <input id="payment-proof-input" type="file" accept="image/*,.pdf" className="hidden"
+                    onChange={e => setFile(e.target.files?.[0] ?? null)} />
+                  {file ? (
+                    <p className="text-sm font-bold text-emerald-700 dark:text-emerald-400">{file.name}</p>
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined text-3xl text-slate-300 block mb-1">receipt</span>
+                      <p className="text-sm text-slate-500">Click to upload screenshot or PDF</p>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
 
-            <div className="flex justify-end gap-3">
-              <button onClick={() => setProofModal({ open: false, listingId: null })}
-                className="px-5 py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:text-slate-300 dark:border-slate-700">Cancel</button>
-              <button onClick={handleUpload} disabled={!proofFile || !utr || uploading}
-                className="px-5 py-2.5 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary/90 disabled:opacity-50">
-                {uploading ? "Uploading..." : "Submit Proof"}
+            {/* Pickup scheduling */}
+            <div className="space-y-4">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800 pb-2">Pickup Schedule (optional — share your logistics plan)</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Preferred Pickup Date</label>
+                  <input type="date"
+                    className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    value={logistics.preferredDate}
+                    onChange={e => setLogistics(p => ({ ...p, preferredDate: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Vehicle Number</label>
+                  <input type="text" placeholder="e.g. KA-01-AB-1234"
+                    className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    value={logistics.vehicleNumber}
+                    onChange={e => setLogistics(p => ({ ...p, vehicleNumber: e.target.value }))}
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-600 dark:text-slate-400 mb-1">Driver Name</label>
+                <input type="text" placeholder="Full name"
+                  className="w-full px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  value={logistics.driverName}
+                  onChange={e => setLogistics(p => ({ ...p, driverName: e.target.value }))}
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-1">
+              <button
+                onClick={() => { setModal(null); setUtr(""); setFile(null); setLogistics({ vehicleNumber: "", driverName: "", preferredDate: "" }); }}
+                className="px-5 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleUpload}
+                disabled={!utr || uploading}
+                className="px-5 py-2.5 rounded-xl bg-primary text-white text-sm font-black hover:bg-primary/90 disabled:opacity-50 flex items-center gap-2"
+              >
+                {uploading ? (
+                  <><span className="material-symbols-outlined text-base animate-spin">progress_activity</span>Submitting...</>
+                ) : (
+                  <><span className="material-symbols-outlined text-base">upload</span>Submit</>
+                )}
               </button>
             </div>
           </div>

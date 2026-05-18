@@ -63,6 +63,8 @@ model Company {
   kycDocuments     KycDocument[]
   requirements     Requirement[]     @relation("ClientRequirements")
   users            User[]
+  ratingsGiven     Rating[]          @relation("RatingsGiven")
+  ratingsReceived  Rating[]          @relation("RatingsReceived")
 }
 
 model KycDocument {
@@ -100,6 +102,8 @@ model Requirement {
   // Sealed bid event (created by admin after audits are reviewed)
   sealedBidEventCreatedAt DateTime?
   sealedBidDeadline       DateTime?
+  // Client-uploaded compliance documents: [{name, s3Key, type}]
+  clientDocuments         Json?             @default("[]")
   // Admin approval tracking
   adminApprovedAt         DateTime?
   adminApprovedById       String?
@@ -189,6 +193,7 @@ model Auction {
   quoteApproved    Boolean?
   quoteRemarks     String?
   payment          Payment?
+  ratings          Rating[]
 }
 
 model AuctionDocument {
@@ -274,17 +279,57 @@ model Payment {
 }
 
 model Pickup {
-  id            String           @id @default(cuid())
-  status        PickupStatus     @default(PENDING)
-  scheduledDate DateTime?
-  auctionId     String           @unique
-  paymentId     String?          @unique
-  adminNotes    String?
-  createdAt     DateTime         @default(now())
-  updatedAt     DateTime         @updatedAt
-  auction       Auction          @relation(fields: [auctionId], references: [id])
-  payment       Payment?         @relation(fields: [paymentId], references: [id])
-  pickupDocs    PickupDocument[]
+  id                   String           @id @default(cuid())
+  status               PickupStatus     @default(PENDING)
+  scheduledDate        DateTime?
+  auctionId            String           @unique
+  paymentId            String?          @unique
+  adminNotes           String?
+  // Gate pass fields
+  gatePassNumber       String?
+  gatePassIssuedAt     DateTime?
+  vehicleNumber        String?
+  driverName           String?
+  pickupNotes          String?
+  vendorAcknowledgedAt DateTime?
+  // Reconciliation fields
+  finalWeight          Float?
+  reconciliationNotes  String?
+  finalAmount          Float?
+  invoiceNumber        String?
+  invoiceGeneratedAt   DateTime?
+  invoiceS3Key         String?
+  // Gate pass document uploaded by client
+  gatePassDocS3Key     String?
+  gatePassDocBucket    String?
+  gatePassDocFileName  String?
+  // Vendor logistics details (filled when submitting payment)
+  vendorVehicleNumber  String?
+  vendorDriverName     String?
+  vendorPreferredDate  DateTime?
+  // Client compliance verification
+  clientVerifiedAt     DateTime?
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+  auction              Auction          @relation(fields: [auctionId], references: [id])
+  payment              Payment?         @relation(fields: [paymentId], references: [id])
+  pickupDocs           PickupDocument[]
+}
+
+model Rating {
+  id            String   @id @default(cuid())
+  auctionId     String
+  fromCompanyId String
+  toCompanyId   String
+  score         Int
+  comment       String?
+  type          String
+  createdAt     DateTime @default(now())
+  auction       Auction  @relation(fields: [auctionId], references: [id])
+  fromCompany   Company  @relation("RatingsGiven", fields: [fromCompanyId], references: [id])
+  toCompany     Company  @relation("RatingsReceived", fields: [toCompanyId], references: [id])
+
+  @@unique([auctionId, fromCompanyId, type])
 }
 
 model PickupDocument {
@@ -358,8 +403,13 @@ enum PaymentStatus {
 
 enum PickupStatus {
   PENDING
+  GATE_PASS_ISSUED
+  VENDOR_ACKNOWLEDGED
+  IN_TRANSIT
   SCHEDULED
   DOCUMENTS_UPLOADED
+  RECONCILIATION_DONE
+  INVOICE_GENERATED
   COMPLETED
 }
 
@@ -399,4 +449,14 @@ enum DocumentType {
   CANCELLED_CHEQUE
   OTHER
   WORK_ORDER
+  PURCHASE_ORDER
+  AGREEMENT
+  DELIVERY_CHALLAN
+  ASSET_HANDOVER_FORM
+  MATERIAL_ACKNOWLEDGEMENT
+  DATA_DESTRUCTION_CERTIFICATE
+  EWASTE_RECYCLING_CERTIFICATE
+  EWAY_BILL
+  E_WASTE_MANIFEST
+  INVOICE
 }

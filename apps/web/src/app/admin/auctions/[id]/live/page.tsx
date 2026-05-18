@@ -1,9 +1,12 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { useAuction } from "@/hooks/useAuction";
+import { useApp } from "@/context/AppContext";
 import { formatTime as fmtTime } from "@/utils/format";
+import api from "@/lib/api";
 
 /* ─── SVG Bid Chart ──────────────────────────────────────────── */
 function BidChart({
@@ -26,7 +29,7 @@ function BidChart({
         <g key={i}>
           <line x1={PL} y1={toY(v)} x2={W - PR} y2={toY(v)} stroke="#E2E8F0" strokeWidth="1" strokeDasharray="4 3" />
           <text x={PL - 5} y={toY(v) + 4} fontSize="9" fill="#94A3B8" textAnchor="end">
-            {v >= 100000 ? `₹${(v / 100000).toFixed(1)}L` : `₹${(v / 1000).toFixed(0)}K`}
+            {v >= 100000 ? `₹${(v / 100000).toFixed(2)}L` : `₹${(v / 1000).toFixed(1)}K`}
           </text>
         </g>
       ))}
@@ -58,21 +61,58 @@ export default function AdminLiveObserver() {
   const listingId = params?.id as string;
   const ledgerRef = useRef<HTMLDivElement>(null);
 
-  const { listing, auctionBids, currentHighAmount, currentHighBid, formatTime: timer, isActive } = useAuction(listingId);
+  const { listings } = useApp();
+  const { listing, auctionBids, leaderboard, currentHighAmount, currentHighBid, formatTime: timer, isActive } = useAuction(listingId, { forceConnect: true });
+
+  const [approving, setApproving] = useState(false);
+  const [winnerApproved, setWinnerApproved] = useState(false);
 
   useEffect(() => {
     if (ledgerRef.current) ledgerRef.current.scrollTop = ledgerRef.current.scrollHeight;
   }, [auctionBids]);
 
-  if (!listing) return <div className="p-20 text-center text-slate-400">Listing not found</div>;
+  const isLoading = listings.length === 0;
+
+  if (isLoading) return (
+    <div className="p-20 text-center text-slate-400 flex flex-col items-center gap-3">
+      <span className="material-symbols-outlined text-4xl animate-spin">progress_activity</span>
+      <p className="text-sm font-bold">Loading auction data...</p>
+    </div>
+  );
+
+  if (!listing) return (
+    <div className="p-20 text-center text-slate-400 flex flex-col items-center gap-3">
+      <span className="material-symbols-outlined text-4xl">error_outline</span>
+      <p className="text-sm font-bold">Auction not found</p>
+      <button onClick={() => router.push("/admin/auctions")} className="text-xs text-purple-600 underline">Back to Auctions</button>
+    </div>
+  );
 
   const basePrice = listing.basePrice || 0;
   const tickSize = listing.bidIncrement || 0;
   const fmtINR = (n: number) => `₹${n.toLocaleString("en-IN")}`;
 
-  // Build per-vendor chart lines (all names visible to admin)
+  const handleDownloadBidHistory = () => {
+    const rows = [
+      ["Round", "Vendor", "Amount (₹)", "Timestamp"],
+      ...[...auctionBids].sort((a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()).map((bid: any, i: number) => {
+        const vendorName = bid.vendorName || bid.vendor?.name || bid.vendorId;
+        return [i + 1, vendorName, bid.amount, new Date(bid.createdAt).toLocaleString("en-IN")];
+      }),
+    ];
+    const csv = rows.map(r => r.map(c => `"${c}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `admin-bid-history-${listing.id}-${Date.now()}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  // Build per-vendor chart lines — auctionBids is chronological (oldest first)
   const vendorMap = new Map<string, { id: string; name: string; color: string; points: { round: number; amount: number }[] }>();
-  [...auctionBids].reverse().forEach((bid: any, i) => {
+  auctionBids.forEach((bid: any, i) => {
     if (!vendorMap.has(bid.vendorId)) {
       vendorMap.set(bid.vendorId, {
         id: bid.vendorId,
@@ -129,8 +169,11 @@ export default function AdminLiveObserver() {
           {/* Timer */}
           <div className={`shrink-0 flex flex-col items-center px-4 py-1.5 rounded-xl border ${isActive ? "bg-red-50 border-red-300" : "bg-slate-100 border-slate-200"}`}>
             <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Time Left</span>
-            <span className={`font-mono font-black text-2xl tabular-nums ${isActive ? "text-red-600" : "text-slate-400"}`}>{timer}</span>
+            <span className={`font-mono font-black text-2xl tabular-nums ${isActive ? "text-red-600" : "text-slate-400"}`}>
+              {isActive ? timer : "ENDED"}
+            </span>
           </div>
+
 
           <button onClick={() => router.push("/admin/listings")}
             className="shrink-0 px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold uppercase tracking-widest border border-slate-200 transition-colors flex items-center gap-1 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700">
@@ -138,11 +181,13 @@ export default function AdminLiveObserver() {
           </button>
         </div>
 
-        {/* No-interaction notice */}
-        <div className="bg-purple-600 py-1.5 text-center">
-          <p className="text-[10px] font-black uppercase tracking-widest text-white/90 flex items-center justify-center gap-1.5">
-            <span className="material-symbols-outlined text-sm">visibility</span>
-            Read-only observation mode — bidding controls are disabled for admin
+        {/* Status bar */}
+        <div className={`py-1.5 text-center ${isActive ? "bg-purple-600" : "bg-amber-500"}`}>
+          <p className="text-[10px] font-black uppercase tracking-widest text-white flex items-center justify-center gap-1.5">
+            <span className="material-symbols-outlined text-sm">{isActive ? "visibility" : "gavel"}</span>
+            {isActive
+              ? "Read-only observation mode — bidding controls are disabled for admin"
+              : "Auction ended — scroll down to approve the winner"}
           </p>
         </div>
       </div>
@@ -161,12 +206,16 @@ export default function AdminLiveObserver() {
                 <p className="text-slate-800 font-bold text-sm mt-0.5 dark:text-slate-200">{auctionBids.length} bids · {participants} participant{participants !== 1 ? "s" : ""}</p>
               </div>
               <div className="flex items-center gap-2 flex-wrap">
-                {vendorLines.slice(0, 6).map(v => (
-                  <div key={v.id} className="flex items-center gap-1.5 bg-white border border-slate-200 px-2 py-1 rounded-md dark:bg-slate-900 dark:border-slate-700">
-                    <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: v.color }} />
-                    <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300">{v.name}</span>
-                  </div>
-                ))}
+                {vendorLines.slice(0, 6).map(v => {
+                  const rank = leaderboard.findIndex((l: any) => l.vendorId === v.id);
+                  const rankLabel = rank >= 0 ? `L${rank + 1}` : '—';
+                  return (
+                    <div key={v.id} className="flex items-center gap-1.5 bg-white border border-slate-200 px-2 py-1 rounded-md dark:bg-slate-900 dark:border-slate-700">
+                      <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: v.color }} />
+                      <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300">{rankLabel}: {v.name}</span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
             <div className="p-4" style={{ height: 290 }}>
@@ -193,8 +242,8 @@ export default function AdminLiveObserver() {
                   <span className="material-symbols-outlined text-4xl block mb-2">history_toggle_off</span>
                   <p className="text-sm font-bold">No bids yet</p>
                 </div>
-              ) : (auctionBids as any[]).map((bid, i) => {
-                const isTop = i === 0;
+              ) : [...(auctionBids as any[])].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map((bid, i) => {
+                const isTop = leaderboard.length > 0 && leaderboard[0]?.vendorId === bid.vendorId;
                 const color = vendorMap.get(bid.vendorId)?.color ?? "#CBD5E1";
                 const vendorName = bid.vendorName || bid.vendor?.name || "Unknown Vendor";
                 return (
@@ -269,21 +318,91 @@ export default function AdminLiveObserver() {
                 <p className="text-xs font-mono text-emerald-600">{fmtINR(currentHighBid.amount)}</p>
               </div>
             )}
+
+            {/* Approve winner section */}
+            {!isActive && currentHighBid && (
+              <div className="mt-4 p-4 bg-amber-50 border border-amber-300 rounded-xl">
+                <p className="text-[9px] font-black uppercase tracking-widest text-amber-700 mb-2">Auction Ended — Approve Winner</p>
+                {!winnerApproved ? (
+                  <>
+                    <p className="text-sm font-bold text-slate-800 mb-1">{highVendor} <span className="text-emerald-600">(L1)</span></p>
+                    <p className="text-xs font-mono text-slate-500 mb-3">{fmtINR(currentHighBid.amount)}</p>
+                    <button
+                      onClick={async () => {
+                        if (!currentHighBid?.vendorId) return;
+                        setApproving(true);
+                        try {
+                          const auctionId = listing?.auctionId || listingId;
+                          await api.patch(`/auctions/${auctionId}/winner`, { vendorId: currentHighBid.vendorId });
+                          setWinnerApproved(true);
+                        } catch {
+                          alert('Failed to approve winner. Please try again.');
+                        } finally {
+                          setApproving(false);
+                        }
+                      }}
+                      disabled={approving}
+                      className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest bg-[#1E8E3E] text-white hover:bg-emerald-700 disabled:opacity-50 transition-all shadow-sm"
+                    >
+                      <span className="material-symbols-outlined text-sm">{approving ? 'progress_activity' : 'gavel'}</span>
+                      {approving ? 'Approving...' : 'Approve Winner & Send Email'}
+                    </button>
+                  </>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-emerald-600 text-lg">check_circle</span>
+                      <div>
+                        <p className="text-xs font-black text-emerald-700">Winner Approved!</p>
+                        <p className="text-[10px] text-emerald-600">Email sent to {highVendor}</p>
+                      </div>
+                    </div>
+                    <Link
+                      href={`/admin/auctions/${listing.auctionId || listingId}/manage`}
+                      className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest bg-purple-600 text-white hover:bg-purple-700 transition-all shadow-sm"
+                    >
+                      <span className="material-symbols-outlined text-sm">manage_accounts</span>
+                      Manage Post-Auction Flow
+                    </Link>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
+
+          {/* Download bid history */}
+          {auctionBids.length > 0 && (
+            <button
+              onClick={handleDownloadBidHistory}
+              className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold text-xs bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition-all"
+            >
+              <span className="material-symbols-outlined text-base">download</span>
+              Download Bid History CSV
+            </button>
+          )}
 
           {/* Per-vendor breakdown */}
           {vendorLines.length > 0 && (
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 dark:bg-slate-900 dark:border-slate-700">
               <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Participant Breakdown</p>
               <div className="space-y-2">
-                {vendorLines.map(v => {
+                {vendorLines.map((v, idx) => {
+                  const rank = leaderboard.findIndex((l: any) => l.vendorId === v.id);
+                  const rankLabel = rank >= 0 ? `L${rank + 1}` : '—';
+                  const isLeader = rank === 0;
                   const topBid = v.points.length > 0 ? Math.max(...v.points.map(p => p.amount)) : 0;
-                  const isLeader = currentHighBid?.vendorId === v.id;
                   return (
                     <div key={v.id} className={`flex items-center gap-3 p-2.5 rounded-xl border ${isLeader ? "bg-emerald-50 border-emerald-200" : "bg-slate-50 border-slate-100"}`}>
                       <span className="w-3 h-3 rounded-full shrink-0" style={{ background: v.color }} />
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs font-bold text-slate-800 truncate dark:text-slate-200">{v.name}</p>
+                        <div className="flex items-center gap-1.5">
+                          <span className={`text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider ${
+                            rank === 0 ? 'bg-emerald-600 text-white' :
+                            rank === 1 ? 'bg-blue-500 text-white' :
+                            rank === 2 ? 'bg-amber-500 text-white' : 'bg-slate-300 text-slate-700'
+                          }`}>{rankLabel}</span>
+                          <p className="text-xs font-bold text-slate-800 truncate dark:text-slate-200">{v.name}</p>
+                        </div>
                         <p className="text-[10px] text-slate-400">{v.points.length} bid{v.points.length !== 1 ? "s" : ""}</p>
                       </div>
                       <div className="text-right shrink-0">

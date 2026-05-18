@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useApp } from "@/context/AppContext";
 import Link from "next/link";
 import api from "@/lib/api";
@@ -8,7 +8,7 @@ import api from "@/lib/api";
 type ReviewStep = "decision" | "approve";
 
 export default function AdminListings() {
-  const { listings, bids, users, uploadProcessedSheet, refreshData } = useApp();
+  const { listings, bids, users, uploadProcessedSheet, refreshData, addNotification } = useApp();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "pending" | "review" | "active" | "rejected">("all");
 
@@ -21,6 +21,8 @@ export default function AdminListings() {
   const [selectedVendors, setSelectedVendors] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [reviewDetails, setReviewDetails] = useState<any>(null);
+  const [loadingReview, setLoadingReview] = useState(false);
 
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
 
@@ -34,10 +36,21 @@ export default function AdminListings() {
     setRejectReason("");
     setSheetFile(null);
     setSelectedVendors([]);
+    setReviewDetails(null);
   };
 
-  const openReview = (listingId: string) =>
+  const openReview = async (listingId: string) => {
     setReviewModal({ open: true, listingId, step: "decision" });
+    setLoadingReview(true);
+    try {
+      const res = await api.get(`/requirements/${listingId}`);
+      setReviewDetails(res.data);
+    } catch {
+      // fall back to AppContext data if API fails
+    } finally {
+      setLoadingReview(false);
+    }
+  };
 
   const activeVendors = users.filter(u => u.role === "vendor" && u.status === "active");
 
@@ -68,6 +81,16 @@ export default function AdminListings() {
     try {
       await api.patch(`/requirements/${reviewModal.listingId}/reject`, { reason: rejectReason });
       await refreshData();
+      const listing = listings.find(l => l.id === reviewModal.listingId);
+      if (listing) {
+        addNotification({
+          userId: listing.userId,
+          type: "general",
+          title: "Listing Rejected",
+          message: `Your listing "${listing.title}" was not approved. Reason: ${rejectReason}`,
+          link: "/client/listings",
+        });
+      }
       showToast("Listing rejected.");
       closeModal();
     } catch {
@@ -82,6 +105,11 @@ export default function AdminListings() {
       showToast("Please upload the processed sheet.", "error");
       return;
     }
+    const ext = sheetFile.name.split(".").pop()?.toLowerCase();
+    if (ext !== "xlsx" && ext !== "xls") {
+      showToast("Only Excel files (.xlsx, .xls) are accepted.", "error");
+      return;
+    }
     if (selectedVendors.length === 0) {
       showToast("Please select at least one vendor.", "error");
       return;
@@ -89,6 +117,16 @@ export default function AdminListings() {
     setSaving(true);
     try {
       await uploadProcessedSheet(reviewModal.listingId, sheetFile, selectedVendors);
+      const listing = listings.find(l => l.id === reviewModal.listingId);
+      if (listing) {
+        addNotification({
+          userId: listing.userId,
+          type: "listing_approved",
+          title: "Listing Approved",
+          message: `Your listing "${listing.title}" has been approved! A processed material sheet is ready for your review.`,
+          link: "/client/listings",
+        });
+      }
       showToast("Sheet uploaded. Client will be notified to approve.");
       closeModal();
     } catch {
@@ -217,12 +255,15 @@ export default function AdminListings() {
                           Review
                         </button>
                       )}
-                      {displayStatus === "active" && listing.auctionPhase === "live" && (
+                      {displayStatus === "active" && listing.auctionPhase === "live" && (!listing.auctionStartDate || new Date() >= new Date(listing.auctionStartDate)) && (
                         <Link href={`/admin/auctions/${listing.id}/live`}
                           className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 bg-purple-50 text-purple-700 rounded-lg hover:bg-purple-600 hover:text-white transition-colors border border-purple-200">
                           <span className="material-symbols-outlined text-sm">visibility</span>
                           Watch Live
                         </Link>
+                      )}
+                      {displayStatus === "active" && listing.auctionPhase === "live" && listing.auctionStartDate && new Date() < new Date(listing.auctionStartDate) && (
+                        <span className="text-xs text-slate-400 italic">Live starts {new Date(listing.auctionStartDate).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
                       )}
                       {displayStatus === "active" && listing.auctionPhase !== "live" && listing.auctionPhase !== "completed" && (
                         <Link href={`/admin/listings/${listing.requirementId || listing.id}/audit-docs`}
@@ -280,6 +321,48 @@ export default function AdminListings() {
                 ))}
               </div>
 
+              {/* Description */}
+              {reviewListing.description && (
+                <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-3">
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Description</p>
+                  <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed line-clamp-3">{reviewListing.description}</p>
+                </div>
+              )}
+
+              {/* Loading state */}
+              {loadingReview && (
+                <div className="flex items-center gap-2 text-xs text-slate-400 py-2">
+                  <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
+                  Loading documents...
+                </div>
+              )}
+
+              {/* Client-uploaded legal documents from API */}
+              {!loadingReview && reviewDetails?.clientDocumentsWithUrls?.length > 0 && (
+                <div>
+                  <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Submitted Documents ({reviewDetails.clientDocumentsWithUrls.length})</p>
+                  <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                    {(reviewDetails.clientDocumentsWithUrls as {name: string; url: string; type: string}[]).map((doc, i) => (
+                      <a key={i} href={doc.url} target="_blank" rel="noopener noreferrer"
+                        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors">
+                        <span className="material-symbols-outlined text-sm text-blue-500 shrink-0">description</span>
+                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300 truncate">{doc.name}</span>
+                        <span className="text-[9px] text-slate-400 uppercase tracking-widest shrink-0">{doc.type.replace(/_/g, ' ')}</span>
+                        <span className="material-symbols-outlined text-xs text-slate-400 ml-auto shrink-0">open_in_new</span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* No documents notice */}
+              {!loadingReview && (!reviewDetails?.clientDocumentsWithUrls || reviewDetails.clientDocumentsWithUrls.length === 0) && (
+                <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 border border-amber-200 dark:bg-amber-950/30 dark:border-amber-800">
+                  <span className="material-symbols-outlined text-sm text-amber-500">info</span>
+                  <span className="text-xs text-amber-700 dark:text-amber-300">No documents uploaded by client.</span>
+                </div>
+              )}
+
               {/* ── Step 1: Approve or Reject ── */}
               {reviewModal.step === "decision" && (
                 <>
@@ -333,7 +416,7 @@ export default function AdminListings() {
                           : "border-slate-200 hover:border-[color:var(--color-primary)] hover:bg-slate-50 dark:border-slate-700"
                       }`}
                     >
-                      <input ref={fileRef} type="file" accept=".xlsx,.xls,.csv,.pdf" className="hidden"
+                      <input ref={fileRef} type="file" accept=".xlsx,.xls" className="hidden"
                         onChange={e => setSheetFile(e.target.files?.[0] || null)} />
                       {sheetFile ? (
                         <>
@@ -344,7 +427,7 @@ export default function AdminListings() {
                       ) : (
                         <>
                           <span className="material-symbols-outlined text-4xl text-slate-300 block mb-1">upload_file</span>
-                          <p className="text-sm font-bold text-slate-500">Click to upload Excel / CSV / PDF</p>
+                          <p className="text-sm font-bold text-slate-500">Click to upload Excel only (.xlsx, .xls)</p>
                         </>
                       )}
                     </div>

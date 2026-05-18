@@ -128,6 +128,13 @@ export class PaymentsService {
           auction.title,
           'CLIENT'
         );
+        // Ask client to upload gate pass now that payment is processing
+        await this.notifications.notifyClientUploadGatePass(
+          clientUser.email,
+          clientUser.name || auction.client!.name,
+          auction.title,
+          auction.winner?.name ?? 'the vendor',
+        );
       }
     } catch (e) {
       // Non-critical — don't fail payment confirmation if email fails

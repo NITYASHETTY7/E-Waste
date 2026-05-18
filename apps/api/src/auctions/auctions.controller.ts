@@ -14,6 +14,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AuctionsService } from './auctions.service';
+import { AuctionGateway } from './auction.gateway';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -27,7 +28,7 @@ import {
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('auctions')
 export class AuctionsController {
-  constructor(private svc: AuctionsService) {}
+  constructor(private svc: AuctionsService, private gateway: AuctionGateway) {}
 
   @Post()
   @Roles(UserRole.ADMIN)
@@ -74,8 +75,13 @@ export class AuctionsController {
   }
 
   @Patch(':id/status')
-  updateStatus(@Param('id') id: string, @Body('status') status: AuctionStatus) {
-    return this.svc.updateStatus(id, status);
+  async updateStatus(@Param('id') id: string, @Body('status') status: AuctionStatus) {
+    const result = await this.svc.updateStatus(id, status);
+    // Notify all vendors in the auction room when auction ends
+    if (status === AuctionStatus.COMPLETED || status === AuctionStatus.PENDING_SELECTION) {
+      this.gateway.broadcastAuctionEnded(id).catch(console.error);
+    }
+    return result;
   }
 
   @Post(':id/sealed-bid')
@@ -99,8 +105,10 @@ export class AuctionsController {
   }
 
   @Patch(':id/winner')
-  selectWinner(@Param('id') id: string, @Body('vendorId') vendorId: string) {
-    return this.svc.selectWinner(id, vendorId);
+  async selectWinner(@Param('id') id: string, @Body('vendorId') vendorId: string) {
+    const result = await this.svc.selectWinner(id, vendorId);
+    this.gateway.broadcastWinnerSelected(id, vendorId);
+    return result;
   }
 
   @Post(':id/final-quote')
@@ -121,5 +129,16 @@ export class AuctionsController {
   @Patch(':id/reject-quote')
   rejectQuote(@Param('id') id: string, @Body('remarks') remarks: string) {
     return this.svc.rejectQuote(id, remarks);
+  }
+
+  @Post(':id/generate-docs')
+  @Roles(UserRole.ADMIN)
+  generateDocs(@Param('id') id: string) {
+    return this.svc.generatePostAuctionDocs(id);
+  }
+
+  @Get(':id/post-auction')
+  getPostAuction(@Param('id') id: string) {
+    return this.svc.getAuctionWithPostDocs(id);
   }
 }

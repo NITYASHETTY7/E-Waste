@@ -43,7 +43,10 @@
       "Bash(npm --version)",
       "Bash(dir \"E:\\\\engineering\\\\4th year\\\\mirai int\\\\e-waste agregator\")",
       "Bash(pg_isready)",
-      "Bash(where psql *)"
+      "Bash(where psql *)",
+      "Bash(cat)",
+      "Read(//tmp/**)",
+      "PowerShell(Remove-Item *)"
     ]
   }
 }

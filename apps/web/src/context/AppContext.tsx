@@ -37,10 +37,6 @@ interface AppContextType extends AppState {
   sendAuditInvitations: (listingId: string, vendorIds: string[], spocName: string, spocPhone: string, siteAddress: string) => void;
   respondToAuditInvitation: (auditId: string, status: 'accepted' | 'declined') => void;
   completeAudit: (auditId: string, productMatch: boolean, remarks: string) => void;
-  // Final quote flow
-  submitFinalQuote: (listingId: string, productQuoteUrl: string, letterheadUrl: string) => void;
-  approveFinalQuote: (listingId: string) => void;
-  rejectFinalQuote: (listingId: string, remarks: string) => void;
   // Requirement sheet flow
   uploadProcessedSheet: (listingId: string, file: File, vendorIds?: string[]) => Promise<void>;
   approveRequirement: (listingId: string, targetPrice: number, totalWeight?: number) => Promise<void>;
@@ -535,24 +531,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           }));
           await fetchAllData();
         }
-      } catch (e) {
+      } catch (e: any) {
+        // Only clear token on explicit 401 (invalid/expired) — not on network errors
+        if (e?.response?.status === 401) {
+          localStorage.removeItem('ecoloop_token');
+        }
         console.error('Backend unavailable or token expired, using local state', e);
-        localStorage.removeItem('ecoloop_token');
-        // Load mock data if no saved state and backend is unreachable
-        setState(prev => {
-          if (prev.listings.length === 0) {
-            return {
-              ...prev,
-              listings: MOCK_LISTINGS,
-              bids: MOCK_BIDS,
-              users: MOCK_USERS,
-              notifications: MOCK_NOTIFICATIONS,
-              auditInvitations: MOCK_AUDIT_INVITATIONS,
-              vendorRatings: MOCK_VENDOR_RATINGS,
-            };
-          }
-          return prev;
-        });
+        // Load mock data only if backend is completely unreachable and no data exists
+        if (!e?.response) {
+          setState(prev => {
+            if (prev.listings.length === 0) {
+              return {
+                ...prev,
+                listings: MOCK_LISTINGS,
+                bids: MOCK_BIDS,
+                users: MOCK_USERS,
+                notifications: MOCK_NOTIFICATIONS,
+                auditInvitations: MOCK_AUDIT_INVITATIONS,
+                vendorRatings: MOCK_VENDOR_RATINGS,
+              };
+            }
+            return prev;
+          });
+        }
       } finally {
         setIsInitialized(true);
       }
@@ -562,8 +563,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (isInitialized) {
-      // Only persist lightweight UI preferences — NOT the full dataset
-      // Backend is the source of truth for listings, bids, users, etc.
       try {
         const uiPrefs = {
           theme: state.theme,
@@ -576,6 +575,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
     }
   }, [state.theme, state.isSidebarOpen, state.isSidebarCollapsed, isInitialized]);
+
+  // Poll backend for changes every 30 seconds when logged in
+  useEffect(() => {
+    if (!isInitialized || !state.currentUser) return;
+    const interval = setInterval(() => {
+      fetchAllData().catch(() => {});
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [isInitialized, state.currentUser?.id]);
 
   const mapRequirementToListing = (req: any): Listing => {
     // Derive auctionPhase from auction status; new requirements without auction show as 'pending'
@@ -980,6 +988,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (listing._rawFiles) {
         const materialListFile = listing._rawFiles['material_list'];
         if (materialListFile) formData.append('file', materialListFile);
+
+        const documentTypes: string[] = [];
+        for (const [type, file] of Object.entries(listing._rawFiles)) {
+          if (type !== 'material_list') {
+            formData.append('documents', file);
+            documentTypes.push(type);
+          }
+        }
+        if (documentTypes.length > 0) {
+          formData.append('documentTypes', JSON.stringify(documentTypes));
+        }
       }
 
       await api.post('/requirements', formData, {
@@ -1297,89 +1316,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const submitFinalQuote = async (listingId: string, productQuoteUrl: string, letterheadUrl: string) => {
-    try {
-      // Upload both quote documents to the backend
-      // In production, these would be actual File objects; for now we use the URLs
-      const formData1 = new FormData();
-      formData1.append('type', 'FINAL_QUOTE');
-      // If productQuoteUrl is a data URL or blob, convert to file
-      if (productQuoteUrl.startsWith('data:') || productQuoteUrl.startsWith('blob:')) {
-        const resp = await fetch(productQuoteUrl);
-        const blob = await resp.blob();
-        formData1.append('file', blob, 'product_quote.pdf');
-        await api.post(`/auctions/${listingId}/final-quote`, formData1, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
-      }
-
-      if (letterheadUrl.startsWith('data:') || letterheadUrl.startsWith('blob:')) {
-        const formData2 = new FormData();
-        formData2.append('type', 'LETTERHEAD_QUOTATION');
-        const resp = await fetch(letterheadUrl);
-        const blob = await resp.blob();
-        formData2.append('file', blob, 'letterhead_quotation.pdf');
-        await api.post(`/auctions/${listingId}/final-quote`, formData2, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
-      }
-
-      await fetchAllData();
-    } catch (error) {
-      console.error('Failed to submit final quote via API, updating locally', error);
-      setState(prev => ({
-        ...prev,
-        listings: prev.listings.map(l => l.id === listingId ? {
-          ...l,
-          finalQuoteStatus: 'submitted',
-          finalQuoteProductUrl: productQuoteUrl,
-          finalQuoteLetterheadUrl: letterheadUrl,
-          finalQuoteSubmittedAt: new Date().toISOString(),
-        } : l),
-      }));
-    }
-  };
-
-  const approveFinalQuote = async (listingId: string) => {
-    try {
-      // Backend auto-creates Payment with 5% commission split
-      await api.patch(`/auctions/${listingId}/approve-quote`);
-      await fetchAllData();
-    } catch (error) {
-      console.error('Failed to approve final quote via API, updating locally', error);
-      setState(prev => {
-        const winBid = prev.bids.find(b => b.listingId === listingId && b.status === 'accepted');
-        const commission = winBid ? Math.round(winBid.amount * 0.05) : 0;
-        const clientAmount = winBid ? winBid.amount - commission : 0;
-        return {
-          ...prev,
-          listings: prev.listings.map(l => l.id === listingId ? {
-            ...l,
-            finalQuoteStatus: 'approved',
-            paymentStatus: 'pending',
-            paymentClientAmount: clientAmount,
-            paymentCommissionAmount: commission,
-          } : l),
-        };
-      });
-    }
-  };
-
-  const rejectFinalQuote = async (listingId: string, remarks: string) => {
-    try {
-      await api.patch(`/auctions/${listingId}/reject-quote`, { remarks });
-      await fetchAllData();
-    } catch (error) {
-      console.error('Failed to reject final quote via API, updating locally', error);
-      setState(prev => ({
-        ...prev,
-        listings: prev.listings.map(l => l.id === listingId ? {
-          ...l, finalQuoteStatus: 'rejected', finalQuoteRemarks: remarks,
-        } : l),
-      }));
-    }
-  };
-
   // ── Step 6: Purchase Order ─────────────────────────────────────────────
   const issuePO = (listingId: string, data: { paymentTerms: string; deliveryTerms: string; penaltyClause: string; specialConditions: string }) => {
     const listing = state.listings.find(l => l.id === listingId);
@@ -1591,7 +1527,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       updateUserProfile, changePassword, deleteAccount,
       auditInvitations: state.auditInvitations ?? [],
       sendAuditInvitations, respondToAuditInvitation, completeAudit,
-      submitFinalQuote, approveFinalQuote, rejectFinalQuote,
       issuePO, acknowledgePO,
       submitEMD, verifyEMD,
       submitPaymentProof, confirmPayment,

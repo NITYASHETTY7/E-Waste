@@ -44,6 +44,9 @@ export class CreateRequirementDto {
   @IsOptional()
   invitedVendorIds?: any; // Validated in controller
 
+  @IsOptional()
+  documentTypes?: any; // Validated in controller
+
   @IsString()
   @IsOptional()
   clientId?: string;

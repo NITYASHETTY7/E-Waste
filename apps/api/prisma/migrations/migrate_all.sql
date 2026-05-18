@@ -93,6 +93,23 @@ ALTER TYPE "DocumentType" ADD VALUE IF NOT EXISTS 'WEIGHT_SLIP_EMPTY';
 ALTER TYPE "DocumentType" ADD VALUE IF NOT EXISTS 'WEIGHT_SLIP_LOADED';
 ALTER TYPE "DocumentType" ADD VALUE IF NOT EXISTS 'RECYCLING_CERTIFICATE';
 ALTER TYPE "DocumentType" ADD VALUE IF NOT EXISTS 'DISPOSAL_CERTIFICATE';
+ALTER TYPE "DocumentType" ADD VALUE IF NOT EXISTS 'WORK_ORDER';
+ALTER TYPE "DocumentType" ADD VALUE IF NOT EXISTS 'PURCHASE_ORDER';
+ALTER TYPE "DocumentType" ADD VALUE IF NOT EXISTS 'AGREEMENT';
+ALTER TYPE "DocumentType" ADD VALUE IF NOT EXISTS 'DELIVERY_CHALLAN';
+ALTER TYPE "DocumentType" ADD VALUE IF NOT EXISTS 'ASSET_HANDOVER_FORM';
+ALTER TYPE "DocumentType" ADD VALUE IF NOT EXISTS 'MATERIAL_ACKNOWLEDGEMENT';
+ALTER TYPE "DocumentType" ADD VALUE IF NOT EXISTS 'DATA_DESTRUCTION_CERTIFICATE';
+ALTER TYPE "DocumentType" ADD VALUE IF NOT EXISTS 'EWASTE_RECYCLING_CERTIFICATE';
+ALTER TYPE "DocumentType" ADD VALUE IF NOT EXISTS 'EWAY_BILL';
+ALTER TYPE "DocumentType" ADD VALUE IF NOT EXISTS 'E_WASTE_MANIFEST';
+ALTER TYPE "DocumentType" ADD VALUE IF NOT EXISTS 'INVOICE';
+
+ALTER TYPE "PickupStatus" ADD VALUE IF NOT EXISTS 'GATE_PASS_ISSUED';
+ALTER TYPE "PickupStatus" ADD VALUE IF NOT EXISTS 'VENDOR_ACKNOWLEDGED';
+ALTER TYPE "PickupStatus" ADD VALUE IF NOT EXISTS 'IN_TRANSIT';
+ALTER TYPE "PickupStatus" ADD VALUE IF NOT EXISTS 'RECONCILIATION_DONE';
+ALTER TYPE "PickupStatus" ADD VALUE IF NOT EXISTS 'INVOICE_GENERATED';
 
 -- ─────────────────────────────────────────────
 --  STEP 2 — TABLES (CREATE IF NOT EXISTS)
@@ -309,6 +326,61 @@ CREATE TABLE IF NOT EXISTS "Pickup" (
 CREATE UNIQUE INDEX IF NOT EXISTS "Pickup_auctionId_key"  ON "Pickup"("auctionId");
 CREATE UNIQUE INDEX IF NOT EXISTS "Pickup_paymentId_key"  ON "Pickup"("paymentId");
 
+-- Pickup extended fields (idempotent)
+ALTER TABLE "Pickup" ADD COLUMN IF NOT EXISTS "gatePassNumber"       TEXT;
+ALTER TABLE "Pickup" ADD COLUMN IF NOT EXISTS "gatePassIssuedAt"     TIMESTAMP(3);
+ALTER TABLE "Pickup" ADD COLUMN IF NOT EXISTS "vehicleNumber"        TEXT;
+ALTER TABLE "Pickup" ADD COLUMN IF NOT EXISTS "driverName"           TEXT;
+ALTER TABLE "Pickup" ADD COLUMN IF NOT EXISTS "pickupNotes"          TEXT;
+ALTER TABLE "Pickup" ADD COLUMN IF NOT EXISTS "vendorAcknowledgedAt" TIMESTAMP(3);
+ALTER TABLE "Pickup" ADD COLUMN IF NOT EXISTS "finalWeight"          DOUBLE PRECISION;
+ALTER TABLE "Pickup" ADD COLUMN IF NOT EXISTS "reconciliationNotes"  TEXT;
+ALTER TABLE "Pickup" ADD COLUMN IF NOT EXISTS "finalAmount"          DOUBLE PRECISION;
+ALTER TABLE "Pickup" ADD COLUMN IF NOT EXISTS "invoiceNumber"        TEXT;
+ALTER TABLE "Pickup" ADD COLUMN IF NOT EXISTS "invoiceGeneratedAt"   TIMESTAMP(3);
+ALTER TABLE "Pickup" ADD COLUMN IF NOT EXISTS "invoiceS3Key"         TEXT;
+
+-- Auction extra fields (liveApprovalStatus added via previous session)
+ALTER TABLE "Auction" ADD COLUMN IF NOT EXISTS "liveApprovalStatus"  TEXT NOT NULL DEFAULT 'pending';
+ALTER TABLE "Auction" ADD COLUMN IF NOT EXISTS "liveApprovalRemarks" TEXT;
+
+-- Payment extra field
+ALTER TABLE "Payment" ADD COLUMN IF NOT EXISTS "paymentProofUrl" TEXT;
+
+-- Bid extra fields
+ALTER TABLE "Bid" ADD COLUMN IF NOT EXISTS "isShortlisted" BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "Bid" ADD COLUMN IF NOT EXISTS "clientStatus"  TEXT NOT NULL DEFAULT 'pending';
+ALTER TABLE "Bid" ADD COLUMN IF NOT EXISTS "clientRemarks" TEXT;
+
+-- Requirement extra fields
+ALTER TABLE "Requirement" ADD COLUMN IF NOT EXISTS "acceptedVendorIds"       TEXT[] NOT NULL DEFAULT '{}';
+ALTER TABLE "Requirement" ADD COLUMN IF NOT EXISTS "declinedVendorIds"       TEXT[] NOT NULL DEFAULT '{}';
+ALTER TABLE "Requirement" ADD COLUMN IF NOT EXISTS "auditApprovedVendorIds"  TEXT[] NOT NULL DEFAULT '{}';
+ALTER TABLE "Requirement" ADD COLUMN IF NOT EXISTS "sealedBidEventCreatedAt" TIMESTAMP(3);
+ALTER TABLE "Requirement" ADD COLUMN IF NOT EXISTS "sealedBidDeadline"       TIMESTAMP(3);
+ALTER TABLE "Requirement" ADD COLUMN IF NOT EXISTS "clientDocuments"         JSONB DEFAULT '[]';
+
+-- Company extra fields
+ALTER TABLE "Company" ADD COLUMN IF NOT EXISTS "isLocked"      BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE "Company" ADD COLUMN IF NOT EXISTS "lockReason"    TEXT;
+ALTER TABLE "Company" ADD COLUMN IF NOT EXISTS "penaltyAmount" DOUBLE PRECISION;
+
+-- Rating table
+CREATE TABLE IF NOT EXISTS "Rating" (
+  "id"            TEXT         NOT NULL,
+  "auctionId"     TEXT         NOT NULL,
+  "fromCompanyId" TEXT         NOT NULL,
+  "toCompanyId"   TEXT         NOT NULL,
+  "score"         INTEGER      NOT NULL,
+  "comment"       TEXT,
+  "type"          TEXT         NOT NULL,
+  "createdAt"     TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "Rating_pkey" PRIMARY KEY ("id")
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS "Rating_auctionId_fromCompanyId_type_key"
+  ON "Rating"("auctionId","fromCompanyId","type");
+
 CREATE TABLE IF NOT EXISTS "PickupDocument" (
   "id"         TEXT           NOT NULL,
   "type"       "DocumentType" NOT NULL,
@@ -411,6 +483,21 @@ DO $$ BEGIN
     FOREIGN KEY ("pickupId") REFERENCES "Pickup"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
+DO $$ BEGIN
+  ALTER TABLE "Rating" ADD CONSTRAINT "Rating_auctionId_fkey"
+    FOREIGN KEY ("auctionId") REFERENCES "Auction"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "Rating" ADD CONSTRAINT "Rating_fromCompanyId_fkey"
+    FOREIGN KEY ("fromCompanyId") REFERENCES "Company"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+  ALTER TABLE "Rating" ADD CONSTRAINT "Rating_toCompanyId_fkey"
+    FOREIGN KEY ("toCompanyId") REFERENCES "Company"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
 -- ─────────────────────────────────────────────
 --  STEP 4 — INCREMENTAL COLUMN ADDITIONS
 --  (for databases that already have the base tables)
@@ -435,6 +522,10 @@ ALTER TABLE "Requirement"
 -- Requirement: processed sheet key
 ALTER TABLE "Requirement"
   ADD COLUMN IF NOT EXISTS "processedS3Key" TEXT;
+
+-- Requirement: client-uploaded compliance documents (JSON array)
+ALTER TABLE "Requirement"
+  ADD COLUMN IF NOT EXISTS "clientDocuments" JSONB NOT NULL DEFAULT '[]';
 
 -- ─────────────────────────────────────────────
 --  STEP 5 — PRISMA MIGRATION TRACKING

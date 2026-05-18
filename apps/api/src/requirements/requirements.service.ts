@@ -23,6 +23,8 @@ export class RequirementsService {
     sealedPhaseStart?: string;
     sealedPhaseEnd?: string;
     file?: Express.Multer.File;
+    documentFiles?: Express.Multer.File[];
+    documentTypes?: string[];
   }) {
     let rawS3Key: string | undefined;
     if (data.file) {
@@ -31,6 +33,22 @@ export class RequirementsService {
         `requirements/${data.clientId}`,
       );
       rawS3Key = key;
+    }
+
+    const clientDocuments: { name: string; s3Key: string; type: string }[] = [];
+    if (data.documentFiles?.length) {
+      for (let i = 0; i < data.documentFiles.length; i++) {
+        const docFile = data.documentFiles[i];
+        const { key } = await this.s3.upload(
+          docFile,
+          `requirements/${data.clientId}/documents`,
+        );
+        clientDocuments.push({
+          name: docFile.originalname,
+          s3Key: key,
+          type: data.documentTypes?.[i] ?? 'document',
+        });
+      }
     }
 
     return this.prisma.requirement.create({
@@ -48,6 +66,7 @@ export class RequirementsService {
         sealedPhaseEnd: data.sealedPhaseEnd
           ? new Date(data.sealedPhaseEnd)
           : undefined,
+        clientDocuments: clientDocuments.length ? clientDocuments : [],
       },
       include: { client: true },
     });
@@ -75,7 +94,17 @@ export class RequirementsService {
       },
     });
     if (!req) throw new NotFoundException('Requirement not found');
-    return req;
+
+    const rawDocs = Array.isArray(req.clientDocuments) ? req.clientDocuments as any[] : [];
+    const clientDocumentsWithUrls = await Promise.all(
+      rawDocs.map(async (doc: { name: string; s3Key: string; type: string }) => ({
+        name: doc.name,
+        type: doc.type,
+        url: doc.s3Key ? await this.s3.getSignedUrl(doc.s3Key).catch(() => '') : '',
+      })),
+    );
+
+    return { ...req, clientDocumentsWithUrls };
   }
 
   // Admin uploads the cleaned / processed sheet

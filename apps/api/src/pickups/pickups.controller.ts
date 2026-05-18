@@ -15,12 +15,10 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { PickupsService } from './pickups.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { RolesGuard } from '../auth/roles.guard';
-import { Roles } from '../auth/decorators/roles.decorator';
-import { DocumentType, PickupStatus, UserRole } from '@prisma/client';
+import { DocumentType, PickupStatus } from '@prisma/client';
 import type { Response } from 'express';
 
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard)
 @Controller()
 export class PickupsController {
   constructor(private svc: PickupsService) {}
@@ -35,6 +33,11 @@ export class PickupsController {
     return this.svc.findAll(status);
   }
 
+  @Get('pickups/by-auction/:auctionId')
+  findByAuction(@Param('auctionId') auctionId: string) {
+    return this.svc.findByAuction(auctionId);
+  }
+
   @Get('pickups/:id')
   findOne(@Param('id') id: string) {
     return this.svc.findOne(id);
@@ -43,6 +46,65 @@ export class PickupsController {
   @Patch('pickups/:id/schedule')
   schedule(@Param('id') id: string, @Body('scheduledDate') date: string) {
     return this.svc.schedule(id, date);
+  }
+
+  @Patch('pickups/:id/gate-pass')
+  issueGatePass(
+    @Param('id') id: string,
+    @Body() body: { gatePassNumber: string; vehicleNumber?: string; driverName?: string; scheduledDate?: string; pickupNotes?: string },
+  ) {
+    return this.svc.issueGatePass(id, body);
+  }
+
+  @Post('pickups/:id/upload-gate-pass')
+  @UseInterceptors(FileInterceptor('file'))
+  uploadGatePassDoc(
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.svc.uploadGatePassDoc(id, file);
+  }
+
+  @Patch('pickups/by-auction/:auctionId/vendor-logistics')
+  saveVendorLogistics(
+    @Param('auctionId') auctionId: string,
+    @Body() body: { vehicleNumber?: string; driverName?: string; preferredDate?: string },
+  ) {
+    return this.svc.saveVendorLogistics(auctionId, body);
+  }
+
+  @Patch('pickups/:id/vendor-acknowledge')
+  vendorAcknowledge(@Param('id') id: string) {
+    return this.svc.vendorAcknowledge(id);
+  }
+
+  @Post('pickups/:id/upload-doc')
+  @UseInterceptors(FileInterceptor('file'))
+  uploadDoc(
+    @Param('id') id: string,
+    @Query('type') type: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    const docType = type as DocumentType;
+    return this.svc.uploadHandoverDoc(id, file, docType);
+  }
+
+  @Post('pickups/:id/reconcile')
+  reconcile(
+    @Param('id') id: string,
+    @Body() body: { finalWeight: number; reconciliationNotes?: string; finalAmount: number },
+  ) {
+    return this.svc.reconcile(id, body);
+  }
+
+  @Post('pickups/:id/generate-invoice')
+  generateInvoice(@Param('id') id: string) {
+    return this.svc.generateInvoice(id);
+  }
+
+  @Patch('admin/pickups/:id/release-payment')
+  releasePayment(@Param('id') id: string) {
+    return this.svc.releasePayment(id);
   }
 
   @Post('pickups/:id/upload-form6')
@@ -86,14 +148,17 @@ export class PickupsController {
     stream.pipe(res);
   }
 
+  @Patch('pickups/:id/client-verify-compliance')
+  clientVerifyCompliance(@Param('id') id: string) {
+    return this.svc.clientVerifyCompliance(id);
+  }
+
   @Patch('admin/pickups/:id/verify-compliance')
-  @Roles(UserRole.ADMIN)
   verifyCompliance(@Param('id') id: string) {
     return this.svc.verifyCompliance(id);
   }
 
   @Patch('admin/pickups/:id/complete')
-  @Roles(UserRole.ADMIN)
   complete(@Param('id') id: string, @Body('adminNotes') notes?: string) {
     return this.svc.completePickup(id, notes);
   }

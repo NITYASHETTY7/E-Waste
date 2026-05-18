@@ -33,7 +33,7 @@ const REQUIRED_DOCS = [
 ];
 
 export default function ClientPost() {
-  const { addListing, currentUser } = useApp();
+  const { addListing, currentUser, addNotification } = useApp();
   const [selectedCategory, setSelectedCategory] = useState("");
   const [form, setForm] = useState({
     title: "", weight: "", description: "", location: "",
@@ -44,6 +44,7 @@ export default function ClientPost() {
   const [documents, setDocuments] = useState<{name: string, url: string, type: string}[]>([]);
   const [rawFiles, setRawFiles] = useState<Record<string, File>>({});
   const [success, setSuccess] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [step, setStep] = useState<"category" | "details" | "auction" | "media">("category");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -69,6 +70,7 @@ export default function ClientPost() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
     if (images.length === 0) { setErrors({ media: "Please upload at least one image." }); return; }
     const missingDocs = REQUIRED_DOCS.filter(d => d.required && !documents.some(doc => doc.type === d.id));
     if (missingDocs.length > 0) {
@@ -76,6 +78,7 @@ export default function ClientPost() {
       return;
     }
 
+    setSubmitting(true);
     try {
       await addListing({
         title: form.title,
@@ -92,9 +95,18 @@ export default function ClientPost() {
         documents,
         _rawFiles: rawFiles,
       } as any);
+      addNotification({
+        userId: currentUser?.id || "",
+        type: "general",
+        title: "Listing Submitted",
+        message: `Your listing "${form.title}" has been submitted for admin review. You'll be notified once it's approved.`,
+        link: "/client/listings",
+      });
       setSuccess(true);
     } catch {
       setErrors({ submit: "Failed to submit listing. Please try again." });
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -345,10 +357,13 @@ export default function ClientPost() {
 
           {errors.submit && <p className="text-red-500 text-xs text-center font-bold">{errors.submit}</p>}
           <div className="flex flex-col-reverse sm:flex-row gap-4 justify-between mt-8">
-            <button type="button" onClick={() => setStep("auction")} className="btn-outline w-full sm:w-auto px-8 py-4 rounded-xl font-bold">← Back</button>
-            <button type="submit" className="btn-tertiary w-full sm:flex-1 py-4 rounded-xl font-black text-sm uppercase tracking-widest shadow-lg flex items-center justify-center gap-2">
-              <span className="material-symbols-outlined">send</span>
-              Submit for Admin Review
+            <button type="button" onClick={() => setStep("auction")} disabled={submitting} className="btn-outline w-full sm:w-auto px-8 py-4 rounded-xl font-bold">← Back</button>
+            <button type="submit" disabled={submitting} className="btn-tertiary w-full sm:flex-1 py-4 rounded-xl font-black text-sm uppercase tracking-widest shadow-lg flex items-center justify-center gap-2 disabled:opacity-70">
+              {submitting ? (
+                <><span className="material-symbols-outlined animate-spin text-base">progress_activity</span>Submitting...</>
+              ) : (
+                <><span className="material-symbols-outlined">send</span>Submit for Admin Review</>
+              )}
             </button>
           </div>
         </form>

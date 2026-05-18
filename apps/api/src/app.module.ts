@@ -17,6 +17,7 @@ import { DashboardModule } from './dashboard/dashboard.module';
 import { NotificationModule } from './notifications/notification.module';
 import { DocumentsModule } from './documents/documents.module';
 import { QueueModule } from './queue/queue.module';
+import { RatingsModule } from './ratings/ratings.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { QueueModule } from './queue/queue.module';
     DashboardModule,
     NotificationModule,
     DocumentsModule,
+    RatingsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -402,6 +402,75 @@ export class NotificationService {
     });
   }
 
+  async notifyClientUploadGatePass(
+    clientEmail: string,
+    clientName: string,
+    auctionTitle: string,
+    vendorName: string,
+  ) {
+    const webUrl = process.env.WEB_URL || 'http://localhost:3000';
+    return this.sendEmail({
+      to: clientEmail,
+      subject: `[WeConnect] Action Required: Upload Gate Pass — ${auctionTitle}`,
+      body: `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#1e293b">
+          <div style="background:#0f172a;padding:20px 24px;border-radius:8px 8px 0 0">
+            <h1 style="color:#fff;margin:0;font-size:20px">WeConnect Platform</h1>
+          </div>
+          <div style="border:1px solid #e2e8f0;border-top:none;padding:28px;border-radius:0 0 8px 8px">
+            <div style="background:#eff6ff;border:1px solid #93c5fd;padding:16px 20px;border-radius:8px;margin-bottom:20px">
+              <h2 style="color:#1e40af;margin:0">📋 Please Upload the Gate Pass / Handover Approval</h2>
+            </div>
+            <p>Dear <strong>${clientName}</strong>,</p>
+            <p>The vendor payment for <strong>${auctionTitle}</strong> is currently being processed.</p>
+            <p>The vendor <strong>${vendorName}</strong> is ready to arrange pickup. To proceed, please upload the <strong>Gate Pass / Handover Approval</strong> document for your site.</p>
+            <a href="${webUrl}/client/handover" style="display:inline-block;background:#1e40af;color:#fff;padding:13px 28px;border-radius:6px;text-decoration:none;font-weight:700;font-size:14px;margin:16px 0">
+              Upload Gate Pass →
+            </a>
+            <p style="color:#64748b;font-size:13px">Go to <strong>Handover &amp; Gate Pass</strong> in your dashboard to fill in the gate pass details and upload the document.</p>
+            <p style="color:#94a3b8;font-size:12px;margin-top:24px">— WeConnect Platform</p>
+          </div>
+        </div>
+      `,
+    });
+  }
+
+  async notifyVendorGatePassUploaded(
+    vendorEmail: string,
+    vendorName: string,
+    auctionTitle: string,
+    clientName: string,
+    gatePassNumber: string,
+  ) {
+    const webUrl = process.env.WEB_URL || 'http://localhost:3000';
+    return this.sendEmail({
+      to: vendorEmail,
+      subject: `[WeConnect] Gate Pass Ready — Proceed with Logistics — ${auctionTitle}`,
+      body: `
+        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#1e293b">
+          <div style="background:#0f172a;padding:20px 24px;border-radius:8px 8px 0 0">
+            <h1 style="color:#fff;margin:0;font-size:20px">WeConnect Platform</h1>
+          </div>
+          <div style="border:1px solid #e2e8f0;border-top:none;padding:28px;border-radius:0 0 8px 8px">
+            <div style="background:#f0fdf4;border:1px solid #86efac;padding:16px 20px;border-radius:8px;margin-bottom:20px">
+              <h2 style="color:#166534;margin:0">✅ Gate Pass Uploaded — Proceed with Pickup</h2>
+            </div>
+            <p>Dear <strong>${vendorName}</strong>,</p>
+            <p>The client <strong>${clientName}</strong> has uploaded the Gate Pass for your pickup of <strong>${auctionTitle}</strong>.</p>
+            <div style="background:#f1f5f9;border-left:4px solid #22c55e;padding:14px 18px;border-radius:4px;margin:16px 0">
+              <p style="margin:0;font-weight:700">Gate Pass No: ${gatePassNumber}</p>
+            </div>
+            <p>Please download the gate pass document, arrange your vehicle and driver, and proceed to the client site for material pickup.</p>
+            <a href="${webUrl}/vendor/handover" style="display:inline-block;background:#166534;color:#fff;padding:13px 28px;border-radius:6px;text-decoration:none;font-weight:700;font-size:14px;margin:16px 0">
+              View Gate Pass &amp; Proceed →
+            </a>
+            <p style="color:#94a3b8;font-size:12px;margin-top:24px">— WeConnect Platform</p>
+          </div>
+        </div>
+      `,
+    });
+  }
+
   async notifyAdminNewRegistration(
     adminEmail: string,
     userName: string,

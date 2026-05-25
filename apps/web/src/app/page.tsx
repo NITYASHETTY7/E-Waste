@@ -113,13 +113,15 @@ function LandingPageContent() {
     <div className="bg-[#F5F7FA] min-h-screen flex flex-col relative text-[#1A1A2E] dark:bg-slate-950">
       {/* 1. NAVBAR — floating pill */}
       <div className={`fixed top-0 left-0 w-full z-50 flex justify-center pt-4 px-4 transition-all duration-500 ${isScrolled ? 'pt-2' : 'pt-4'}`}>
-        <nav className={`w-full max-w-6xl flex items-center justify-between px-6 py-2.5 rounded-2xl transition-all duration-500 bg-white/95 backdrop-blur-xl border border-slate-200/80 ${
-          isScrolled ? 'shadow-2xl' : 'shadow-[0_8px_32px_rgba(0,0,0,0.4)]'
+        <nav className={`w-full max-w-6xl flex items-center justify-between px-6 py-2.5 rounded-2xl transition-all duration-500 ${
+          isScrolled 
+            ? 'bg-white/85 dark:bg-slate-900/80 backdrop-blur-xl border border-slate-200/80 dark:border-slate-800/80 shadow-xl' 
+            : 'bg-white/10 dark:bg-slate-950/20 backdrop-blur-md border border-white/20 dark:border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.25)]'
         }`}>
           {/* Logo */}
           <div className="flex-shrink-0 flex items-center gap-2 cursor-pointer" onClick={() => router.push('/')}>
             <img
-              src="/logo%204.png"
+              src={isScrolled ? "/logo%204.png" : "/logo%203.png"}
               alt="We Connect"
               className="h-[42px] object-contain transition-all duration-300"
             />
@@ -127,35 +129,35 @@ function LandingPageContent() {
 
           {/* Desktop Links */}
           <div className="hidden lg:flex items-center gap-8 relative">
-            <button suppressHydrationWarning onClick={() => window.scrollTo(0, 0)} className="font-bold transition-colors duration-300 text-sm text-[#4A5568] hover:text-[#1E8E3E]">Home</button>
-            <button suppressHydrationWarning onClick={() => scrollTo('about')} className="font-bold transition-colors duration-300 text-sm text-[#4A5568] hover:text-[#1E8E3E]">About</button>
-            <button suppressHydrationWarning onClick={() => scrollTo('how-it-works')} className="font-bold transition-colors duration-300 text-sm text-[#4A5568] hover:text-[#1E8E3E]">Process</button>
-            <button suppressHydrationWarning onClick={() => scrollTo('services')} className="font-bold transition-colors duration-300 text-sm text-[#4A5568] hover:text-[#1E8E3E]">Services</button>
+            <button suppressHydrationWarning onClick={() => window.scrollTo(0, 0)} className={`font-bold transition-colors duration-300 text-sm ${isScrolled ? 'text-[#4A5568] hover:text-[#1E8E3E]' : 'text-white/90 hover:text-emerald-400'}`}>Home</button>
+            <button suppressHydrationWarning onClick={() => scrollTo('about')} className={`font-bold transition-colors duration-300 text-sm ${isScrolled ? 'text-[#4A5568] hover:text-[#1E8E3E]' : 'text-white/90 hover:text-emerald-400'}`}>About</button>
+            <button suppressHydrationWarning onClick={() => scrollTo('how-it-works')} className={`font-bold transition-colors duration-300 text-sm ${isScrolled ? 'text-[#4A5568] hover:text-[#1E8E3E]' : 'text-white/90 hover:text-emerald-400'}`}>Process</button>
+            <button suppressHydrationWarning onClick={() => scrollTo('services')} className={`font-bold transition-colors duration-300 text-sm ${isScrolled ? 'text-[#4A5568] hover:text-[#1E8E3E]' : 'text-white/90 hover:text-emerald-400'}`}>Services</button>
 
             <div className="relative">
               <button
                 suppressHydrationWarning
                 onClick={() => setLoginDropdownOpen(!loginDropdownOpen)}
                 onBlur={() => setTimeout(() => setLoginDropdownOpen(false), 200)}
-                className="font-bold transition-colors duration-300 flex items-center gap-1 text-sm text-[#4A5568] hover:text-[#1E8E3E]"
+                className={`font-bold transition-colors duration-300 flex items-center gap-1 text-sm ${isScrolled ? 'text-[#4A5568] hover:text-[#1E8E3E]' : 'text-white/90 hover:text-emerald-400'}`}
               >
                 Login <span className="material-symbols-outlined text-[18px]">expand_more</span>
               </button>
 
               {loginDropdownOpen && (
-                <div className="absolute top-full right-0 mt-3 w-56 bg-white border border-[#E2E8F0] shadow-[0_10px_40px_rgba(0,0,0,0.12)] rounded-xl flex flex-col overflow-hidden z-50 animate-fade-in dark:bg-slate-900">
-                  <button suppressHydrationWarning onMouseDown={() => router.push('/client-login')} className="text-left px-5 py-3 text-sm font-bold text-[#4A5568] hover:bg-[#E8F5E9] hover:text-[#1E8E3E] transition-colors flex items-center gap-3">
+                <div className="absolute top-full right-0 mt-3 w-56 bg-white/90 backdrop-blur-xl border border-[#E2E8F0] dark:border-slate-800 shadow-[0_10px_40px_rgba(0,0,0,0.12)] rounded-xl flex flex-col overflow-hidden z-50 animate-fade-in dark:bg-slate-900/95">
+                  <button suppressHydrationWarning onMouseDown={() => router.push('/client-login')} className="text-left px-5 py-3 text-sm font-bold text-[#4A5568] hover:bg-[#E8F5E9] hover:text-[#1E8E3E] transition-colors flex items-center gap-3 dark:text-slate-200 dark:hover:bg-emerald-950/40">
                     <span className="material-symbols-outlined text-[18px] text-[#1E8E3E]">corporate_fare</span> Client Login
                   </button>
-                  <button suppressHydrationWarning onMouseDown={() => router.push('/vendor-login')} className="text-left px-5 py-3 text-sm font-bold text-[#4A5568] hover:bg-[#E3EEFF] hover:text-[#0B5ED7] transition-colors flex items-center gap-3">
+                  <button suppressHydrationWarning onMouseDown={() => router.push('/vendor-login')} className="text-left px-5 py-3 text-sm font-bold text-[#4A5568] hover:bg-[#E3EEFF] hover:text-[#0B5ED7] transition-colors flex items-center gap-3 dark:text-slate-200 dark:hover:bg-blue-950/40">
                     <span className="material-symbols-outlined text-[18px] text-[#0B5ED7]">local_shipping</span> Vendor Login
                   </button>
-                  <button suppressHydrationWarning onMouseDown={() => router.push('/user-login')} className="text-left px-5 py-3 text-sm font-bold text-[#4A5568] hover:bg-[#FFF8E1] hover:text-[#FFC107] transition-colors flex items-center gap-3">
+                  <button suppressHydrationWarning onMouseDown={() => router.push('/user-login')} className="text-left px-5 py-3 text-sm font-bold text-[#4A5568] hover:bg-[#FFF8E1] hover:text-[#FFC107] transition-colors flex items-center gap-3 dark:text-slate-200 dark:hover:bg-amber-950/40">
                     <span className="material-symbols-outlined text-[18px] text-[#FFC107]">person</span> User Login
                   </button>
-                  <div className="border-t border-[#E2E8F0] my-1"></div>
-                  <button suppressHydrationWarning onMouseDown={() => router.push('/admin-login')} className="text-left px-5 py-3 text-sm font-bold text-[#4A5568] hover:bg-gray-100 hover:text-gray-900 transition-colors flex items-center gap-3">
-                    <span className="material-symbols-outlined text-[18px] text-gray-700">admin_panel_settings</span> Admin Login
+                  <div className="border-t border-[#E2E8F0] dark:border-slate-800 my-1"></div>
+                  <button suppressHydrationWarning onMouseDown={() => router.push('/admin-login')} className="text-left px-5 py-3 text-sm font-bold text-[#4A5568] hover:bg-gray-100 hover:text-gray-900 transition-colors flex items-center gap-3 dark:text-slate-200 dark:hover:bg-slate-800/40">
+                    <span className="material-symbols-outlined text-[18px] text-gray-700 dark:text-gray-300">admin_panel_settings</span> Admin Login
                   </button>
                 </div>
               )}
@@ -163,23 +165,23 @@ function LandingPageContent() {
           </div>
 
           {/* Mobile Toggle */}
-          <button suppressHydrationWarning className="p-2 transition-colors duration-300 lg:hidden text-[#1A1A2E]" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+          <button suppressHydrationWarning className={`p-2 transition-colors duration-300 lg:hidden ${isScrolled ? 'text-[#1A1A2E]' : 'text-white'}`} onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
             <span className="material-symbols-outlined text-[28px]">{mobileMenuOpen ? 'close' : 'menu'}</span>
           </button>
         </nav>
 
         {/* Mobile Menu Dropdown */}
         {mobileMenuOpen && (
-          <div className="absolute top-full left-4 right-4 mt-2 bg-white/95 backdrop-blur-xl shadow-2xl rounded-2xl py-4 px-6 flex flex-col gap-4 animate-fade-in border border-slate-200/80 lg:hidden">
-            <button suppressHydrationWarning onClick={() => { window.scrollTo(0, 0); setMobileMenuOpen(false); }} className="text-left text-base font-bold text-[#1A1A2E] py-3 border-b border-[#E2E8F0]">Home</button>
-            <button suppressHydrationWarning onClick={() => scrollTo('about')} className="text-left text-base font-bold text-[#1A1A2E] py-3 border-b border-[#E2E8F0]">About</button>
-            <button suppressHydrationWarning onClick={() => scrollTo('how-it-works')} className="text-left text-base font-bold text-[#1A1A2E] py-3 border-b border-[#E2E8F0]">Process</button>
-            <button suppressHydrationWarning onClick={() => scrollTo('services')} className="text-left text-base font-bold text-[#1A1A2E] py-3 border-b border-[#E2E8F0]">Services</button>
+          <div className="absolute top-full left-4 right-4 mt-2 bg-white/95 backdrop-blur-xl shadow-2xl rounded-2xl py-4 px-6 flex flex-col gap-4 animate-fade-in border border-slate-200/80 dark:bg-slate-900/95 dark:border-slate-800/80 lg:hidden">
+            <button suppressHydrationWarning onClick={() => { window.scrollTo(0, 0); setMobileMenuOpen(false); }} className="text-left text-base font-bold text-[#1A1A2E] dark:text-white py-3 border-b border-[#E2E8F0] dark:border-slate-800">Home</button>
+            <button suppressHydrationWarning onClick={() => scrollTo('about')} className="text-left text-base font-bold text-[#1A1A2E] dark:text-white py-3 border-b border-[#E2E8F0] dark:border-slate-800">About</button>
+            <button suppressHydrationWarning onClick={() => scrollTo('how-it-works')} className="text-left text-base font-bold text-[#1A1A2E] dark:text-white py-3 border-b border-[#E2E8F0] dark:border-slate-800">Process</button>
+            <button suppressHydrationWarning onClick={() => scrollTo('services')} className="text-left text-base font-bold text-[#1A1A2E] dark:text-white py-3 border-b border-[#E2E8F0] dark:border-slate-800">Services</button>
             <div className="flex flex-col gap-3 mt-2">
-              <button suppressHydrationWarning onClick={() => router.push('/client-login')} className="w-full text-left py-3 text-base font-bold text-[#1E8E3E] border-b border-[#E2E8F0]">Client Login</button>
-              <button suppressHydrationWarning onClick={() => router.push('/vendor-login')} className="w-full text-left py-3 text-base font-bold text-[#0B5ED7] border-b border-[#E2E8F0]">Vendor Login</button>
-              <button suppressHydrationWarning onClick={() => router.push('/user-login')} className="w-full text-left py-3 text-base font-bold text-[#FFC107] border-b border-[#E2E8F0]">User Login</button>
-              <button suppressHydrationWarning onClick={() => router.push('/admin-login')} className="w-full text-left py-3 text-base font-bold text-gray-700">Admin Login</button>
+              <button suppressHydrationWarning onClick={() => router.push('/client-login')} className="w-full text-left py-3 text-base font-bold text-[#1E8E3E] border-b border-[#E2E8F0] dark:border-slate-800">Client Login</button>
+              <button suppressHydrationWarning onClick={() => router.push('/vendor-login')} className="w-full text-left py-3 text-base font-bold text-[#0B5ED7] border-b border-[#E2E8F0] dark:border-slate-800">Vendor Login</button>
+              <button suppressHydrationWarning onClick={() => router.push('/user-login')} className="w-full text-left py-3 text-base font-bold text-[#FFC107] border-b border-[#E2E8F0] dark:border-slate-800">User Login</button>
+              <button suppressHydrationWarning onClick={() => router.push('/admin-login')} className="w-full text-left py-3 text-base font-bold text-gray-700 dark:text-slate-300">Admin Login</button>
             </div>
           </div>
         )}

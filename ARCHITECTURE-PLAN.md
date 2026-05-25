@@ -22,7 +22,7 @@ Our solution provides a digital marketplace where Corporate Clients can upload t
 2. [System Overview & Workflows](#2-system-overview--workflows)
 3. [Tech Stack & Tooling Explained](#3-tech-stack--tooling-explained)
 4. [Monorepo Structure (Developer Guide)](#4-monorepo-structure-developer-guide)
-5. [Infrastructure & Cloud Design](#5-infrastructure--cloud-design)
+5. [Infrastructure, Hosting & Cloud Design](#5-infrastructure-hosting--cloud-design)
 6. [Database Schema (Data Architecture)](#6-database-schema-data-architecture)
 7. [S3 Bucket Structure (Compliance & Storage)](#7-s3-bucket-structure-compliance--storage)
 8. [API Layer Design](#8-api-layer-design)
@@ -92,10 +92,12 @@ We chose technologies that balance blazing-fast performance with deep security.
 - **Node.js & NestJS:** Node.js is the runtime, and NestJS is a heavily structured framework ensuring our code stays clean and scalable as the team grows.
 - **Prisma (ORM):** Translates our TypeScript code into safe Database queries. It acts as a safety blanket preventing developers from breaking the database.
 
-### Infrastructure (Where the app lives)
-- **PostgreSQL:** Our secure, main relational database. It stores users, bids, and financial records perfectly safely.
-- **Redis:** Our ultra-fast, temporary memory bank. Used to store exactly how many seconds are left on a live auction timer so the database doesn't crash from thousands of rapid checks.
-- **Amazon S3:** The "Digital Vault" where we store deeply sensitive files (PAN cards, legal certificates).
+### Infrastructure & Hosting (Where the app lives)
+- **Vercel:** Hosts our Next.js frontend, providing edge-optimized pages, managed SSL/TLS, and instant global delivery.
+- **AWS ECS (Elastic Container Service) on Fargate:** Hosts our NestJS API backend inside auto-scaled Docker containers.
+- **AWS RDS (Relational Database Service) PostgreSQL:** Our secure, managed relational database. It stores users, bids, and financial records with automated daily backups.
+- **AWS ElastiCache Redis:** Our ultra-fast, temporary memory bank. Used to store active live auction timers and manage Socket.io Pub/Sub synchronization.
+- **Amazon S3:** The "Digital Vault" secure object storage where we store deeply sensitive files (PAN cards, legal certificates).
 
 ---
 
@@ -134,15 +136,53 @@ ecoloop-app/
 
 ---
 
-## 5. Infrastructure & Cloud Design
+## 5. Infrastructure, Hosting & Cloud Design
 *(For DevOps Ops & Business Scalability)*
 
-How we prevent the site from going offline when 1,000 vendors are bidding on 50 auctions simultaneously.
+How we deploy, host, and prevent the site from going offline when 1,000 vendors are bidding on 50 auctions simultaneously.
 
-1. **The Web Traffic:** Users hit our `Vercel` hosted website edge-nodes. It loads in milliseconds globally.
-2. **The API Servers:** Data requests go to scalable `AWS ECS / Fargate` or `Render` nodes. If traffic spikes during a massive corporate auction, the cloud spins up extra servers automatically to handle the sheer number of bids.
-3. **The Database Protection:** We utilize a PostgreSQL instance with automated daily backups up to 35 days, meaning no business or bidding data is ever permanently lost.
-4. **WebSocket Segregation:** Live sockets pass through `Redis Pub/Sub` ensuring that even if user A is connected to Server 1, and user B is connected to Server 2, they see the same bids instantly.
+### 5.1 Hosting Infrastructure Architecture
+
+We partition the system into separate specialized hosting environments:
+
+```mermaid
+graph TD
+    User(["Users & Recyclers"]) -->|HTTPS / WSS| CDN["Vercel Edge CDN & SSL"]
+    CDN -->|Frontend Requests| FE["Vercel Next.js App"]
+    CDN -->|API Requests & WebSockets| ALB["AWS Application Load Balancer"]
+    ALB -->|WSS / API| ECS["AWS ECS on Fargate - NestJS API"]
+    ECS -->|Read/Write| RDS[("AWS RDS PostgreSQL")]
+    ECS -->|Pub/Sub & Timer Cache| Redis[("AWS ElastiCache Redis")]
+    ECS -->|Upload/Download KYC| S3[("Amazon S3 Private Bucket")]
+    FE -->|Client-Side API Calls| ALB
+```
+
+1. **Frontend Hosting (Vercel):**
+   - We host the Next.js application on **Vercel**, utilizing its global Edge Network (CDN) for fast Static Site Generation (SSG) and Server-Side Rendering (SSR) pages.
+   - SSL certificates are automatically managed and renewed by Vercel.
+   - Deploys are triggered automatically via git integration (GitHub) for main and preview branches.
+
+2. **Backend API & WebSocket Hosting (AWS ECS on Fargate):**
+   - The NestJS API and Socket.io server are packaged in a Docker container and hosted on **AWS ECS running on AWS Fargate**.
+   - An **AWS Application Load Balancer (ALB)** routes traffic to ECS tasks and handles SSL/TLS termination using certificates from **AWS Certificate Manager (ACM)**.
+   - Auto-scaling policies are configured to scale tasks up automatically when CPU/Memory usage spikes during open auctions.
+
+3. **Database Hosting (AWS RDS PostgreSQL):**
+   - We utilize **AWS RDS PostgreSQL** (Multi-AZ in production for high availability).
+   - Configured with automated daily snapshots stored in S3 for up to 35 days, Point-in-Time Recovery (PITR), and encrypted storage at rest.
+
+4. **Cache & Pub/Sub Hosting (AWS ElastiCache Redis):**
+   - **AWS ElastiCache for Redis** hosts our lock mechanisms, dynamic auction timers, and Socket.io Pub/Sub adapter.
+   - Live socket connections are synchronized across multiple ECS instances using the Redis Pub/Sub channels.
+
+5. **Static & Document Storage (Amazon S3):**
+   - **Amazon S3** hosts all user-generated files, certificates, and images. Private documents are locked down, using IAM policies and generating time-limited presigned URLs on request.
+
+### 5.2 Environment Configuration & Deployment Pipelines
+
+- **Development:** Developers run PostgreSQL and Redis locally using Docker Compose, with the Next.js frontend and NestJS API running in local Node development mode.
+- **Staging / QA:** Hosted on **Render** (for the backend API/databases) and **Vercel** (for the frontend branch previews), pointing to isolated sandbox databases/S3 buckets.
+- **Production:** Production matches the AWS + Vercel stack described above, secured behind virtual private clouds (VPC).
 
 ---
 

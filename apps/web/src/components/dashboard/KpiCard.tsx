@@ -37,10 +37,6 @@ export const KpiCard: React.FC<KpiCardProps> = ({
       transition={{ duration: 0.5, delay: delay * 0.08 }}
       className="relative group p-5 rounded-[2rem] bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 dark:hover:shadow-black/40 transition-all duration-500 cursor-default overflow-hidden"
     >
-      {/* Decorative background orb */}
-      <div className={`absolute -right-8 -top-8 w-28 h-28 rounded-full opacity-[0.06] group-hover:opacity-[0.12] transition-opacity duration-500 ${cfg.bg}`}
-        style={{ backgroundColor: cfg.stroke }} />
-
       <div className="relative z-10">
         {/* Top: icon + trend */}
         <div className="flex justify-between items-start mb-3">

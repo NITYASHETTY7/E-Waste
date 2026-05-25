@@ -138,7 +138,7 @@ export default function AdminAuctions() {
                   <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
                     {(phase === "invitation_window" || phase === "sealed_bid") && (
                       <Link href={`/admin/listings/${listing.requirementId || listing.id}/audit-docs`}
-                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 text-white text-xs font-black uppercase hover:bg-blue-700 transition-colors">
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-850 text-white text-xs font-black uppercase hover:bg-blue-950 transition-colors border border-blue-900 shadow-sm">
                         <span className="material-symbols-outlined text-sm">fact_check</span>
                         Audit Docs
                       </Link>
@@ -146,7 +146,7 @@ export default function AdminAuctions() {
                     {phase === "sealed_bid" && (
                       <>
                         <Link href={`/admin/listings/${listing.requirementId || listing.id}/sealed-bids`}
-                          className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-600 text-white text-xs font-black uppercase hover:bg-amber-700 transition-colors">
+                          className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-800 text-white text-xs font-black uppercase hover:bg-amber-900 transition-colors border border-amber-900 shadow-sm">
                           <span className="material-symbols-outlined text-sm">gavel</span>
                           Sealed Bids
                         </Link>
@@ -155,7 +155,7 @@ export default function AdminAuctions() {
                             setConfigModal({ isOpen: true, listingId: listing.id });
                             setConfigForm({ tickSize: "", maxTick: "", extensionTime: "3", maxExtensions: "3" });
                           }}
-                          className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-orange-600 text-white text-xs font-black uppercase hover:bg-orange-700 transition-colors"
+                          className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-orange-800 text-white text-xs font-black uppercase hover:bg-orange-900 transition-colors border border-orange-900 shadow-sm"
                         >
                           <span className="material-symbols-outlined text-sm">settings</span>
                           Set Params
@@ -166,7 +166,7 @@ export default function AdminAuctions() {
                       <button
                         onClick={() => handleNotifyClient(listing)}
                         disabled={notifyingClient === (listing.requirementId || listing.id)}
-                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-purple-600 text-white text-xs font-black uppercase hover:bg-purple-700 disabled:opacity-50 transition-colors"
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-purple-800 text-white text-xs font-black uppercase hover:bg-purple-900 disabled:opacity-50 transition-colors border border-purple-900 shadow-sm"
                       >
                         {notifyingClient === (listing.requirementId || listing.id)
                           ? <><span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>Notifying...</>
@@ -176,7 +176,7 @@ export default function AdminAuctions() {
                     )}
                     {phase === "live" && (!listing.auctionStartDate || new Date() >= new Date(listing.auctionStartDate)) && (
                       <Link href={`/admin/auctions/${listing.id}/live`}
-                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-600 text-white text-xs font-black uppercase hover:bg-red-700 transition-colors">
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-red-750 text-white text-xs font-black uppercase hover:bg-red-850 transition-colors border border-red-800 shadow-sm">
                         <span className="material-symbols-outlined text-sm">visibility</span>
                         View Live
                       </Link>
@@ -188,14 +188,14 @@ export default function AdminAuctions() {
                     )}
                     {phase === "completed" && listing.auctionId && (
                       <Link href={`/admin/auctions/${listing.auctionId}/manage`}
-                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 text-white text-xs font-black uppercase hover:bg-emerald-700 transition-colors">
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-805 text-white text-xs font-black uppercase hover:bg-emerald-905 transition-colors border border-emerald-900 shadow-sm">
                         <span className="material-symbols-outlined text-sm">manage_accounts</span>
                         Manage
                       </Link>
                     )}
                     {phase === "completed" && !listing.auctionId && (
                       <Link href={`/admin/auctions/${listing.id}/live`}
-                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-purple-600 text-white text-xs font-black uppercase hover:bg-purple-700 transition-colors">
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-purple-800 text-white text-xs font-black uppercase hover:bg-purple-900 transition-colors border border-purple-900 shadow-sm">
                         <span className="material-symbols-outlined text-sm">gavel</span>
                         Approve Winner
                       </Link>
@@ -206,7 +206,7 @@ export default function AdminAuctions() {
                           setConfigModal({ isOpen: true, listingId: listing.id });
                           setConfigForm({ tickSize: "", maxTick: "", extensionTime: "3", maxExtensions: "3" });
                         }}
-                        className="px-4 py-2 rounded-xl bg-orange-600 text-white text-xs font-black uppercase hover:bg-orange-700 transition-colors"
+                        className="px-4 py-2 rounded-xl bg-orange-800 text-white text-xs font-black uppercase hover:bg-orange-900 transition-colors border border-orange-900 shadow-sm"
                       >
                         Configure & Launch →
                       </button>
@@ -214,7 +214,7 @@ export default function AdminAuctions() {
                     {meta.next && phase !== "open_configuration" && phase !== "invitation_window" && phase !== "sealed_bid" && (
                       <button
                         onClick={() => updateAuctionPhase(listing.id, meta.next!)}
-                        className="px-4 py-2 rounded-xl bg-primary text-white text-xs font-black uppercase hover:bg-primary/90 transition-colors"
+                        className="px-4 py-2 rounded-xl bg-emerald-800 text-white text-xs font-black uppercase hover:bg-emerald-900 transition-colors border border-emerald-900 shadow-sm"
                       >
                         Advance →
                       </button>

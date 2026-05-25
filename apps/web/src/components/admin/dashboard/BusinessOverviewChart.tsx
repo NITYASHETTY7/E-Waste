@@ -4,15 +4,72 @@ import React, { useState, useEffect } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { motion } from 'framer-motion';
 
-const BUSINESS_DATA = [
-  { date: '01 May', revenue: 45, requests: 28, pickups: 18 },
-  { date: '05 May', revenue: 68, requests: 42, pickups: 32 },
-  { date: '10 May', revenue: 82, requests: 58, pickups: 45 },
-  { date: '15 May', revenue: 120, requests: 73, pickups: 58 },
-  { date: '20 May', revenue: 165, requests: 89, pickups: 72 },
-  { date: '25 May', revenue: 215, requests: 108, pickups: 85 },
-  { date: '31 May', revenue: 246, requests: 124, pickups: 89 },
-];
+const FILTER_DATA: Record<string, {
+  businessData: Array<{ date: string; revenue: number; requests: number; pickups: number }>;
+  stats: Array<{ label: string; value: string; trend: string }>;
+}> = {
+  this_month: {
+    businessData: [
+      { date: '01 May', revenue: 45, requests: 28, pickups: 18 },
+      { date: '05 May', revenue: 68, requests: 42, pickups: 32 },
+      { date: '10 May', revenue: 82, requests: 58, pickups: 45 },
+      { date: '15 May', revenue: 120, requests: 73, pickups: 58 },
+      { date: '20 May', revenue: 165, requests: 89, pickups: 72 },
+      { date: '25 May', revenue: 215, requests: 108, pickups: 85 },
+      { date: '31 May', revenue: 246, requests: 124, pickups: 89 },
+    ],
+    stats: [
+      { label: 'Revenue', value: '₹2,45,80,000', trend: '+18.8%' },
+      { label: 'Requests', value: '1,248', trend: '+12.4%' },
+      { label: 'Pickups', value: '892', trend: '+23.7%' },
+      { label: 'Conversion Rate', value: '71.5%', trend: '+8.3%' },
+    ]
+  },
+  last_month: {
+    businessData: [
+      { date: '01 Apr', revenue: 40, requests: 25, pickups: 15 },
+      { date: '05 Apr', revenue: 60, requests: 38, pickups: 28 },
+      { date: '10 Apr', revenue: 75, requests: 50, pickups: 40 },
+      { date: '15 Apr', revenue: 110, requests: 68, pickups: 52 },
+      { date: '20 Apr', revenue: 150, requests: 82, pickups: 65 },
+      { date: '25 Apr', revenue: 200, requests: 100, pickups: 78 },
+      { date: '30 Apr', revenue: 230, requests: 115, pickups: 82 },
+    ],
+    stats: [
+      { label: 'Revenue', value: '₹2,30,00,000', trend: '+15.2%' },
+      { label: 'Requests', value: '1,150', trend: '+10.1%' },
+      { label: 'Pickups', value: '820', trend: '+20.5%' },
+      { label: 'Conversion Rate', value: '71.3%', trend: '+7.1%' },
+    ]
+  },
+  last_3_months: {
+    businessData: [
+      { date: 'March', revenue: 210, requests: 1080, pickups: 780 },
+      { date: 'April', revenue: 230, requests: 1150, pickups: 820 },
+      { date: 'May', revenue: 246, requests: 1248, pickups: 892 },
+    ],
+    stats: [
+      { label: 'Revenue', value: '₹6,86,00,000', trend: '+22.5%' },
+      { label: 'Requests', value: '3,478', trend: '+14.6%' },
+      { label: 'Pickups', value: '2,492', trend: '+25.1%' },
+      { label: 'Conversion Rate', value: '71.6%', trend: '+9.2%' },
+    ]
+  },
+  last_year: {
+    businessData: [
+      { date: 'Q1 25', revenue: 580, requests: 2800, pickups: 1950 },
+      { date: 'Q2 25', revenue: 690, requests: 3300, pickups: 2340 },
+      { date: 'Q3 25', revenue: 720, requests: 3500, pickups: 2510 },
+      { date: 'Q4 25', revenue: 840, requests: 4100, pickups: 2980 },
+    ],
+    stats: [
+      { label: 'Revenue', value: '₹28,30,00,000', trend: '+35.4%' },
+      { label: 'Requests', value: '13,700', trend: '+22.8%' },
+      { label: 'Pickups', value: '9,780', trend: '+31.2%' },
+      { label: 'Conversion Rate', value: '71.4%', trend: '+11.5%' },
+    ]
+  }
+};
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
@@ -34,17 +91,14 @@ const SERIES = [
   { key: 'pickups', color: '#10b981', label: 'Pickups' },
 ];
 
-const STATS = [
-  { label: 'Revenue', value: '₹2,45,80,000', trend: '+18.8%' },
-  { label: 'Requests', value: '1,248', trend: '+12.4%' },
-  { label: 'Pickups', value: '892', trend: '+23.7%' },
-  { label: 'Conversion Rate', value: '71.5%', trend: '+8.3%' },
-];
-
 export function BusinessOverviewChart() {
   const [mounted, setMounted] = useState(false);
+  const [filter, setFilter] = useState("this_month");
+
   // eslint-disable-next-line
   useEffect(() => { setMounted(true); }, []);
+
+  const activeSet = FILTER_DATA[filter] || FILTER_DATA.this_month;
 
   return (
     <motion.div
@@ -55,11 +109,24 @@ export function BusinessOverviewChart() {
     >
       <div className="flex items-center justify-between mb-5">
         <h3 className="font-headline font-bold text-slate-900 dark:text-white text-base">Business Overview</h3>
-        <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
-          <span className="material-symbols-outlined text-sm">calendar_month</span>
-          This Month
-          <span className="material-symbols-outlined text-sm">expand_more</span>
-        </button>
+        <div className="relative">
+          <select 
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            className="appearance-none flex items-center gap-1.5 pl-8 pr-8 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors cursor-pointer focus:outline-none focus:ring-1 focus:ring-slate-300 dark:focus:ring-slate-700"
+          >
+            <option value="this_month">This Month</option>
+            <option value="last_month">Last Month</option>
+            <option value="last_3_months">Last 3 Months</option>
+            <option value="last_year">Last Year</option>
+          </select>
+          <span className="material-symbols-outlined text-sm absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 dark:text-slate-400">
+            calendar_month
+          </span>
+          <span className="material-symbols-outlined text-sm absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 dark:text-slate-400">
+            expand_more
+          </span>
+        </div>
       </div>
 
       <div className="flex gap-3 mb-4">
@@ -74,7 +141,7 @@ export function BusinessOverviewChart() {
       <div className="flex-1 min-h-[160px]">
         {mounted && (
           <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-            <LineChart data={BUSINESS_DATA} margin={{ top: 5, right: 5, left: -32, bottom: 0 }}>
+            <LineChart data={activeSet.businessData} margin={{ top: 5, right: 5, left: -32, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(148,163,184,0.08)" />
               <XAxis
                 dataKey="date"
@@ -97,7 +164,7 @@ export function BusinessOverviewChart() {
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 pt-4 mt-4 border-t border-slate-100 dark:border-slate-800">
-        {STATS.map(stat => (
+        {activeSet.stats.map(stat => (
           <div key={stat.label}>
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 truncate">{stat.label}</p>
             <p className="text-sm font-black text-slate-900 dark:text-white leading-none">{stat.value}</p>

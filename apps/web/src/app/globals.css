@@ -142,6 +142,10 @@
    Base Styles
  ────────────────────────────────────────────────────────────── */
 
+html {
+  font-size: 112.5%; /* Increase base font size by 2 sizes (16px to 18px) */
+}
+
 *, *::before, *::after {
   box-sizing: border-box;
 }

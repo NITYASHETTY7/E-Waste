@@ -128,8 +128,8 @@ export default function ClientDashboard() {
             <div className="grid grid-cols-2 gap-3 relative z-10">
               {[
                 { label: "Compliance", icon: "verified_user", href: "/client/reports" },
-                { label: "Pickups", icon: "local_shipping", href: "/client/pickups" },
-                { label: "Documents", icon: "description", href: "/client/reports" },
+                { label: "Pickups", icon: "local_shipping", href: "/client/handover" },
+                { label: "Documents", icon: "description", href: "/client/documents" },
                 { label: "Profile", icon: "corporate_fare", href: "/client/profile" },
               ].map((action) => (
                 <Link key={action.label} href={action.href} className="flex flex-col items-center justify-center p-4 bg-white/5 rounded-2xl border border-white/10 hover:bg-white/10 transition-all group/item">

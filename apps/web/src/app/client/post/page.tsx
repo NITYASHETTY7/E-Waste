@@ -223,11 +223,23 @@ export default function ClientPost() {
                   <button key={val} type="button" onClick={() => set("urgency", val)}
                     className={`p-3 rounded-xl border-2 text-left transition-all ${
                       form.urgency === val
-                        ? val === "high" ? "border-red-400 bg-red-50" : val === "medium" ? "border-amber-400 bg-amber-50" : "border-[color:var(--color-primary)] bg-[color:var(--color-secondary-container)]"
-                        : "border-[color:var(--color-outline-variant)] bg-[color:var(--color-surface)] hover:bg-[color:var(--color-surface-variant)]"
+                        ? val === "high" 
+                          ? "border-red-400 bg-red-50 text-red-950 dark:bg-red-950/40 dark:text-red-200" 
+                          : val === "medium" 
+                            ? "border-amber-400 bg-amber-50 text-amber-950 dark:bg-amber-950/40 dark:text-amber-200" 
+                            : "border-[color:var(--color-primary)] bg-[color:var(--color-secondary-container)] text-emerald-950 dark:bg-emerald-950/40 dark:text-emerald-200"
+                        : "border-[color:var(--color-outline-variant)] bg-[color:var(--color-surface)] text-[color:var(--color-on-surface)] hover:bg-[color:var(--color-surface-variant)]"
                     }`}>
                     <p className="text-[10px] font-black uppercase tracking-widest">{label}</p>
-                    <p className="text-[9px] text-[color:var(--color-on-surface-variant)] mt-0.5">{desc}</p>
+                    <p className={`text-[9px] mt-0.5 ${
+                      form.urgency === val
+                        ? val === "high" 
+                          ? "text-red-700 dark:text-red-300" 
+                          : val === "medium" 
+                            ? "text-amber-700 dark:text-amber-300" 
+                            : "text-emerald-700 dark:text-emerald-300"
+                        : "text-[color:var(--color-on-surface-variant)]"
+                    }`}>{desc}</p>
                   </button>
                 ))}
               </div>
@@ -301,18 +313,17 @@ export default function ClientPost() {
               Legal & Compliance Documents
               <span className="text-[10px] bg-[color:var(--color-primary-container)] text-[color:var(--color-on-primary-container)] px-2 py-1 rounded">Required</span>
             </h3>
-            <p className="text-xs text-[color:var(--color-on-surface-variant)] -mt-2">Upload the following critical legal documents to secure platform approval for this auction block.</p>
+            <p className="text-xs text-[color:var(--color-on-surface-variant)] -mt-2">Upload the following critical legal documents to secure platform approval for this auction block. <span className="text-red-500 font-bold">* : mandatory requirements</span></p>
             <div className="space-y-3">
               {REQUIRED_DOCS.map(docReq => {
                 const uploadedDoc = documents.find(d => d.type === docReq.id);
                 return (
                   <div key={docReq.id} className={`flex flex-col md:flex-row md:items-center justify-between gap-3 p-3 border rounded-xl transition-colors ${uploadedDoc ? "bg-emerald-50/10 border-emerald-500/30" : "bg-[color:var(--color-surface)] border-[color:var(--color-outline-variant)]"}`}>
                     <div>
-                      <p className="text-sm font-bold text-[color:var(--color-on-surface)] flex items-center gap-2">
+                      <p className="text-sm font-bold text-[color:var(--color-on-surface)] flex items-center gap-1.5">
                         {docReq.label}
-                        {docReq.required
-                          ? <span className="text-[9px] text-red-500 bg-red-50 px-1.5 py-0.5 rounded font-black uppercase shadow-sm">Req</span>
-                          : <span className="text-[9px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded font-black uppercase tracking-widest dark:bg-slate-800">{docReq.optionalText}</span>}
+                        {docReq.required && <span className="text-red-500 font-bold">*</span>}
+                        {!docReq.required && <span className="text-[9px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded font-black uppercase tracking-widest dark:bg-slate-800">{docReq.optionalText}</span>}
                       </p>
                     </div>
                     <div className="shrink-0">

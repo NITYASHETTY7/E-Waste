@@ -192,9 +192,9 @@ export default function AdminAudits() {
                       <span className="text-xs text-slate-500 font-bold">{group.docs.length} submission{group.docs.length !== 1 ? "s" : ""}</span>
                       <Link
                         href={`/admin/listings/${group.reqId}/audit-docs`}
-                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary/90 transition-colors"
+                        className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-700 text-white text-xs font-extrabold hover:bg-emerald-800 transition-colors shadow-sm"
                       >
-                        <span className="material-symbols-outlined text-sm">open_in_new</span>
+                        <span className="material-symbols-outlined text-sm font-extrabold">open_in_new</span>
                         Review
                       </Link>
                     </div>

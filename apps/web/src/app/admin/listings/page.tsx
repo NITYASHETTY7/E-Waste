@@ -250,16 +250,16 @@ export default function AdminListings() {
                       {displayStatus === "pending" && (
                         <button
                           onClick={() => openReview(listing.id)}
-                          className="flex items-center gap-1.5 text-xs font-bold px-4 py-2 bg-[color:var(--color-primary)] text-white rounded-lg hover:opacity-90 transition-all"
+                          className="flex items-center gap-1.5 text-xs font-extrabold px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition-all shadow-sm"
                         >
-                          <span className="material-symbols-outlined text-sm">fact_check</span>
+                          <span className="material-symbols-outlined text-sm font-extrabold">fact_check</span>
                           Review
                         </button>
                       )}
                       {displayStatus === "active" && listing.auctionPhase === "live" && (!listing.auctionStartDate || new Date() >= new Date(listing.auctionStartDate)) && (
                         <Link href={`/admin/auctions/${listing.id}/live`}
-                          className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors border border-purple-700">
-                          <span className="material-symbols-outlined text-sm">visibility</span>
+                          className="flex items-center gap-1 text-xs font-extrabold px-3 py-1.5 bg-purple-700 text-white rounded-lg hover:bg-purple-800 transition-colors border border-purple-800">
+                          <span className="material-symbols-outlined text-sm font-extrabold">visibility</span>
                           Watch Live
                         </Link>
                       )}
@@ -268,8 +268,8 @@ export default function AdminListings() {
                       )}
                       {displayStatus === "active" && listing.auctionPhase !== "live" && listing.auctionPhase !== "completed" && (
                         <Link href={`/admin/listings/${listing.requirementId || listing.id}/audit-docs`}
-                          className="flex items-center gap-1 text-xs font-bold px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors border border-blue-700">
-                          <span className="material-symbols-outlined text-sm">fact_check</span>
+                          className="flex items-center gap-1 text-xs font-extrabold px-3 py-1.5 bg-blue-800 text-white rounded-lg hover:bg-blue-900 transition-colors border border-blue-900">
+                          <span className="material-symbols-outlined text-sm font-extrabold">fact_check</span>
                           Audit Docs
                         </Link>
                       )}

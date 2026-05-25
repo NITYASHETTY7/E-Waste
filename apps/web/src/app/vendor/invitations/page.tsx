@@ -56,10 +56,10 @@ function InvitationCard({ listing, status }: { listing: Listing; status: "pendin
         )}
 
         <div className="mt-auto pt-6 border-t border-blue-100 dark:border-white/10">
-          <Link href={linkHref} className={`btn-primary w-full py-4 rounded-xl text-xs font-black uppercase tracking-widest text-white flex items-center justify-center gap-2 group-hover:shadow-xl transition-all ${
-            status === "accepted" ? "bg-emerald-600 hover:bg-emerald-700 group-hover:shadow-emerald-200" :
+          <Link href={linkHref} className={`btn-primary w-full py-4 rounded-xl text-xs font-black uppercase tracking-widest text-white flex items-center justify-center gap-2 transition-all ${
+            status === "accepted" ? "bg-emerald-600 hover:bg-emerald-700" :
             status === "declined" ? "bg-slate-500 hover:bg-slate-600" :
-            "bg-blue-600 hover:bg-blue-700 group-hover:shadow-blue-200"}`}>
+            "bg-blue-600 hover:bg-blue-700"}`}>
             {linkText}
             <span className="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
           </Link>

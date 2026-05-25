@@ -50,12 +50,12 @@ WeConnect Platform · Generated: ${new Date().toISOString()}
 }
 
 export default function ClientProfile() {
-  const { currentUser, listings, updateUserProfile, changePassword, deleteAccount } = useApp();
+  const { currentUser, listings, bids, updateUserProfile, changePassword, deleteAccount } = useApp();
   const router = useRouter();
   const profile = currentUser?.onboardingProfile || {};
   const docs = currentUser?.documents || [];
   
-  const [tab, setTab] = useState<"profile" | "documents" | "impact" | "settings">("profile");
+  const [tab, setTab] = useState<"profile" | "bids" | "documents" | "impact" | "settings">("profile");
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState({
     name: currentUser?.name || '',
@@ -68,6 +68,7 @@ export default function ClientProfile() {
 
   const myListings = listings.filter(l => l.userId === currentUser?.id);
   const completedListings = myListings.filter(l => l.status === "completed");
+  const myBids = bids.filter(b => myListings.some(l => l.id === b.listingId));
   const totalWeight = completedListings.reduce((s, l) => s + l.weight, 0);
   const co2Saved = (totalWeight * 2.4).toFixed(1);
   const energySaved = (totalWeight * 15).toFixed(0);
@@ -129,6 +130,7 @@ export default function ClientProfile() {
         <div className="space-y-2">
           {[
             { id: "profile", label: "Organization Info", icon: "business" },
+            { id: "bids", label: "Recent Bids", icon: "gavel" },
             { id: "documents", label: "Legal Documents", icon: "description" },
             { id: "impact", label: "Sustainability Hub", icon: "eco" },
             { id: "settings", label: "Account Settings", icon: "settings" },
@@ -137,7 +139,7 @@ export default function ClientProfile() {
               key={t.id}
               onClick={() => setTab(t.id as any)}
               className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl font-bold text-sm transition-all ${
-                tab === t.id ? "bg-[#1E8E3E] text-white shadow-lg shadow-emerald-200" : "bg-white text-slate-500 hover:bg-slate-50 border border-slate-100"
+                tab === t.id ? "bg-[#1E8E3E] text-white shadow-lg shadow-emerald-200" : "bg-white text-slate-500 hover:bg-slate-50 border border-slate-100 dark:bg-slate-900 dark:border-slate-800"
               }`}
             >
               <span className="material-symbols-outlined text-xl">{t.icon}</span>
@@ -214,6 +216,65 @@ export default function ClientProfile() {
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {tab === "bids" && (
+            <div className="p-8 space-y-6 animate-fade-in">
+              <h4 className="text-xl font-black text-slate-900 dark:text-white">Recent Bids Received</h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-medium -mt-4">Track bids placed on your lots by authorized recycling partners.</p>
+              <div className="space-y-3">
+                {myBids.length > 0 ? (
+                  <div className="overflow-x-auto border border-slate-100 rounded-2xl dark:border-slate-800">
+                    <table className="w-full text-left border-collapse text-xs md:text-sm">
+                      <thead>
+                        <tr className="bg-slate-50 text-[10px] font-black text-slate-400 uppercase tracking-wider dark:bg-slate-800/50">
+                          <th className="px-4 py-3">Listing</th>
+                          <th className="px-4 py-3">Vendor</th>
+                          <th className="px-4 py-3 text-right">Amount</th>
+                          <th className="px-4 py-3">Date</th>
+                          <th className="px-4 py-3 text-center">Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                        {myBids.map((bid) => {
+                          const listing = myListings.find(l => l.id === bid.listingId);
+                          return (
+                            <tr key={bid.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                              <td className="px-4 py-3 font-bold text-slate-700 dark:text-slate-300 truncate max-w-[150px]" title={listing?.title || bid.listingId}>
+                                {listing?.title || bid.listingId}
+                              </td>
+                              <td className="px-4 py-3 font-medium text-slate-900 dark:text-white">
+                                {bid.vendorName}
+                              </td>
+                              <td className="px-4 py-3 font-black text-slate-900 dark:text-white text-right">
+                                ₹{bid.amount.toLocaleString('en-IN')}
+                              </td>
+                              <td className="px-4 py-3 text-slate-500 dark:text-slate-400 text-xs">
+                                {formatDate(bid.createdAt)}
+                              </td>
+                              <td className="px-4 py-3 text-center">
+                                <span className={`pill text-[8px] ${
+                                  bid.status === "accepted" ? "pill-success" :
+                                  bid.status === "rejected" ? "pill-error" :
+                                  "pill-neutral"
+                                }`}>
+                                  {bid.status}
+                                </span>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <div className="py-20 text-center space-y-2">
+                    <span className="material-symbols-outlined text-4xl text-slate-200">gavel</span>
+                    <p className="text-slate-400 font-bold text-sm italic">No bids received yet.</p>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 

@@ -102,7 +102,7 @@ export class DocumentsService {
     try {
       browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--disable-setuid-sandbox'] });
       const page = await browser.newPage();
-      await page.setContent(html, { waitUntil: 'networkidle0' });
+      await page.setContent(html, { waitUntil: 'domcontentloaded' });
       const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true, margin: { top: '20px', right: '20px', bottom: '20px', left: '20px' } });
       const file: Express.Multer.File = {
         fieldname: 'file', originalname: fileName, encoding: '7bit', mimetype: 'application/pdf',
@@ -404,7 +404,7 @@ export class DocumentsService {
         args: ['--no-sandbox', '--disable-setuid-sandbox'],
       });
       const page = await browser.newPage();
-      await page.setContent(compiledHtml, { waitUntil: 'networkidle0' });
+      await page.setContent(compiledHtml, { waitUntil: 'domcontentloaded' });
       
       const pdfBuffer = await page.pdf({
         format: 'A4',

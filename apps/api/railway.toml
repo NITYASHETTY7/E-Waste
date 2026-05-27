@@ -1,6 +1,6 @@
 [build]
 builder = "NIXPACKS"
-buildCommand = "cd ../.. && npm install && cd apps/api && npx prisma generate && npm run build"
+buildCommand = "PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true PUPPETEER_SKIP_DOWNLOAD=true npm install --include=dev && npm run build"
 
 [deploy]
 startCommand = "npx prisma migrate deploy && node dist/main"

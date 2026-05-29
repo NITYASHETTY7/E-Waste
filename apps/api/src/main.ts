@@ -6,7 +6,10 @@ import * as dotenv from 'dotenv';
 dotenv.config();
 
 async function bootstrap() {
+  console.log('🔄 Starting EcoLoop API initialization...');
+  
   const app = await NestFactory.create(AppModule);
+  console.log('✅ NestFactory created successfully (Redis/DB connected)');
 
   // Prefix all routes with /api
   app.setGlobalPrefix('api');

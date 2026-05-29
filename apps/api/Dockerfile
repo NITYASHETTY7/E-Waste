@@ -2,6 +2,9 @@ FROM node:20-slim
 
 WORKDIR /app
 
+# Install OpenSSL to prevent Prisma SSL hang/warnings
+RUN apt-get update -y && apt-get install -y openssl
+
 # Skip Puppeteer Chromium download (uses system chrome or skips PDF gen)
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 ENV PUPPETEER_SKIP_DOWNLOAD=true

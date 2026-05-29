@@ -25,6 +25,7 @@ import { DocumentsModule } from '../documents/documents.module';
             username: redisUrl.username,
             tls: rawUrl.includes('upstash') ? {} : undefined, // Upstash requires TLS
             db: 0,
+            maxRetriesPerRequest: 3, // <--- CRITICAL: Prevents silent hangs if Redis URL is missing or wrong!
           },
         };
       },

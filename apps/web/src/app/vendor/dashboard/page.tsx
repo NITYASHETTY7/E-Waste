@@ -122,7 +122,7 @@ export default function VendorDashboard() {
                 <Link key={l.id} href={`/vendor/marketplace/${l.id}`} className="flex items-center justify-between p-3 bg-white/5 backdrop-blur-md rounded-2xl border border-white/10 hover:bg-white/10 transition-all group/item">
                   <div className="min-w-0">
                     <p className="text-xs font-bold text-white truncate group-hover/item:text-blue-400 transition-colors">{l.title}</p>
-                    <p className="text-[10px] text-slate-400 uppercase font-black tracking-wider mt-0.5">{l.weight} KG · {l.location.split(' ')[0]}</p>
+                    <p className="text-[10px] text-slate-400 uppercase font-black tracking-wider mt-0.5">{l.weight} KG · {(l.location || 'India').split(' ')[0]}</p>
                   </div>
                   <span className="material-symbols-outlined text-sm text-slate-400 group-hover/item:text-blue-400 transition-colors">chevron_right</span>
                 </Link>

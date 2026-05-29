@@ -64,7 +64,7 @@ export default function ClientDashboard() {
   const tableItems = myBids.slice(0, 5).sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).map(b => ({
     id: b.id,
     user: {
-      name: b.vendorName,
+      name: b.vendorName || 'Unknown Vendor',
       phone: "Verified Recycler",
     },
     auctions: 1,

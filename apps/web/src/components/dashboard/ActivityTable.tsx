@@ -72,7 +72,7 @@ export const ActivityTable: React.FC<ActivityTableProps> = ({ title, items }) =>
                       {activity.user.avatar ? (
                         <img src={activity.user.avatar} alt={activity.user.name} className="w-full h-full object-cover" />
                       ) : (
-                        activity.user.name[0]
+                        (activity.user.name || '?')[0]
                       )}
                     </div>
                     <div>

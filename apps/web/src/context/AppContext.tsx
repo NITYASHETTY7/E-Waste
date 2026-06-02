@@ -1158,12 +1158,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       throw new Error('No auction found for this listing');
     }
     console.log(`[App] Using auctionId: ${auctionId}`);
+    
+    // If auction is live, use the live-bid endpoint
+    const endpoint = listing.auctionPhase === 'live' 
+      ? `/auctions/${auctionId}/live-bid` 
+      : `/auctions/${auctionId}/sealed-bid`;
+
     try {
-      await api.post(`/auctions/${auctionId}/sealed-bid`, { amount, remarks });
-      console.log('[App] Bid successfully submitted via REST');
+      await api.post(endpoint, { amount, remarks });
+      console.log(`[App] Bid successfully submitted via ${endpoint}`);
       await fetchAllData();
     } catch (err: any) {
-      console.error('[App] Failed to submit bid via REST:', err?.response?.data || err.message);
+      console.error(`[App] Failed to submit bid via ${endpoint}:`, err?.response?.data || err.message);
       throw err;
     }
   };

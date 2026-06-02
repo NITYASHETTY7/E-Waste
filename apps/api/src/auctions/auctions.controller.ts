@@ -113,6 +113,23 @@ export class AuctionsController {
     );
   }
 
+  @Post(':id/live-bid')
+  liveBid(
+    @Param('id') id: string,
+    @Body() body: { amount: number; idempotencyKey?: string },
+    @Request() req: any,
+  ) {
+    const amount = body.amount;
+    if (isNaN(amount))
+      throw new BadRequestException('amount is required and must be a number');
+    return this.svc.placeLiveBid({
+      auctionId: id,
+      vendorId: req.user.userId,
+      amount,
+      idempotencyKey: body.idempotencyKey,
+    });
+  }
+
   @Patch(':id/winner')
   async selectWinner(
     @Param('id') id: string,

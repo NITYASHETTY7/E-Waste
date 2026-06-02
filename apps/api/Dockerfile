@@ -2,14 +2,30 @@ FROM node:20-slim
 
 WORKDIR /app
 
-# Install OpenSSL to prevent Prisma SSL hang/warnings
-RUN apt-get update -y && apt-get install -y openssl
+# Install dependencies for Puppeteer/Chromium and OpenSSL
+RUN apt-get update -y && apt-get install -y \
+    openssl \
+    chromium \
+    libnss3 \
+    libatk1.0-0 \
+    libatk-bridge2.0-0 \
+    libcups2 \
+    libdrm2 \
+    libxkbcommon0 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxrandr2 \
+    libgbm1 \
+    libasound2 \
+    libpangocairo-1.0-0 \
+    libpango-1.0-0 \
+    && rm -rf /var/lib/apt/lists/*
 
-# Skip Puppeteer Chromium download (uses system chrome or skips PDF gen)
+# Set Puppeteer to use the installed Chromium
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
-ENV PUPPETEER_SKIP_DOWNLOAD=true
 
-# Copy package files and install ALL deps (including devDeps for @nestjs/cli)
+# Copy package files and install ALL deps
 COPY package*.json ./
 RUN npm install --include=dev
 

@@ -44,7 +44,7 @@ export function useAuctionSocket({ auctionId, enabled = true }: UseAuctionSocket
 
     console.log(`[Socket] Connecting to ${API_URL}/auction for room ${auctionId}`);
     const socket = io(`${API_URL}/auction`, {
-      transports: ['websocket', 'polling'],
+      transports: ['polling', 'websocket'],
       autoConnect: true,
       reconnectionAttempts: 5,
     });

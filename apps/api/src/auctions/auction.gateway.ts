@@ -17,8 +17,13 @@ import { AuctionStatus, BidPhase } from '@prisma/client';
 import { RedisService } from '../redis/redis.service';
 
 @WebSocketGateway({
-  cors: { origin: '*' },
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST'],
+    credentials: true,
+  },
   namespace: '/auction',
+  transports: ['websocket', 'polling'],
 })
 export class AuctionGateway
   implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect

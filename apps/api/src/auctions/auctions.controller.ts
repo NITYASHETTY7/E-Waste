@@ -170,6 +170,16 @@ export class AuctionsController {
     return this.svc.generatePostAuctionDocs(id);
   }
 
+  @Get(':id/generate-docs')
+  @Roles(UserRole.ADMIN)
+  getGenerateDocs(@Param('id') id: string) {
+    return {
+      message:
+        'This endpoint requires a POST request to generate documents. Please use the "Generate Documents" button in the admin panel.',
+      auctionId: id,
+    };
+  }
+
   @Get(':id/post-auction')
   getPostAuction(@Param('id') id: string) {
     return this.svc.getAuctionWithPostDocs(id);

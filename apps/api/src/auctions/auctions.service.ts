@@ -663,7 +663,10 @@ export class AuctionsService {
         client: true,
         winner: true,
         requirement: true,
-        bids: { orderBy: { amount: 'desc' }, take: 1 },
+        bids: {
+          orderBy: { amount: 'desc' },
+          include: { vendor: { select: { id: true, companyId: true } } },
+        },
         auctionDocs: true,
       },
     });
@@ -676,7 +679,7 @@ export class AuctionsService {
     }
 
     const winningBid =
-      auction.bids.find((b) => b.vendorId === auction.winnerId) ||
+      auction.bids.find((b) => b.vendor.companyId === auction.winnerId) ||
       auction.bids[0];
     const winningAmount = winningBid?.amount ?? auction.basePrice;
     const commissionAmount = Math.round(winningAmount * 0.05);

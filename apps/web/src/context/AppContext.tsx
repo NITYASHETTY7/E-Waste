@@ -648,10 +648,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       invitedVendorIds: req.invitedVendorIds ?? [],
       acceptedVendorIds: req.acceptedVendorIds ?? [],
       declinedVendorIds: req.declinedVendorIds ?? [],
+      auditApprovedVendorIds: req.auditApprovedVendorIds ?? [],
       sealedBidStartDate: req.sealedPhaseStart,
       sealedBidEndDate: req.sealedPhaseEnd,
       auctionStartDate,
       auctionEndDate,
+      price: req.auction?.basePrice,
+      winnerVendorName: req.auction?.winner?.name,
+      highestEmdAmount: req.auction?.highestEmdAmount ?? 0,
     } as Listing;
   };
 

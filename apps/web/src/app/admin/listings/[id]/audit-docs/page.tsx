@@ -400,7 +400,11 @@ export default function AdminAuditDocsPage() {
                 {doc.status !== "pending" && reviewingId !== doc.id && reviewingId !== doc.id + "_reject" && (
                   <button
                     onClick={() => { setReviewingId(doc.status === "approved" ? doc.id + "_reject" : doc.id); setRemarks(""); }}
-                    className="text-xs font-bold text-slate-400 hover:text-slate-700 dark:hover:text-white transition-colors"
+                    className={`text-xs font-bold transition-colors px-3 py-1.5 rounded-lg border ${
+                      doc.status === "approved"
+                        ? "text-red-600 border-red-400 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 dark:text-red-400 dark:border-red-700"
+                        : "text-emerald-600 border-emerald-400 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-900/20 dark:hover:bg-emerald-900/40 dark:text-emerald-400 dark:border-emerald-700"
+                    }`}
                   >
                     {doc.status === "approved" ? "Revoke approval" : "Re-approve"}
                   </button>

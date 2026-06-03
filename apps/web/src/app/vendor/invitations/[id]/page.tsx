@@ -230,8 +230,10 @@ export default function VendorInvitationPage() {
                   </div>
                   {details.processedSheetUrl ? (
                     <a href={details.processedSheetUrl} target="_blank" rel="noopener noreferrer"
-                      className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 text-white font-bold text-xs hover:bg-blue-700 transition-all">
-                      <span className="material-symbols-outlined text-sm">download</span>Download
+                      className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 transition-all"
+                      style={{ color: '#ffffff', fontWeight: 700, fontSize: '0.75rem' }}>
+                      <span className="material-symbols-outlined text-sm" style={{ color: '#ffffff' }}>download</span>
+                      <span style={{ color: '#ffffff' }}>Download</span>
                     </a>
                   ) : (
                     <span className="text-xs text-amber-600 font-bold">Not available yet</span>
@@ -251,7 +253,7 @@ export default function VendorInvitationPage() {
 
                   {/* Audit report */}
                   <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-[color:var(--color-on-surface-variant)] mb-2">Audit Report (PDF)</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-[color:var(--color-on-surface-variant)] mb-2">Audit Report (PDF) <span className="text-red-500">*</span></p>
                     <div onClick={() => auditRef.current?.click()}
                       className={`border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-colors ${auditFile ? "border-emerald-400 bg-emerald-50 dark:bg-emerald-900/20" : "border-slate-200 hover:border-[color:var(--color-primary)] hover:bg-slate-50 dark:border-slate-700"}`}>
                       <input ref={auditRef} type="file" accept=".pdf,.doc,.docx" className="hidden" onChange={e => setAuditFile(e.target.files?.[0] || null)} />
@@ -279,7 +281,7 @@ export default function VendorInvitationPage() {
 
                   {/* Site Visit Photos */}
                   <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-[color:var(--color-on-surface-variant)] mb-2">Site Visit Photos</p>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-[color:var(--color-on-surface-variant)] mb-2">Site Visit Photos <span className="text-red-500">*</span></p>
                     <div onClick={() => imageRef.current?.click()}
                       className="border-2 border-dashed border-slate-200 hover:border-[color:var(--color-primary)] hover:bg-slate-50 dark:border-slate-700 rounded-xl p-5 text-center cursor-pointer transition-colors">
                       <input ref={imageRef} type="file" accept="image/*" multiple className="hidden" onChange={handleImageChange} />
@@ -302,8 +304,14 @@ export default function VendorInvitationPage() {
                     )}
                   </div>
 
-                  <button onClick={handleSubmitDocs} disabled={uploading || (!auditFile && !excelFile && images.length === 0)}
-                    className="w-full py-4 rounded-xl bg-[color:var(--color-primary)] text-white font-black text-sm hover:opacity-90 disabled:opacity-40 flex items-center justify-center gap-2 transition-all">
+                  {(!auditFile || images.length === 0) && (
+                    <div className="flex items-center gap-2 text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 px-3 py-2 rounded-xl">
+                      <span className="material-symbols-outlined text-sm">warning</span>
+                      <span>Please upload the <strong>Audit Report</strong> and at least <strong>one site photo</strong> before submitting.</span>
+                    </div>
+                  )}
+                  <button onClick={handleSubmitDocs} disabled={uploading || !auditFile || images.length === 0}
+                    className="w-full py-4 rounded-xl bg-[color:var(--color-primary)] text-white font-black text-sm hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all">
                     {uploading ? <><span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>Uploading...</> : <><span className="material-symbols-outlined text-sm">cloud_upload</span>Submit Audit Documents</>}
                   </button>
                 </>

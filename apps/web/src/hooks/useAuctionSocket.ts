@@ -43,10 +43,13 @@ export function useAuctionSocket({ auctionId, enabled = true }: UseAuctionSocket
     if (!enabled || !auctionId) return;
 
     console.log(`[Socket] Connecting to ${API_URL}/auction for room ${auctionId}`);
+    const token = typeof window !== 'undefined' ? localStorage.getItem('ecoloop_token') : null;
     const socket = io(`${API_URL}/auction`, {
-      transports: ['polling', 'websocket'],
+      transports: ['websocket', 'polling'],
       autoConnect: true,
-      reconnectionAttempts: 5,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 1000,
+      auth: token ? { token } : undefined,
     });
 
     socketRef.current = socket;
@@ -61,6 +64,8 @@ export function useAuctionSocket({ auctionId, enabled = true }: UseAuctionSocket
     socket.on('connect_error', (err) => {
       console.error('[Socket] Connection error:', err);
       setBidError(`Connection error: ${err.message}`);
+      // Auto-clear connection errors after 4s — socket will retry automatically
+      setTimeout(() => setBidError(null), 4000);
     });
 
     socket.on('disconnect', (reason) => {

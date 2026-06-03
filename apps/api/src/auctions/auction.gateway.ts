@@ -18,9 +18,11 @@ import { RedisService } from '../redis/redis.service';
 
 @WebSocketGateway({
   cors: {
-    origin: '*',
+    origin: (origin: string, callback: (err: Error | null, allow?: boolean) => void) => {
+      callback(null, true);
+    },
     methods: ['GET', 'POST'],
-    credentials: true,
+    credentials: false,
   },
   namespace: '/auction',
   transports: ['websocket', 'polling'],

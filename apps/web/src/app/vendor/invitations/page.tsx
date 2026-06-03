@@ -76,7 +76,10 @@ export default function VendorInvitations() {
   // Show all listings the vendor is invited to (pending, accepted, or declined) — including live phase
   const invitationListings = listings.filter(l =>
     (l.auctionPhase === 'invitation_window' || l.auctionPhase === 'sealed_bid' || l.auctionPhase === 'live') &&
-    l.invitedVendorIds?.includes(myId)
+    (
+      l.invitedVendorIds?.includes(myId) ||
+      l.auditApprovedVendorIds?.includes(myId)
+    )
   );
 
   const pendingListings = invitationListings.filter(l =>

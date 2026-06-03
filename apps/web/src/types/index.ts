@@ -133,6 +133,7 @@ export interface Listing {
   invitedVendorIds?: string[];
   acceptedVendorIds?: string[];
   declinedVendorIds?: string[];
+  auditApprovedVendorIds?: string[];
   vendorResponses?: { vendorId: string; status: 'interested' | 'declined'; respondedAt?: string }[];
   price?: number;
   userId: string;

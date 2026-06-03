@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useApp } from '@/context/AppContext';
 import { Listing, Bid } from '@/types';
 import { useAuctionSocket } from './useAuctionSocket';
+import api from '@/lib/api';
 
 export function useAuction(listingId: string, options: { forceConnect?: boolean } = {}) {
   const { listings, bids, addBid, editListing, currentUser, addNotification } = useApp();
@@ -16,12 +17,59 @@ export function useAuction(listingId: string, options: { forceConnect?: boolean 
   const currentHighBid = auctionBids[0];
   const currentHighAmount = currentHighBid?.amount || listing?.basePrice || 0;
 
+  // REST polling state — used as fallback when socket is slow/disconnected
+  const [restBids, setRestBids] = useState<any[]>([]);
+  const [restLeaderboard, setRestLeaderboard] = useState<any[]>([]);
+  const [isAuctionEndedRest, setIsAuctionEndedRest] = useState(false);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   // Use WebSocket for live auctions
   const isLive = options.forceConnect || listing?.auctionPhase === 'live';
+  const auctionId = listing?.auctionId || listingId;
   const socket = useAuctionSocket({
-    auctionId: listing?.auctionId || listingId,
+    auctionId,
     enabled: isLive,
   });
+
+  // Fetch auction state from REST API — called on mount and every 3s as fallback
+  const fetchAuctionState = useCallback(async () => {
+    if (!auctionId) return;
+    try {
+      const res = await api.get(`/auctions/${auctionId}`);
+      const auction = res.data;
+      if (!auction) return;
+      const ended = auction.status === 'COMPLETED' || auction.status === 'PENDING_SELECTION';
+      setIsAuctionEndedRest(ended);
+      if (auction.bids && Array.isArray(auction.bids)) {
+        const sorted = [...auction.bids].sort(
+          (a: any, b: any) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
+        setRestBids(sorted);
+        // Build per-vendor leaderboard
+        const seen = new Set<string>();
+        const lb = [...auction.bids]
+          .sort((a: any, b: any) =>
+            b.amount !== a.amount ? b.amount - a.amount : new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+          )
+          .filter((b: any) => { if (seen.has(b.vendorId)) return false; seen.add(b.vendorId); return true; });
+        setRestLeaderboard(lb);
+      }
+    } catch {
+      // Silently ignore — socket data is primary
+    }
+  }, [auctionId]);
+
+  // Start polling every 3s for live auctions (REST fallback for real-time bids)
+  useEffect(() => {
+    if (!isLive || !auctionId) return;
+    // Fetch immediately on mount
+    fetchAuctionState();
+    // Poll every 3 seconds
+    pollRef.current = setInterval(fetchAuctionState, 3000);
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, [isLive, auctionId, fetchAuctionState]);
 
   const [localTimeLeft, setLocalTimeLeft] = useState<number>(0);
   const [isActive, setIsActive] = useState(false);
@@ -32,7 +80,7 @@ export function useAuction(listingId: string, options: { forceConnect?: boolean 
   const socketEndMs = socket.endTime?.getTime() ?? 0;
   const effectiveEndMs = socketEndMs > listingEndMs ? socketEndMs : listingEndMs;
 
-  const isAuctionCompleted = socket.auctionState?.status === 'COMPLETED' || socket.auctionState?.status === 'PENDING_SELECTION';
+  const isAuctionCompleted = socket.auctionState?.status === 'COMPLETED' || socket.auctionState?.status === 'PENDING_SELECTION' || isAuctionEndedRest;
 
   useEffect(() => {
     if (!isLive || !effectiveEndMs || socket.isEnded || isAuctionCompleted) {
@@ -84,25 +132,32 @@ export function useAuction(listingId: string, options: { forceConnect?: boolean 
     return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  // All bids in chronological order for graph + ledger
-  // Prefer socket data ONLY if it's connected and has data; otherwise fallback to context
-  const effectiveAllBids = (isLive && socket.connected && socket.allBids.length > 0)
+  // Priority: socket (real-time) > REST poll (3s fallback) > context bids (30s fallback)
+  const socketHasBids = isLive && socket.connected && socket.allBids.length > 0;
+  const restHasBids = restBids.length > 0;
+
+  const effectiveAllBids = socketHasBids
     ? socket.allBids
+    : restHasBids
+    ? restBids
     : [...auctionBids].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
   // Top bid per vendor for leaderboard / current high
-  const effectiveLeaderboard = (isLive && socket.connected && socket.leaderboard.length > 0)
+  const effectiveLeaderboard = socketHasBids
     ? socket.leaderboard
+    : restHasBids
+    ? restLeaderboard
     : auctionBids;
+
+  const effectiveHighBid = effectiveLeaderboard[0] || currentHighBid;
+  const effectiveHighAmount = effectiveHighBid?.amount || currentHighAmount;
 
   return {
     listing,
     auctionBids: effectiveAllBids,
     leaderboard: effectiveLeaderboard,
-    currentHighAmount: isLive && socket.connected && socket.leaderboard[0]
-      ? socket.leaderboard[0].amount
-      : currentHighAmount,
-    currentHighBid,
+    currentHighAmount: effectiveHighAmount,
+    currentHighBid: effectiveHighBid,
     timeLeft,
     formatTime: formatTimeStr(localTimeLeft),
     isActive,

@@ -3,7 +3,28 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:4000';
+// Safely derive the socket base URL from NEXT_PUBLIC_API_URL.
+// Using .replace('/api','') is dangerous when the domain contains 'api.' (e.g. https://api.railway.app/api).
+// Instead, we parse the URL and take just the origin (protocol + host + port).
+function deriveSocketUrl(): string {
+  // Allow an explicit override for WebSocket server if needed
+  const explicit = process.env.NEXT_PUBLIC_SOCKET_URL;
+  if (explicit) return explicit.replace(/\/$/, '');
+
+  const raw = process.env.NEXT_PUBLIC_API_URL;
+  if (!raw) return 'http://localhost:4000';
+
+  try {
+    const parsed = new URL(raw);
+    // Return just the origin — no path, no /api suffix
+    return parsed.origin;
+  } catch {
+    // raw isn't a valid absolute URL — strip /api suffix naively as last resort
+    return raw.replace(/\/api\/?$/, '') || 'http://localhost:4000';
+  }
+}
+
+const API_URL = deriveSocketUrl();
 
 interface AuctionBid {
   id: string;

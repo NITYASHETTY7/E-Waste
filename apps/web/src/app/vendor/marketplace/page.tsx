@@ -37,7 +37,7 @@ export default function VendorMarketplace() {
     const status = getAuctionStatus(l);
     if (status !== tab) return false;
 
-    const matchSearch = l.title.toLowerCase().includes(search.toLowerCase()) || l.location.toLowerCase().includes(search.toLowerCase());
+    const matchSearch = (l.title?.toLowerCase() || "").includes(search.toLowerCase()) || (l.location?.toLowerCase() || "").includes(search.toLowerCase());
     const matchCat = category === "All" || l.category === category;
     return matchSearch && matchCat;
   });

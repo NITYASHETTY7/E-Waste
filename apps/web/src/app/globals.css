@@ -600,7 +600,7 @@ h1, h2, h3, h4, h5, h6,
 }
 
 .data-table tr:hover td {
-  background-color: rgba(232, 254, 252, 0.5);
+  background-color: rgba(148, 163, 184, 0.05);
 }
 
 /* Metric Card (Bento style) */

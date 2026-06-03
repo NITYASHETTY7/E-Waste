@@ -38,3 +38,51 @@ export class LoginDto {
   @IsString()
   password: string;
 }
+
+export class SendOtpDto {
+  @IsEmail()
+  email: string;
+
+  @IsString()
+  @IsOptional()
+  phone?: string;
+}
+
+export class VerifyOtpDto {
+  @IsEmail()
+  email: string;
+
+  @IsString()
+  code: string;
+
+  @IsString()
+  type: 'email' | 'phone';
+}
+
+export class ChangePasswordDto {
+  @IsString()
+  @MinLength(1)
+  oldPassword: string;
+
+  @IsString()
+  @MinLength(8)
+  newPassword: string;
+}
+
+export class ForgotPasswordDto {
+  @IsEmail()
+  email: string;
+}
+
+export class ResetPasswordDto {
+  @IsEmail()
+  email: string;
+
+  @IsString()
+  otp: string;
+
+  @IsString()
+  @MinLength(8)
+  newPassword: string;
+}
+

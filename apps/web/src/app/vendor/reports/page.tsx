@@ -101,7 +101,7 @@ export default function VendorReports() {
 
   // Client-side CSV generator utility
   const downloadCSV = (filename: string, headers: string[], rows: string[][]) => {
-    const csvContent = [
+    const csvContent = "\uFEFF" + [
       headers.join(","),
       ...rows.map(row => row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(","))
     ].join("\n");
@@ -185,7 +185,7 @@ export default function VendorReports() {
     const w = window.open("", "_blank");
     if (!w) return;
 
-    let rowsHtml = auctions.map((a, i) => {
+    const rowsHtml = auctions.map((a, i) => {
       const payment = a.payment;
       const pickup = a.pickup;
       const winningAmount = payment?.clientAmount ?? a.bids?.[0]?.amount ?? a.basePrice ?? 0;

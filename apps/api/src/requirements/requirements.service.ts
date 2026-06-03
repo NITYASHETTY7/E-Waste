@@ -84,7 +84,16 @@ export class RequirementsService {
       include: {
         client: { include: { users: { select: { id: true }, take: 1 } } },
         auditInvitations: true,
-        auction: true,
+        auction: {
+          include: {
+            pickup: {
+              include: {
+                pickupDocs: true,
+              },
+            },
+            payment: true,
+          },
+        },
       },
       orderBy: { createdAt: 'desc' },
     });

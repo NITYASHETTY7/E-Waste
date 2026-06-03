@@ -64,8 +64,8 @@ export default function AdminListings() {
   const filtered = listings
     .filter(l => filter === "all" || getDisplayStatus(l) === filter)
     .filter(l =>
-      l.title.toLowerCase().includes(search.toLowerCase()) ||
-      l.location?.toLowerCase().includes(search.toLowerCase())
+      (l.title?.toLowerCase() || "").includes(search.toLowerCase()) ||
+      (l.location?.toLowerCase() || "").includes(search.toLowerCase())
     );
 
   const counts = {
@@ -235,27 +235,27 @@ export default function AdminListings() {
               const topBid = listingBids.sort((a, b) => b.amount - a.amount)[0];
 
               return (
-                <tr key={listing.id} className="hover:bg-emerald-950/30 transition-all group cursor-default">
-                  <td>
-                    <p className="font-bold text-sm text-[color:var(--color-on-surface)] group-hover:text-emerald-50 max-w-[220px] truncate">{listing.title}</p>
-                    <p className="text-xs text-[color:var(--color-on-surface-variant)] group-hover:text-slate-400">{listing.location}</p>
+                <tr key={listing.id} className="border-b border-slate-50 dark:border-slate-800/50 hover:bg-emerald-950/40 border-l-4 border-transparent hover:border-emerald-500 transition-all group cursor-default">
+                  <td className="pl-4">
+                    <p className="font-bold text-sm text-[color:var(--color-on-surface)] group-hover:text-emerald-50 max-w-[220px] truncate transition-colors">{listing.title}</p>
+                    <p className="text-xs text-[color:var(--color-on-surface-variant)] group-hover:text-emerald-400/60 transition-colors">{listing.location}</p>
                   </td>
-                  <td className="text-sm text-[color:var(--color-on-surface-variant)] group-hover:text-slate-300">{listing.userName || "—"}</td>
+                  <td className="text-sm text-[color:var(--color-on-surface-variant)] group-hover:text-slate-300 transition-colors">{listing.userName || "—"}</td>
                   <td>
-                    <span className="text-[10px] font-bold px-2.5 py-0.5 bg-[color:var(--color-secondary-container)] text-[color:var(--color-primary)] rounded-full group-hover:bg-emerald-500/20 group-hover:text-emerald-400">
+                    <p className="text-[13px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 group-hover:text-emerald-400 transition-colors">
                       {listing.category}
-                    </span>
+                    </p>
                   </td>
-                  <td className="font-mono text-sm group-hover:text-emerald-50">{listing.weight} KG</td>
-                  <td className="text-xs text-[color:var(--color-on-surface-variant)] group-hover:text-slate-400">
+                  <td className="font-mono text-sm group-hover:text-emerald-50 transition-colors">{listing.weight} KG</td>
+                  <td className="text-xs text-[color:var(--color-on-surface-variant)] group-hover:text-slate-400 transition-colors">
                     {listing.createdAt ? new Date(listing.createdAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" }) : "—"}
                   </td>
                   <td>
-                    <span className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider ${sc.className} group-hover:bg-emerald-500/20 group-hover:text-emerald-400`}>
+                    <span className={`text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider ${sc.className} group-hover:bg-emerald-500/20 group-hover:text-emerald-400 transition-all`}>
                       {sc.label}
                     </span>
                   </td>
-                  <td>
+                  <td className="pr-4">
                     <div className="flex gap-2 flex-wrap">
                       {displayStatus === "pending" && (
                         <button

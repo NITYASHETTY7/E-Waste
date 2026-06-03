@@ -543,7 +543,7 @@ export class AuctionsService {
       type: 'auction_won',
       title: 'You Won the Auction!',
       message: `Congratulations! You won the auction for "${auction.title}" with a bid of ₹${winningBid?.amount || 0}.`,
-      link: '/vendor/final-quote',
+      link: '/vendor/purchase-order',
     }).catch(() => {});
 
     // In-app notifications for client users

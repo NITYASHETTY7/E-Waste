@@ -58,7 +58,7 @@ export default function AdminAuctions() {
 
   const filtered = auctionListings
     .filter(l => filter === "all" || l.auctionPhase === filter)
-    .filter(l => l.title.toLowerCase().includes(search.toLowerCase()));
+    .filter(l => (l.title?.toLowerCase() || "").includes(search.toLowerCase()));
 
   const countByPhase = (phase: Phase) => auctionListings.filter(l => l.auctionPhase === phase).length;
 

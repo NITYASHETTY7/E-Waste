@@ -10,7 +10,7 @@ const PAGE_TITLES: Record<string, string> = {
   "/admin/vendors": "Vendor Management",
   "/admin/users": "Client Management",
   "/admin/listings": "Listing Control",
-  "/admin/transactions": "Transactions",
+  "/admin/bidding": "Bidding / Live Bids",
   "/admin/reports": "Reports",
   "/admin/settings": "Settings",
   "/vendor/dashboard": "Dashboard",

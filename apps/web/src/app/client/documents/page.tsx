@@ -62,7 +62,8 @@ export default function ClientDocuments() {
   };
 
   const completedListings = listings.filter(l =>
-    l.userId === currentUser?.id && l.complianceStatus === "verified"
+    (l.userId === currentUser?.id || l.userId === currentUser?.companyId) && 
+    (l.status === "completed" || l.complianceStatus === "verified" || l.complianceStatus === "documents_uploaded" || l.complianceStatus === "pickup_scheduled")
   );
 
   const getWinBid = (listingId: string) =>
@@ -77,8 +78,7 @@ export default function ClientDocuments() {
   ];
 
   const totalKyc = kycDocs.length;
-  const totalCompliance = completedListings.reduce((s, l) =>
-    s + COMPLIANCE_DOCS.filter(d => !!l[d.key]).length, 0);
+  const totalCompliance = completedListings.length;
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6 pb-20">
@@ -88,12 +88,12 @@ export default function ClientDocuments() {
           <p className="text-[color:var(--color-on-surface-variant)] mt-1">View and download your registration and compliance documents.</p>
         </div>
         <div className="text-right">
-          <p className="text-3xl font-black text-primary">{totalKyc + totalCompliance}</p>
-          <p className="text-xs font-bold text-slate-500 uppercase">Docs on File</p>
+          <p className="text-3xl font-black text-[#1E8E3E]">{totalKyc + totalCompliance}</p>
+          <p className="text-xs font-bold text-slate-500 uppercase">Total Items</p>
         </div>
       </div>
 
-      <div className="flex gap-1 p-1 bg-surface-container-low rounded-xl w-fit border border-outline-variant/10">
+      <div className="flex gap-1 p-1 bg-slate-100 rounded-xl w-fit border border-slate-200 dark:bg-slate-800 dark:border-slate-700">
         {([
           { key: "kyc", label: `Registration (${totalKyc})`, icon: "badge" },
           { key: "compliance", label: `Compliance (${totalCompliance})`, icon: "verified" },
@@ -101,8 +101,8 @@ export default function ClientDocuments() {
           <button key={t.key} onClick={() => setTab(t.key)}
             className={`flex items-center gap-1.5 px-5 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all ${
               tab === t.key 
-                ? "bg-primary text-white shadow-md scale-[1.02]" 
-                : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/50"
+                ? "bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-white" 
+                : "text-slate-500 hover:text-slate-700 dark:text-slate-400"
             }`}>
             <span className="material-symbols-outlined text-sm">{t.icon}</span>
             {t.label}
@@ -163,12 +163,12 @@ export default function ClientDocuments() {
             completedListings.map(listing => {
               const win = getWinBid(listing.id);
               return (
-                <div key={listing.id} className="card p-0 overflow-hidden border-2 border-emerald-200">
-                  <div className="p-5 bg-emerald-50/50 border-b border-emerald-100 flex items-start justify-between gap-4">
+                <div key={listing.id} className="card p-0 overflow-hidden border border-emerald-500/30">
+                  <div className="p-5 bg-emerald-500/5 border-b border-emerald-500/10 flex items-start justify-between gap-4">
                     <div>
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-xs font-black text-slate-400">{listing.id}</span>
-                        <span className="text-[9px] px-2.5 py-0.5 rounded-full font-black uppercase bg-emerald-100 text-emerald-700">Disposal Verified</span>
+                        <span className="text-[9px] px-2.5 py-0.5 rounded-full font-black uppercase bg-emerald-500/10 text-emerald-600 border border-emerald-500/20">Disposal Verified</span>
                       </div>
                       <h3 className="font-bold text-slate-900 dark:text-white">{listing.title}</h3>
                       <p className="text-xs text-slate-500 mt-0.5">{listing.location} · {listing.weight} KG · Vendor: {win?.vendorName || "—"}</p>
@@ -177,7 +177,7 @@ export default function ClientDocuments() {
                       {!vendorRatings.some(r => r.listingId === listing.id) && (
                         <button
                           onClick={() => setRatingModal({ open: true, listingId: listing.id, vendorId: win?.vendorId || "", vendorName: win?.vendorName || "" })}
-                          className="flex items-center gap-2 px-4 py-2 rounded-xl border border-emerald-200 text-emerald-700 text-xs font-bold hover:bg-emerald-100"
+                          className="flex items-center gap-2 px-4 py-2 rounded-xl border border-emerald-500/20 text-emerald-600 text-xs font-bold hover:bg-emerald-500/10"
                         >
                           <span className="material-symbols-outlined text-sm">star</span>Rate Vendor
                         </button>
@@ -188,16 +188,16 @@ export default function ClientDocuments() {
                     {COMPLIANCE_DOCS.map(doc => {
                       const url = listing[doc.key];
                       return (
-                        <div key={doc.key} className={`p-3 rounded-xl border text-center ${url ? "border-emerald-200 bg-emerald-50 hover:bg-emerald-100" : "border-dashed border-slate-200 bg-slate-50 opacity-50"}`}>
-                          <span className={`material-symbols-outlined text-xl block mb-1 ${url ? "text-emerald-600" : "text-slate-300"}`}>{doc.icon}</span>
-                          <p className="text-[9px] font-black uppercase text-slate-600 leading-tight mb-2 dark:text-slate-400">{doc.label}</p>
+                        <div key={doc.key} className={`p-3 rounded-xl border text-center transition-all ${url ? "border-emerald-500/30 bg-emerald-500/5 hover:bg-emerald-500/10" : "border-dashed border-slate-200 dark:border-slate-800 bg-transparent"}`}>
+                          <span className={`material-symbols-outlined text-xl block mb-1 ${url ? "text-emerald-500" : "text-slate-400 dark:text-slate-500"}`}>{doc.icon}</span>
+                          <p className={`text-[9px] font-black uppercase leading-tight mb-2 ${url ? "text-emerald-700 dark:text-emerald-400" : "text-slate-400 dark:text-slate-500"}`}>{doc.label}</p>
                           {url ? (
                             <a href={url} target="_blank" rel="noreferrer"
-                              className="text-[9px] font-black text-primary px-2 py-1 rounded-lg bg-primary/10 hover:bg-primary hover:text-white transition-colors block">
+                              className="text-[9px] font-black text-[#1E8E3E] px-2 py-1 rounded-lg bg-[#1E8E3E]/10 hover:bg-[#1E8E3E] hover:text-white transition-colors block">
                               Download
                             </a>
                           ) : (
-                            <p className="text-[9px] text-slate-400">Not available</p>
+                            <p className="text-[9px] font-bold text-slate-400 dark:text-slate-600">Not available</p>
                           )}
                         </div>
                       );

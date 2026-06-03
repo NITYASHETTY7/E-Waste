@@ -17,7 +17,7 @@ const ADMIN_SECTIONS = [
       { href: "/admin/listings", icon: "inventory_2", label: "Requests" },
       { href: "/admin/auctions", icon: "gavel", label: "Auctions" },
       { href: "/admin/payments", icon: "payments", label: "Payments" },
-      { href: "/admin/transactions", icon: "receipt_long", label: "Transactions" },
+      { href: "/admin/bidding", icon: "gavel", label: "Bidding / Live Bids" },
     ]
   },
   {
@@ -53,13 +53,13 @@ const VENDOR_LINKS = [
   { href: "/vendor/handover", icon: "inventory", label: "Handover & Compliance" },
   { href: "/vendor/ratings", icon: "star_rate", label: "Ratings" },
   { href: "/vendor/reports", icon: "bar_chart", label: "Reports" },
+  { href: "/vendor/notifications", icon: "notifications", label: "Notifications" },
   { href: "/vendor/profile", icon: "badge", label: "Profile & Docs" },
 ];
 
 const CLIENT_LINKS = [
   { href: "/client/post", icon: "add_circle", label: "Post E-Waste" },
   { href: "/client/listings", icon: "inventory_2", label: "My Listings" },
-  { href: "/client/sealed-bids", icon: "lock", label: "Sealed Bids" },
   { href: "/client/live-auction", icon: "sensors", label: "Live Auction" },
   { href: "/client/purchase-order", icon: "description", label: "Purchase Orders" },
   { href: "/client/handover", icon: "inventory", label: "Handover & Gate Pass" },
@@ -95,7 +95,7 @@ export default function Sidebar() {
 
   const renderLink = (link: any) => {
     const isActive = pathname === link.href || pathname.startsWith(link.href + "/");
-    const showIndicator = isActive && role === 'admin';
+    const showIndicator = isActive && (role === 'admin' || role === 'client');
 
     return (
       <Link key={link.href} href={link.href}

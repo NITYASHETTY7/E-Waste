@@ -20,10 +20,12 @@ export default function ClientDashboard() {
 
   const myListings = listings.filter(l => l.userId === currentUser?.id);
   const activeListings = myListings.filter(l => 
-    l.status === "active" || 
-    l.auctionPhase === "live" || 
-    l.auctionPhase === "completed" ||
-    l.requirementStatus === "client_review"
+    (l.status === "active" || 
+     l.auctionPhase === "live" || 
+     l.auctionPhase === "sealed_bid" ||
+     l.requirementStatus === "client_review") &&
+    l.auctionPhase !== "completed" &&
+    l.status !== "completed"
   ).sort((a, b) => new Date(b.updatedAt || b.createdAt).getTime() - new Date(a.updatedAt || a.createdAt).getTime());
 
   const completedListings = myListings.filter(l => l.status === "completed" || l.auctionPhase === "completed");
@@ -55,8 +57,7 @@ export default function ClientDashboard() {
         .filter(b => new Date(b.createdAt).getMonth() === i)
         .reduce((sum, b) => sum + b.amount, 0);
       
-      const fallback = isDemo && i < 4 ? 12000 + i * 3000 : 0;
-      return { name: m, value: volume || fallback }; 
+      return { name: m, value: volume }; 
     });
   };
 
@@ -67,8 +68,7 @@ export default function ClientDashboard() {
         .filter(b => new Date(b.createdAt).getDay() === (i + 1) % 7)
         .reduce((sum, b) => sum + b.amount, 0);
       
-      const fallback = isDemo ? (5000 + i * 1500) : 0;
-      return { name: d, value: volume || fallback };
+      return { name: d, value: volume };
     });
   };
 
@@ -109,7 +109,7 @@ export default function ClientDashboard() {
       {/* KPI Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <KpiCard title="Total Lots Posted" value={myListings.length} icon="inventory_2" delay={0.1} href="/client/listings" />
-        <KpiCard title="Revenue Realized" value={`₹${(revenueGenerated / 1000).toFixed(1)}k`} icon="payments" delay={0.2} trend={{ value: 24, isPositive: true }} href="/client/bids" />
+        <KpiCard title="Revenue Realized" value={`₹${(revenueGenerated / 1000).toFixed(1)}k`} icon="payments" delay={0.2} href="/client/bids" />
         <KpiCard title="Active Auctions" value={activeListings.length} icon="gavel" delay={0.3} href="/client/live-auction" />
         <KpiCard title="Success Rate" value={`${myListings.length > 0 ? Math.round((completedListings.length / myListings.length) * 100) : 0}%`} icon="verified" delay={0.4} href="/client/reports" />
       </div>

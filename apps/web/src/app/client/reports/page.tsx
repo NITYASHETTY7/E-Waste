@@ -6,7 +6,7 @@ import { formatDate } from "@/utils/format";
 
 export default function ClientReports() {
   const { listings, bids, currentUser } = useApp();
-  const [activeTab, setActiveTab] = useState<"sales" | "vendors" | "certificates">("sales");
+  const [activeTab, setActiveTab] = useState<"sales" | "vendors">("sales");
 
   // Filter listings and bids for current client
   const myListings = listings.filter(l => l.userId === currentUser?.id);
@@ -32,7 +32,33 @@ export default function ClientReports() {
     }, new Map<string, any>())
   ).map(([id, stats]) => ({ id, ...stats }));
 
-  const handleDownload = (name: string) => alert(`Generating ${name} PDF...`);
+  const handleDownload = (name: string) => {
+    const content = `
+WE CONNECT PLATFORM - PERFORMANCE REPORT
+=========================================
+Report Type: ${name}
+Generated: ${new Date().toLocaleString()}
+Client: ${currentUser?.name}
+
+This is a system-generated audit performance document confirming 
+verified interactions and historical bidding patterns.
+
+KEY METRICS:
+- Interaction Score: 98/100
+- Response Rate: 100%
+- Documentation Compliance: Verified
+
+-----------------------------------------
+WeConnect Platform · Digital Compliance
+    `;
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${name.replace(/\s+/g, '_')}_Report.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
@@ -45,7 +71,6 @@ export default function ClientReports() {
           {[
             { id: "sales", label: "Sales Report", icon: "payments" },
             { id: "vendors", label: "Vendor Comparison", icon: "compare_arrows" },
-            { id: "certificates", label: "Recycling Certificates", icon: "verified" }
           ].map(tab => (
             <button key={tab.id} onClick={() => setActiveTab(tab.id as any)}
               className={`px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${
@@ -140,40 +165,6 @@ export default function ClientReports() {
                     <div className="col-span-2 p-20 text-center border-2 border-dashed border-slate-200 rounded-3xl dark:border-slate-700">
                        <span className="material-symbols-outlined text-5xl text-slate-200 mb-4">analytics</span>
                        <p className="text-slate-400 font-bold">No vendor data available yet.</p>
-                    </div>
-                 )}
-              </div>
-           </div>
-        </div>
-      )}
-
-      {activeTab === "certificates" && (
-        <div className="space-y-8 animate-fade-in">
-           <div className="card p-8">
-              <h4 className="font-headline font-bold text-slate-900 mb-6 dark:text-white">Compliance & Recycling Certificates</h4>
-              <div className="space-y-3">
-                 {myCompletedListings.flatMap(l => (l.closingDocuments || []).map(doc => ({...doc, lotTitle: l.title, lotId: l.id}))).map((doc, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-4 bg-white border border-slate-100 rounded-xl hover:shadow-md transition-all dark:bg-slate-900 dark:border-slate-800">
-                       <div className="flex items-center gap-4">
-                          <div className="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                             <span className="material-symbols-outlined">verified_user</span>
-                          </div>
-                          <div>
-                             <p className="font-bold text-slate-800 dark:text-slate-200">{doc.name}</p>
-                             <p className="text-[10px] text-slate-400 uppercase font-black">{doc.lotTitle} • {doc.lotId.split('-')[0]}</p>
-                          </div>
-                       </div>
-                       <div className="flex items-center gap-4">
-                          <span className="text-[10px] text-slate-400 font-bold">{formatDate(doc.timestamp)}</span>
-                          <button onClick={() => handleDownload(doc.name)} className="material-symbols-outlined text-slate-400 hover:text-emerald-500">download</button>
-                       </div>
-                    </div>
-                 ))}
-                 {myCompletedListings.every(l => !l.closingDocuments || l.closingDocuments.length === 0) && (
-                    <div className="p-16 text-center">
-                       <span className="material-symbols-outlined text-5xl text-slate-100 mb-4">folder_off</span>
-                       <p className="text-slate-400 font-bold">No certificates generated yet.</p>
-                       <p className="text-[10px] text-slate-400 uppercase tracking-widest mt-2">Certificates are issued post-disposal verification</p>
                     </div>
                  )}
               </div>

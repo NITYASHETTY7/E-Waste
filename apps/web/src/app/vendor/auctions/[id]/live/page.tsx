@@ -337,9 +337,9 @@ export default function LiveAuctionScreen() {
                 const isMe = l.vendorId === currentUser?.id;
                 if (!isMe) return null;
                 return (
-                  <div key={l.vendorId} className={`rounded-2xl border p-5 text-center shadow-sm ${idx === 0 ? 'bg-gradient-to-br from-[#E8F5E9] to-[#D1FAE5] border-[#1E8E3E]' : 'bg-gradient-to-br from-blue-50 to-blue-100 border-blue-300'}`}>
-                    <span className={`text-2xl font-black ${idx === 0 ? 'text-[#1E8E3E]' : 'text-blue-600'}`}>L{idx + 1}</span>
-                    <p className="text-slate-900 dark:text-slate-100 font-black text-base mt-1">{idx === 0 ? 'You Have the Highest Bid!' : `You Are in Position L${idx + 1}`}</p>
+                  <div key={l.vendorId} className={`rounded-3xl border-2 p-6 text-center shadow-md transition-all ${idx === 0 ? 'bg-gradient-to-br from-emerald-50 to-emerald-100 border-emerald-500 shadow-emerald-100/50' : 'bg-gradient-to-br from-blue-600 to-blue-700 border-blue-800 shadow-blue-500/20'}`}>
+                    <span className={`text-4xl font-black block mb-1 ${idx === 0 ? 'text-emerald-700' : 'text-white'}`}>L{idx + 1}</span>
+                    <p className={`font-black text-lg ${idx === 0 ? 'text-emerald-900' : 'text-white'}`}>{idx === 0 ? 'You Have the Highest Bid!' : `You Are in Position L${idx + 1}`}</p>
                     {idx === 0 && approvedWinnerId === currentUser?.id ? (
                       <><span className="material-symbols-outlined text-[#1E8E3E] text-3xl mt-2">emoji_events</span>
                       <p className="text-[#1E8E3E] font-bold text-sm mt-1">Winner Confirmed!</p>

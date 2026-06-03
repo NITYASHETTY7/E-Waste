@@ -211,41 +211,41 @@ export default function ClientListings() {
                   <div className="grid grid-cols-2 gap-3 mb-6">
                     {displayStatus === "invites" ? (
                       <>
-                        <div className="bg-amber-50/50 rounded-lg p-3 border border-amber-100/50">
-                          <p className="text-[10px] uppercase font-black text-amber-600 tracking-widest mb-1">Accepted</p>
+                        <div className="bg-slate-50/50 rounded-lg p-3 border border-slate-100 dark:bg-slate-900/50 dark:border-slate-800">
+                          <p className="text-[10px] uppercase font-black text-slate-500 tracking-widest mb-1">Accepted</p>
                           <div className="flex items-center gap-2">
                             <span className="material-symbols-outlined text-amber-500">how_to_reg</span>
-                            <span className="text-lg font-headline font-bold text-amber-900">{interestedCount} / {totalInvited}</span>
+                            <span className="text-lg font-headline font-bold text-slate-900 dark:text-white">{interestedCount} / {totalInvited}</span>
                           </div>
                         </div>
-                        <div className="bg-red-50/50 rounded-lg p-3 border border-red-100/50">
-                          <p className="text-[10px] uppercase font-black text-red-600 tracking-widest mb-1">Declined</p>
+                        <div className="bg-slate-50/50 rounded-lg p-3 border border-slate-100 dark:bg-slate-900/50 dark:border-slate-800">
+                          <p className="text-[10px] uppercase font-black text-slate-500 tracking-widest mb-1">Declined</p>
                           <div className="flex items-center gap-2">
                             <span className="material-symbols-outlined text-red-500">cancel</span>
-                            <span className="text-lg font-headline font-bold text-red-900">{declinedCount}</span>
+                            <span className="text-lg font-headline font-bold text-slate-900 dark:text-white">{declinedCount}</span>
                           </div>
                         </div>
                         {listing.sealedBidStartDate && (
-                          <div className="col-span-2 bg-blue-50/50 rounded-lg p-3 border border-blue-100/50">
-                            <p className="text-[10px] uppercase font-black text-blue-600 tracking-widest mb-1">Sealed Bid Window</p>
-                            <p className="text-xs font-bold text-blue-900">{fmtDate(listing.sealedBidStartDate)} → {fmtDate(listing.sealedBidEndDate)}</p>
+                          <div className="col-span-2 bg-slate-50/50 rounded-lg p-3 border border-slate-100 dark:bg-slate-900/50 dark:border-slate-800">
+                            <p className="text-[10px] uppercase font-black text-slate-500 tracking-widest mb-1">Sealed Bid Window</p>
+                            <p className="text-xs font-bold text-slate-900 dark:text-white">{fmtDate(listing.sealedBidStartDate)} → {fmtDate(listing.sealedBidEndDate)}</p>
                           </div>
                         )}
                       </>
                     ) : (
                       <>
-                        <div className="bg-blue-50/50 rounded-lg p-3 border border-blue-100/50">
-                          <p className="text-[10px] uppercase font-black text-blue-600 tracking-widest mb-1">Sealed Bids</p>
+                        <div className="bg-slate-50/50 rounded-lg p-3 border border-slate-100 dark:bg-slate-900/50 dark:border-slate-800">
+                          <p className="text-[10px] uppercase font-black text-slate-500 tracking-widest mb-1">Sealed Bids</p>
                           <div className="flex items-center gap-2">
                             <span className="material-symbols-outlined text-blue-500">lock</span>
-                            <span className="text-lg font-headline font-bold text-blue-900">{sealedBids.length}</span>
+                            <span className="text-lg font-headline font-bold text-slate-900 dark:text-white">{sealedBids.length}</span>
                           </div>
                         </div>
-                        <div className="bg-red-50/50 rounded-lg p-3 border border-red-100/50">
-                          <p className="text-[10px] uppercase font-black text-red-600 tracking-widest mb-1">Live Bids</p>
+                        <div className="bg-slate-50/50 rounded-lg p-3 border border-slate-100 dark:bg-slate-900/50 dark:border-slate-800">
+                          <p className="text-[10px] uppercase font-black text-slate-500 tracking-widest mb-1">Live Bids</p>
                           <div className="flex items-center gap-2">
                             <span className="material-symbols-outlined text-red-500">sensors</span>
-                            <span className="text-lg font-headline font-bold text-red-900">{openBids.length}</span>
+                            <span className="text-lg font-headline font-bold text-slate-900 dark:text-white">{openBids.length}</span>
                           </div>
                         </div>
                       </>

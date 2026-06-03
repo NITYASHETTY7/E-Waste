@@ -11,26 +11,26 @@ function exportCSV(bids: { id: string; vendorName: string; amount: number; statu
     const listing = listings.find(l => l.id === bid.listingId);
     return [
       bid.id,
-      `"${listing?.title || "Unknown"}"`,
+      listing?.title || "Unknown",
       listing?.category || "—",
       listing?.weight || 0,
-      `"${bid.vendorName}"`,
+      bid.vendorName,
       bid.amount,
       bid.status,
       formatDate(bid.createdAt),
-    ].join(",");
+    ];
   });
-  const csv = [header.join(","), ...rows].join("\n");
-  const blob = new Blob([csv], { type: "text/csv" });
+  const csv = "\uFEFF" + [header, ...rows].map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `WeConnect_Transactions_${new Date().toISOString().split("T")[0]}.csv`;
+  a.download = `WeConnect_Bidding_${new Date().toISOString().split("T")[0]}.csv`;
   a.click();
   URL.revokeObjectURL(url);
 }
 
-export default function AdminTransactions() {
+export default function AdminBidding() {
   const { bids, listings, updateBidStatus, editBid } = useApp();
   const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "accepted" | "rejected">("all");
   const [search, setSearch] = useState("");
@@ -40,8 +40,8 @@ export default function AdminTransactions() {
     .filter(b => statusFilter === "all" || b.status === statusFilter)
     .filter(b => {
       const listing = listings.find(l => l.id === b.listingId);
-      return b.vendorName.toLowerCase().includes(search.toLowerCase()) ||
-        listing?.title.toLowerCase().includes(search.toLowerCase()) || false;
+      return (b.vendorName?.toLowerCase() || "").includes(search.toLowerCase()) ||
+        (listing?.title?.toLowerCase() || "").includes(search.toLowerCase());
     })
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
@@ -56,7 +56,7 @@ export default function AdminTransactions() {
     <div className="space-y-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="flex justify-between items-end">
         <div>
-          <h2 className="text-3xl font-headline font-extrabold tracking-tight text-[color:var(--color-on-surface)]">Bidding & Transactions</h2>
+          <h2 className="text-3xl font-headline font-extrabold tracking-tight text-[color:var(--color-on-surface)]">Bidding / Live Bids</h2>
           <p className="text-[color:var(--color-on-surface-variant)] mt-1">Monitor all bidding activity and financial settlements across the platform.</p>
         </div>
         <button onClick={() => exportCSV(bids, listings)}
@@ -122,15 +122,15 @@ export default function AdminTransactions() {
             {filtered.map(bid => {
               const listing = listings.find(l => l.id === bid.listingId);
               return (
-                <tr key={bid.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
-                  <td className="font-mono text-xs text-[color:var(--color-primary)] font-bold">#{bid.id.slice(0, 6)}</td>
+                <tr key={bid.id} className="hover:border-l-4 hover:border-l-emerald-500 hover:bg-emerald-500/[0.02] border-l-4 border-l-transparent transition-all group">
+                  <td className="font-mono text-xs text-slate-500 font-medium tracking-tight group-hover:text-emerald-600 transition-colors pl-4">#{bid.id.slice(0, 6)}</td>
                   <td>
                     <p className="font-bold text-sm text-[color:var(--color-on-surface)] max-w-[160px] truncate">{listing?.title || "Unknown"}</p>
-                    <p className="text-xs text-[color:var(--color-on-surface-variant)]">{listing?.weight} KG</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{listing?.weight} KG</p>
                   </td>
                   <td>
                     <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-xl bg-[color:var(--color-secondary-container)] flex items-center justify-center font-black text-[10px] text-[color:var(--color-primary)]">
+                      <div className="w-8 h-8 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-black text-[10px] text-slate-500">
                         {bid.vendorName.slice(0, 2).toUpperCase()}
                       </div>
                       <p className="font-bold text-sm text-[color:var(--color-on-surface)]">{bid.vendorName}</p>
@@ -138,20 +138,26 @@ export default function AdminTransactions() {
                   </td>
                   <td>
                     <div className="flex flex-col gap-1">
-                      <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded w-fit ${bid.emdPaid ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700"}`}>
-                        EMD: {bid.emdPaid ? "VERIFIED" : "PENDING"}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className={`w-1.5 h-1.5 rounded-full ${bid.emdPaid ? "bg-emerald-500" : "bg-amber-500"}`} />
+                        <span className={`text-[10px] font-black uppercase tracking-widest ${bid.emdPaid ? "text-emerald-600 dark:text-emerald-500" : "text-amber-600 dark:text-amber-500"}`}>
+                          EMD {bid.emdPaid ? "VERIFIED" : "PENDING"}
+                        </span>
+                      </div>
                       {listing?.highestEmdAmount && !bid.emdPaid && (
                         <p className="text-[9px] font-bold text-slate-400 italic">Expected: ₹{listing.highestEmdAmount.toLocaleString()}</p>
                       )}
                     </div>
                   </td>
-                  <td className="font-headline font-bold text-[color:var(--color-primary)]">₹{bid.amount.toLocaleString()}</td>
-                  <td className="text-xs text-[color:var(--color-on-surface-variant)]">{formatDate(bid.createdAt)}</td>
+                  <td className="font-headline font-bold text-slate-900 dark:text-white">₹{bid.amount.toLocaleString()}</td>
+                  <td className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{formatDate(bid.createdAt)}</td>
                   <td>
-                    <span className={`pill ${bid.status === "accepted" ? "pill-success" : bid.status === "pending" ? "pill-warning" : "pill-error"}`}>
-                      {bid.status}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className={`w-1.5 h-1.5 rounded-full ${bid.status === "accepted" ? "bg-emerald-500" : bid.status === "pending" ? "bg-amber-500" : "bg-red-500"}`} />
+                      <span className={`text-[10px] font-black uppercase tracking-widest ${bid.status === "accepted" ? "text-emerald-600" : bid.status === "pending" ? "text-amber-600" : "text-red-600"}`}>
+                        {bid.status}
+                      </span>
+                    </div>
                   </td>
                   <td>
                     <div className="flex gap-1">

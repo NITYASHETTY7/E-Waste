@@ -944,14 +944,14 @@ export class NotificationService {
   ) {
     const commissionAmount = Math.round(winningAmount * 0.05);
     const clientAmount = winningAmount - commissionAmount;
-    const portalUrl = `${process.env.WEB_URL || 'http://localhost:3000'}/vendor/final-quote`;
+    const portalUrl = `${process.env.WEB_URL || 'http://localhost:3000'}/vendor/purchase-order`;
     const webUrl = process.env.WEB_URL || 'http://localhost:3000';
 
     const steps: [string, string, string | null][] = [
       [
         'Upload Final Quote',
         `Log in and upload your <strong>product-wise quotation</strong> (PDF) and <strong>company letterhead quotation</strong>.`,
-        '/vendor/final-quote',
+        '/vendor/purchase-order',
       ],
       [
         'Await Client Approval',

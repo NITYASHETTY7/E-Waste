@@ -16,6 +16,7 @@ export default function AdminProfile() {
     email: currentUser?.email || ''
   });
   const [passwords, setPasswords] = useState({ current: '', new: '', confirm: '' });
+  const [showPasswords, setShowPasswords] = useState({ current: false, new: false, confirm: false });
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error', msg: string } | null>(null);
   const [mounted, setMounted] = useState(false);
@@ -32,15 +33,19 @@ export default function AdminProfile() {
     showFeedback('success', 'Admin profile updated.');
   };
 
-  const handleChangePassword = (e: React.FormEvent) => {
+  const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (passwords.new !== passwords.confirm) {
       showFeedback('error', 'Passwords do not match.');
       return;
     }
-    changePassword(passwords.new);
-    setPasswords({ current: '', new: '', confirm: '' });
-    showFeedback('success', 'Admin password changed.');
+    try {
+      await changePassword(passwords.new, passwords.current);
+      setPasswords({ current: '', new: '', confirm: '' });
+      showFeedback('success', 'Password rotated successfully.');
+    } catch (err: any) {
+      showFeedback('error', err.response?.data?.message || 'Failed to rotate password.');
+    }
   };
 
   const handleDeleteAccount = () => {
@@ -169,22 +174,65 @@ export default function AdminProfile() {
                 <h4 className="text-lg font-black text-slate-900 dark:text-white">Admin Authentication</h4>
                 <form onSubmit={handleChangePassword} className="space-y-4 max-w-md">
                   <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 ml-1">Current Password</label>
+                    <div className="relative">
+                      <input 
+                        type={showPasswords.current ? "text" : "password"}
+                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 dark:bg-slate-950 dark:border-slate-700 placeholder:text-slate-400 dark:placeholder:text-slate-500 pr-12"
+                        value={passwords.current}
+                        onChange={e => setPasswords(prev => ({ ...prev, current: e.target.value }))}
+                        placeholder="Enter master password"
+                      />
+                      <button 
+                        type="button"
+                        onClick={() => setShowPasswords(prev => ({ ...prev, current: !prev.current }))}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-xl">
+                          {showPasswords.current ? "visibility_off" : "visibility"}
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
                     <label className="text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 ml-1">New Master Password</label>
-                    <input 
-                      type="password" 
-                      className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 dark:bg-slate-950 dark:border-slate-700 placeholder:text-slate-400 dark:placeholder:text-slate-500"
-                      value={passwords.new}
-                      onChange={e => setPasswords(prev => ({ ...prev, new: e.target.value }))}
-                    />
+                    <div className="relative">
+                      <input 
+                        type={showPasswords.new ? "text" : "password"}
+                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 dark:bg-slate-950 dark:border-slate-700 placeholder:text-slate-400 dark:placeholder:text-slate-500 pr-12"
+                        value={passwords.new}
+                        onChange={e => setPasswords(prev => ({ ...prev, new: e.target.value }))}
+                      />
+                      <button 
+                        type="button"
+                        onClick={() => setShowPasswords(prev => ({ ...prev, new: !prev.new }))}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-xl">
+                          {showPasswords.new ? "visibility_off" : "visibility"}
+                        </span>
+                      </button>
+                    </div>
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 ml-1">Confirm Master Password</label>
-                    <input 
-                      type="password" 
-                      className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 dark:bg-slate-950 dark:border-slate-700 placeholder:text-slate-400 dark:placeholder:text-slate-500"
-                      value={passwords.confirm}
-                      onChange={e => setPasswords(prev => ({ ...prev, confirm: e.target.value }))}
-                    />
+                    <div className="relative">
+                      <input 
+                        type={showPasswords.confirm ? "text" : "password"}
+                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 dark:bg-slate-950 dark:border-slate-700 placeholder:text-slate-400 dark:placeholder:text-slate-500 pr-12"
+                        value={passwords.confirm}
+                        onChange={e => setPasswords(prev => ({ ...prev, confirm: e.target.value }))}
+                      />
+                      <button 
+                        type="button"
+                        onClick={() => setShowPasswords(prev => ({ ...prev, confirm: !prev.confirm }))}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-xl">
+                          {showPasswords.confirm ? "visibility_off" : "visibility"}
+                        </span>
+                      </button>
+                    </div>
                   </div>
                   <button type="submit" className="px-6 py-3 bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-800 transition-all">
                     Rotate Password

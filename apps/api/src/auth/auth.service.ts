@@ -258,6 +258,25 @@ export class AuthService {
     return { success: true };
   }
 
+  async changePassword(userId: string, oldPass: string, newPass: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+
+    // If oldPass is provided, verify it (unless the current hash is invalid/empty)
+    if (oldPass && user.passwordHash && user.passwordHash.startsWith('$2')) {
+      const match = await bcrypt.compare(oldPass, user.passwordHash);
+      if (!match) throw new UnauthorizedException('Incorrect old password');
+    }
+
+    const hash = await bcrypt.hash(newPass, 10);
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { passwordHash: hash },
+    });
+
+    return { success: true };
+  }
+
   private buildResponse(user: any) {
     const { passwordHash, ...safeUser } = user;
     const payload = { sub: user.id, email: user.email, role: user.role };

@@ -52,6 +52,11 @@ export class UsersController {
     return this.usersService.findById(id);
   }
 
+  @Patch('me')
+  updateMe(@Request() req: any, @Body() body: any) {
+    return this.usersService.update(req.user.userId, body);
+  }
+
   @Patch(':id/role')
   updateRole(@Param('id') id: string, @Body('role') role: UserRole) {
     return this.usersService.updateRole(id, role);

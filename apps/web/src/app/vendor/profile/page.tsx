@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import api from "@/lib/api";
 
 export default function VendorProfile() {
-  const { currentUser, bids, listings, updateUserProfile, changePassword, deleteAccount } = useApp();
+  const { currentUser, bids, listings, updateUserProfile, changePassword, deleteAccount, refreshData } = useApp();
   const router = useRouter();
   const profile = currentUser?.onboardingProfile;
   const docs = currentUser?.documents || [];
@@ -21,30 +21,73 @@ export default function VendorProfile() {
   const [editData, setEditData] = useState({
     name: currentUser?.name || '',
     email: currentUser?.email || '',
-    phone: currentUser?.phone || ''
+    phone: currentUser?.phone || '',
+    companyName: profile?.companyName || '',
+    cpcbNo: profile?.cpcbNo || '',
+    capacity: profile?.processingCapacity || '',
+    companyReg: profile?.companyRegistrationNo || '',
+    city: profile?.city || '',
+    state: profile?.state || '',
+    address: profile?.address || '',
   });
+
   const [passwords, setPasswords] = useState({ current: '', new: '', confirm: '' });
+  const [showPasswords, setShowPasswords] = useState({ current: false, new: false, confirm: false });
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error', msg: string } | null>(null);
 
-  useEffect(() => {
-    if (tab === "documents" && currentUser?.companyId && kycDocs.length === 0) {
-      setLoadingKyc(true);
-      api.get(`/companies/${currentUser.companyId}`)
-        .then(res => setKycDocs(res.data?.kycDocuments || []))
-        .catch(() => {})
-        .finally(() => setLoadingKyc(false));
-    }
-  }, [tab, currentUser?.companyId]);
+  const showFeedback = (type: 'success' | 'error', msg: string) => {
+    setFeedback({ type, msg });
+    setTimeout(() => setFeedback(null), 3000);
+  };
 
-  const openDoc = async (doc: any) => {
-    if (doc.signedUrl) { window.open(doc.signedUrl, "_blank"); return; }
-    setUrlLoading(doc.id);
+  const handleUpdateProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
     try {
-      const res = await api.get("/companies/signed-url", { params: { s3Key: doc.s3Key, s3Bucket: doc.s3Bucket } });
-      window.open(res.data.url, "_blank");
-    } catch { alert("Could not open document."); }
-    finally { setUrlLoading(null); }
+      // 1. Update User Record
+      await updateUserProfile({ name: editData.name, email: editData.email, phone: editData.phone });
+      
+      // 2. Update Company Record if exists
+      if (currentUser?.companyId) {
+        await api.patch(`/companies/${currentUser.companyId}`, {
+          name: editData.companyName || editData.name,
+          address: editData.address,
+          city: editData.city,
+          state: editData.state,
+          cpcbNo: editData.cpcbNo,
+          processingCapacity: editData.capacity,
+          companyRegistrationNo: editData.companyReg,
+        });
+      }
+
+      setIsEditing(false);
+      showFeedback('success', 'Profile and credentials updated successfully.');
+      // Refresh context data to reflect changes everywhere
+      await refreshData();
+    } catch (err: any) {
+      const msg = err.response?.data?.message || 'Failed to update profile.';
+      showFeedback('error', msg);
+    }
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (passwords.new !== passwords.confirm) {
+      showFeedback('error', 'Passwords do not match.');
+      return;
+    }
+    if (passwords.new.length < 8) {
+      showFeedback('error', 'New password must be at least 8 characters.');
+      return;
+    }
+    
+    try {
+      await changePassword(passwords.new, passwords.current);
+      setPasswords({ current: '', new: '', confirm: '' });
+      showFeedback('success', 'Password changed successfully.');
+    } catch (err: any) {
+      showFeedback('error', err.response?.data?.message || 'Failed to change password.');
+    }
   };
 
   const myBids = bids.filter(b => b.vendorId === currentUser?.id);
@@ -52,32 +95,42 @@ export default function VendorProfile() {
   const totalPurchase = wonBids.reduce((s, b) => s + b.amount, 0);
   const winRate = myBids.length > 0 ? Math.round((wonBids.length / myBids.length) * 100) : 0;
 
-  const handleUpdateProfile = (e: React.FormEvent) => {
-    e.preventDefault();
-    updateUserProfile({ name: editData.name, email: editData.email, phone: editData.phone });
-    setIsEditing(false);
-    showFeedback('success', 'Profile updated successfully.');
-  };
+  const handleDownloadAudit = () => {
+    const reportData = [
+      ["Performance Audit Report", ""],
+      ["Date", new Date().toLocaleDateString()],
+      ["Vendor", currentUser?.name || ""],
+      ["", ""],
+      ["Metric", "Value"],
+      ["Bids Placed", myBids.length],
+      ["Bids Won", wonBids.length],
+      ["Success Rate", `${winRate}%`],
+      ["Total Purchase", `₹${totalPurchase.toLocaleString()}`],
+      ["", ""],
+      ["Recent Wins", ""],
+      ...wonBids.map(b => {
+        const l = listings.find(lst => lst.id === b.listingId);
+        return [l?.title || "Unknown Lot", `₹${b.amount.toLocaleString()}`];
+      })
+    ];
 
-  const handleChangePassword = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (passwords.new !== passwords.confirm) {
-      showFeedback('error', 'Passwords do not match.');
-      return;
-    }
-    changePassword(passwords.new);
-    setPasswords({ current: '', new: '', confirm: '' });
-    showFeedback('success', 'Password changed successfully.');
+    const csvContent = "\uFEFF" + reportData.map(row => 
+      row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",")
+    ).join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.setAttribute('hidden', '');
+    a.setAttribute('href', url);
+    a.setAttribute('download', `Performance_Audit_${currentUser?.name?.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
   };
 
   const handleDeleteAccount = () => {
     deleteAccount();
     router.push('/');
-  };
-
-  const showFeedback = (type: 'success' | 'error', msg: string) => {
-    setFeedback({ type, msg });
-    setTimeout(() => setFeedback(null), 3000);
   };
 
   return (
@@ -165,6 +218,46 @@ export default function VendorProfile() {
                         onChange={e => setEditData(prev => ({ ...prev, email: e.target.value }))}
                       />
                     </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 ml-1">CPCB Authorization No</label>
+                      <input 
+                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:bg-slate-950 dark:border-slate-700"
+                        value={editData.cpcbNo}
+                        onChange={e => setEditData(prev => ({ ...prev, cpcbNo: e.target.value }))}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 ml-1">Processing Capacity</label>
+                      <input 
+                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:bg-slate-950 dark:border-slate-700"
+                        value={editData.capacity}
+                        onChange={e => setEditData(prev => ({ ...prev, capacity: e.target.value }))}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 ml-1">City</label>
+                      <input 
+                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:bg-slate-950 dark:border-slate-700"
+                        value={editData.city}
+                        onChange={e => setEditData(prev => ({ ...prev, city: e.target.value }))}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 ml-1">State</label>
+                      <input 
+                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:bg-slate-950 dark:border-slate-700"
+                        value={editData.state}
+                        onChange={e => setEditData(prev => ({ ...prev, state: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 ml-1">Business Address</label>
+                    <textarea 
+                      className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:bg-slate-950 dark:border-slate-700 min-h-[80px]"
+                      value={editData.address}
+                      onChange={e => setEditData(prev => ({ ...prev, address: e.target.value }))}
+                    />
                   </div>
                   <div className="flex gap-3">
                     <button type="submit" className="px-6 py-2.5 bg-blue-600 text-white rounded-xl text-xs font-bold">Save Changes</button>
@@ -266,7 +359,7 @@ export default function VendorProfile() {
                 <div className="relative z-10">
                   <h4 className="text-xl font-black mb-2">Performance Audit Report</h4>
                   <p className="text-blue-100 text-sm mb-6">Analyze your bidding efficiency and acquisition costs for the current quarter.</p>
-                  <button className="px-6 py-3 bg-white text-blue-600 rounded-xl font-bold text-xs uppercase tracking-widest transition-all hover:bg-blue-50 dark:bg-slate-900">
+                  <button onClick={handleDownloadAudit} className="px-6 py-3 bg-white text-blue-600 rounded-xl font-bold text-xs uppercase tracking-widest transition-all hover:bg-blue-50 dark:bg-slate-900">
                     Download Audit Report
                   </button>
                 </div>
@@ -280,23 +373,66 @@ export default function VendorProfile() {
                 <h4 className="text-lg font-black text-slate-900 dark:text-white">Security Credentials</h4>
                 <form onSubmit={handleChangePassword} className="space-y-4 max-w-md">
                   <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 ml-1">Current Password</label>
+                    <div className="relative">
+                      <input 
+                        type={showPasswords.current ? "text" : "password"}
+                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:bg-slate-950 dark:border-slate-700 placeholder:text-slate-400 dark:placeholder:text-slate-500 pr-12"
+                        value={passwords.current}
+                        onChange={e => setPasswords(prev => ({ ...prev, current: e.target.value }))}
+                        placeholder="Enter old password"
+                      />
+                      <button 
+                        type="button"
+                        onClick={() => setShowPasswords(prev => ({ ...prev, current: !prev.current }))}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-xl">
+                          {showPasswords.current ? "visibility_off" : "visibility"}
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
                     <label className="text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 ml-1">New Password</label>
-                    <input 
-                      type="password" 
-                      className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:bg-slate-950 dark:border-slate-700 placeholder:text-slate-400 dark:placeholder:text-slate-500"
-                      value={passwords.new}
-                      onChange={e => setPasswords(prev => ({ ...prev, new: e.target.value }))}
-                      placeholder="Min 8 characters"
-                    />
+                    <div className="relative">
+                      <input 
+                        type={showPasswords.new ? "text" : "password"}
+                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:bg-slate-950 dark:border-slate-700 placeholder:text-slate-400 dark:placeholder:text-slate-500 pr-12"
+                        value={passwords.new}
+                        onChange={e => setPasswords(prev => ({ ...prev, new: e.target.value }))}
+                        placeholder="Min 8 characters"
+                      />
+                      <button 
+                        type="button"
+                        onClick={() => setShowPasswords(prev => ({ ...prev, new: !prev.new }))}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-xl">
+                          {showPasswords.new ? "visibility_off" : "visibility"}
+                        </span>
+                      </button>
+                    </div>
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 ml-1">Confirm New Password</label>
-                    <input 
-                      type="password" 
-                      className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:bg-slate-950 dark:border-slate-700 placeholder:text-slate-400 dark:placeholder:text-slate-500"
-                      value={passwords.confirm}
-                      onChange={e => setPasswords(prev => ({ ...prev, confirm: e.target.value }))}
-                    />
+                    <div className="relative">
+                      <input 
+                        type={showPasswords.confirm ? "text" : "password"}
+                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:bg-slate-950 dark:border-slate-700 placeholder:text-slate-400 dark:placeholder:text-slate-500 pr-12"
+                        value={passwords.confirm}
+                        onChange={e => setPasswords(prev => ({ ...prev, confirm: e.target.value }))}
+                      />
+                      <button 
+                        type="button"
+                        onClick={() => setShowPasswords(prev => ({ ...prev, confirm: !prev.confirm }))}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-xl">
+                          {showPasswords.confirm ? "visibility_off" : "visibility"}
+                        </span>
+                      </button>
+                    </div>
                   </div>
                   <button type="submit" className="px-6 py-3 bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-800 transition-all">
                     Update Password

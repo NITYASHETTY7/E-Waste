@@ -606,15 +606,13 @@ export class AuctionsService {
     }
 
     // In-app notification for the winner
-    await this.notifications
-      .createInAppNotification({
-        userId: vendorUserId,
-        type: 'auction_won',
-        title: 'You Won the Auction!',
-        message: `Congratulations! You won the auction for "${auction.title}" with a bid of ₹${winningBid?.amount || 0}.`,
-        link: '/vendor/final-quote',
-      })
-      .catch(() => {});
+    await this.notifications.createInAppNotification({
+      userId: vendorUserId,
+      type: 'auction_won',
+      title: 'You Won the Auction!',
+      message: `Congratulations! You won the auction for "${auction.title}" with a bid of ₹${winningBid?.amount || 0}.`,
+      link: '/vendor/purchase-order',
+    }).catch(() => {});
 
     // In-app notifications for client users
     const clientUsers = await this.prisma.user.findMany({

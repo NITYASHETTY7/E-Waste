@@ -19,7 +19,7 @@ export default function VendorDashboard() {
 
   const myBids = bids.filter(b => b.vendorId === currentUser?.id);
   const wonBids = myBids.filter(b => b.status === "accepted");
-  const activeListings = listings.filter(l => l.status === "active" || l.auctionPhase === "live");
+  const activeListings = listings.filter(l => l.auctionPhase === "live" || l.auctionPhase === "sealed_bid");
   const winRate = myBids.length > 0 ? Math.round((wonBids.length / myBids.length) * 100) : 0;
   const totalCommitted = myBids.reduce((sum, b) => sum + b.amount, 0);
 
@@ -31,8 +31,7 @@ export default function VendorDashboard() {
         .filter(b => new Date(b.createdAt).getMonth() === i)
         .reduce((sum, b) => sum + b.amount, 0);
       
-      const fallback = isDemo && i < 4 ? 15000 + i * 3000 : 0;
-      return { name: m, value: volume || fallback }; 
+      return { name: m, value: volume }; 
     });
   };
 
@@ -43,8 +42,7 @@ export default function VendorDashboard() {
         .filter(b => new Date(b.createdAt).getDay() === (i + 1) % 7)
         .reduce((sum, b) => sum + b.amount, 0);
       
-      const fallback = isDemo ? (1500 + i * 500) : 0;
-      return { name: d, value: volume || fallback };
+      return { name: d, value: volume };
     });
   };
 
@@ -87,9 +85,9 @@ export default function VendorDashboard() {
 
       {/* KPI Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <KpiCard title="Auctions Participated" value={myBids.length} icon="gavel" delay={0.1} trend={{ value: 10, isPositive: true }} />
+        <KpiCard title="Auctions Participated" value={myBids.length} icon="gavel" delay={0.1} />
         <KpiCard title="Total Bidding Value" value={`₹${(totalCommitted / 1000).toFixed(1)}k`} icon="payments" delay={0.2} />
-        <KpiCard title="Winning Pledges" value={wonBids.length} icon="emoji_events" delay={0.3} trend={{ value: 5, isPositive: true }} />
+        <KpiCard title="Winning Pledges" value={wonBids.length} icon="emoji_events" delay={0.3} />
         <KpiCard title="Market Win Rate" value={`${winRate}%`} icon="monitoring" delay={0.4} />
       </div>
 
@@ -122,7 +120,11 @@ export default function VendorDashboard() {
                 <Link key={l.id} href={`/vendor/marketplace/${l.id}`} className="flex items-center justify-between p-3 bg-white/5 backdrop-blur-md rounded-2xl border border-white/10 hover:bg-white/10 transition-all group/item">
                   <div className="min-w-0">
                     <p className="text-xs font-bold text-white truncate group-hover/item:text-blue-400 transition-colors">{l.title}</p>
-                    <p className="text-[10px] text-slate-400 uppercase font-black tracking-wider mt-0.5">{l.weight} KG · {(l.location || 'India').split(' ')[0]}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-[10px] text-blue-400 uppercase font-black tracking-wider">{l.auctionPhase?.replace('_', ' ')}</span>
+                      <span className="text-[8px] text-slate-500">•</span>
+                      <p className="text-[10px] text-slate-400 uppercase font-black tracking-wider">{l.weight} KG · {(l.location || 'India').split(' ')[0]}</p>
+                    </div>
                   </div>
                   <span className="material-symbols-outlined text-sm text-slate-400 group-hover/item:text-blue-400 transition-colors">chevron_right</span>
                 </Link>

@@ -152,7 +152,7 @@ export default function AdminVendors() {
 
   const filtered = vendors
     .filter(v => statusFilter === "all" || v.status === statusFilter)
-    .filter(v => v.name.toLowerCase().includes(search.toLowerCase()));
+    .filter(v => (v.name?.toLowerCase() || "").includes(search.toLowerCase()));
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto relative pb-20 px-4 sm:px-6 lg:px-8">

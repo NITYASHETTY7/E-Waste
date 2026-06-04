@@ -112,7 +112,7 @@ export default function AdminUsers() {
   const filtered = clients
     .filter(c => statusFilter === "all" || c.status === statusFilter)
     .filter(c =>
-      c.name.toLowerCase().includes(search.toLowerCase()) ||
+      (c.name?.toLowerCase() || "").includes(search.toLowerCase()) ||
       (c.users?.[0]?.email || "").toLowerCase().includes(search.toLowerCase())
     );
 

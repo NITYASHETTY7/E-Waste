@@ -92,9 +92,9 @@ export default function AdminIndividualUsers() {
       return true;
     })
     .filter(u =>
-      u.name?.toLowerCase().includes(search.toLowerCase()) ||
-      u.email?.toLowerCase().includes(search.toLowerCase()) ||
-      u.phone?.toLowerCase().includes(search.toLowerCase())
+      (u.name?.toLowerCase() || "").includes(search.toLowerCase()) ||
+      (u.email?.toLowerCase() || "").includes(search.toLowerCase()) ||
+      (u.phone?.toLowerCase() || "").includes(search.toLowerCase())
     );
 
   const statusBadge = (u: any) => {

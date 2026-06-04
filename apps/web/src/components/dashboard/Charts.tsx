@@ -14,18 +14,9 @@ interface DashboardChartProps {
   weeklyData?: any[];
 }
 
-const DEFAULT_MONTHLY = [
-  { name: 'Jan', value: 45000 }, { name: 'Feb', value: 52000 }, { name: 'Mar', value: 48000 },
-  { name: 'Apr', value: 61000 }, { name: 'May', value: 55000 }, { name: 'Jun', value: 83256 },
-  { name: 'Jul', value: 70000 }, { name: 'Aug', value: 75000 }, { name: 'Sep', value: 68000 },
-  { name: 'Oct', value: 82000 }, { name: 'Nov', value: 78000 }, { name: 'Dec', value: 95000 },
-];
+const DEFAULT_MONTHLY: any[] = [];
 
-const DEFAULT_WEEKLY = [
-  { name: 'Mon', value: 12000 }, { name: 'Tue', value: 15000 }, { name: 'Wed', value: 18000 },
-  { name: 'Thu', value: 14000 }, { name: 'Fri', value: 22000 }, { name: 'Sat', value: 19000 },
-  { name: 'Sun', value: 16000 },
-];
+const DEFAULT_WEEKLY: any[] = [];
 
 export const InteractiveLineChart: React.FC<DashboardChartProps> = ({ title, subtitle, data, weeklyData }) => {
   const [mounted, setMounted] = useState(false);
@@ -84,6 +75,13 @@ export const InteractiveLineChart: React.FC<DashboardChartProps> = ({ title, sub
               axisLine={false} 
               tickLine={false} 
               tick={{ fontSize: 10, fontWeight: 600, fill: '#94A3B8' }}
+              allowDecimals={false}
+              tickFormatter={(value) => 
+                new Intl.NumberFormat('en-US', {
+                  notation: 'compact',
+                  maximumFractionDigits: 0
+                }).format(value)
+              }
             />
             <Tooltip 
               contentStyle={{ borderRadius: '12px', border: '1px solid var(--color-outline-variant, #e2e8f0)', backgroundColor: 'var(--color-dashboard-card-bg, #ffffff)', color: 'var(--text-primary, #0f172a)' }}
@@ -215,6 +213,13 @@ export const InteractiveBarChart: React.FC<DashboardChartProps & { data: any[] }
               axisLine={false} 
               tickLine={false} 
               tick={{ fontSize: 10, fontWeight: 600, fill: '#94A3B8' }}
+              allowDecimals={false}
+              tickFormatter={(value) => 
+                new Intl.NumberFormat('en-US', {
+                  notation: 'compact',
+                  maximumFractionDigits: 0
+                }).format(value)
+              }
             />
             <Tooltip 
               cursor={{ fill: 'var(--color-surface-variant, #F8FAFC)' }}

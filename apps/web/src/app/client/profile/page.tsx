@@ -60,9 +60,15 @@ export default function ClientProfile() {
   const [editData, setEditData] = useState({
     name: currentUser?.name || '',
     email: currentUser?.email || '',
-    phone: currentUser?.phone || ''
+    phone: currentUser?.phone || '',
+    gstNumber: (profile as any).gstNumber || (profile as any).gstin || '',
+    address: (profile as any).address || '',
+    city: (profile as any).city || '',
+    state: (profile as any).state || '',
+    pincode: (profile as any).pincode || ''
   });
   const [passwords, setPasswords] = useState({ current: '', new: '', confirm: '' });
+  const [showPasswords, setShowPasswords] = useState({ current: false, new: false, confirm: false });
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error', msg: string } | null>(null);
 
@@ -76,20 +82,24 @@ export default function ClientProfile() {
 
   const handleUpdateProfile = (e: React.FormEvent) => {
     e.preventDefault();
-    updateUserProfile({ name: editData.name, email: editData.email, phone: editData.phone });
+    updateUserProfile(editData);
     setIsEditing(false);
     showFeedback('success', 'Profile updated successfully.');
   };
 
-  const handleChangePassword = (e: React.FormEvent) => {
+  const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (passwords.new !== passwords.confirm) {
       showFeedback('error', 'Passwords do not match.');
       return;
     }
-    changePassword(passwords.new);
-    setPasswords({ current: '', new: '', confirm: '' });
-    showFeedback('success', 'Password changed successfully.');
+    try {
+      await changePassword(passwords.new, passwords.current);
+      setPasswords({ current: '', new: '', confirm: '' });
+      showFeedback('success', 'Password changed successfully.');
+    } catch (err: any) {
+      showFeedback('error', err.response?.data?.message || 'Failed to change password.');
+    }
   };
 
   const handleDeleteAccount = () => {
@@ -170,7 +180,7 @@ export default function ClientProfile() {
               </div>
 
               {isEditing ? (
-                <form onSubmit={handleUpdateProfile} className="space-y-4">
+                <form onSubmit={handleUpdateProfile} className="space-y-6">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <label className="text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 ml-1">Entity Name</label>
@@ -188,8 +198,56 @@ export default function ClientProfile() {
                         onChange={e => setEditData(prev => ({ ...prev, email: e.target.value }))}
                       />
                     </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 ml-1">Contact Phone</label>
+                      <input 
+                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 dark:bg-slate-950 dark:border-slate-700 placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                        value={editData.phone}
+                        onChange={e => setEditData(prev => ({ ...prev, phone: e.target.value }))}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 ml-1">GSTIN</label>
+                      <input 
+                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 dark:bg-slate-950 dark:border-slate-700 placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                        value={editData.gstNumber}
+                        onChange={e => setEditData(prev => ({ ...prev, gstNumber: e.target.value }))}
+                      />
+                    </div>
+                    <div className="col-span-2 space-y-1.5">
+                      <label className="text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 ml-1">Registered Address</label>
+                      <input 
+                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 dark:bg-slate-950 dark:border-slate-700 placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                        value={editData.address}
+                        onChange={e => setEditData(prev => ({ ...prev, address: e.target.value }))}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 ml-1">City</label>
+                      <input 
+                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 dark:bg-slate-950 dark:border-slate-700 placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                        value={editData.city}
+                        onChange={e => setEditData(prev => ({ ...prev, city: e.target.value }))}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 ml-1">State</label>
+                      <input 
+                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 dark:bg-slate-950 dark:border-slate-700 placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                        value={editData.state}
+                        onChange={e => setEditData(prev => ({ ...prev, state: e.target.value }))}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 ml-1">Pincode</label>
+                      <input 
+                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 dark:bg-slate-950 dark:border-slate-700 placeholder:text-slate-400 dark:placeholder:text-slate-500"
+                        value={editData.pincode}
+                        onChange={e => setEditData(prev => ({ ...prev, pincode: e.target.value }))}
+                      />
+                    </div>
                   </div>
-                  <div className="flex gap-3">
+                  <div className="flex gap-3 pt-2">
                     <button type="submit" className="px-6 py-2.5 bg-[#1E8E3E] text-white rounded-xl text-xs font-bold">Save Changes</button>
                     <button type="button" onClick={() => setIsEditing(false)} className="px-6 py-2.5 bg-slate-100 text-slate-600 rounded-xl text-xs font-bold dark:bg-slate-800 dark:text-slate-400">Cancel</button>
                   </div>
@@ -197,10 +255,12 @@ export default function ClientProfile() {
               ) : (
                 <div className="grid grid-cols-2 gap-6">
                   {[
-                    { label: "GSTIN", value: (profile as any).gstin || "—", icon: "receipt_long" },
+                    { label: "GSTIN", value: (profile as any).gstNumber || (profile as any).gstin || "—", icon: "receipt_long" },
+                    { label: "Contact Phone", value: currentUser?.phone || "—", icon: "phone" },
                     { label: "Industry", value: (profile as any).industrySector || "IT Services", icon: "category" },
                     { label: "Employees", value: (profile as any).numberOfEmployees || "500+", icon: "groups" },
                     { label: "City", value: (profile as any).city ? `${(profile as any).city}, ${(profile as any).state}` : "Bengaluru", icon: "location_on" },
+                    { label: "Pincode", value: (profile as any).pincode || "—", icon: "pin_drop" },
                   ].map((item) => (
                     <div key={item.label} className="p-4 bg-slate-50 rounded-2xl border border-slate-100 dark:bg-slate-950 dark:border-slate-800">
                       <div className="flex items-center gap-2 mb-1">
@@ -350,23 +410,66 @@ export default function ClientProfile() {
                 <h4 className="text-lg font-black text-slate-900 dark:text-white">Security Credentials</h4>
                 <form onSubmit={handleChangePassword} className="space-y-4 max-w-md">
                   <div className="space-y-1.5">
+                    <label className="text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 ml-1 mb-1.5 block">Current Password</label>
+                    <div className="relative">
+                      <input 
+                        type={showPasswords.current ? "text" : "password"}
+                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 dark:bg-slate-950 dark:border-slate-700 placeholder:text-slate-400 dark:placeholder:text-slate-500 pr-12"
+                        value={passwords.current}
+                        onChange={e => setPasswords(prev => ({ ...prev, current: e.target.value }))}
+                        placeholder="Enter current password"
+                      />
+                      <button 
+                        type="button"
+                        onClick={() => setShowPasswords(prev => ({ ...prev, current: !prev.current }))}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-xl">
+                          {showPasswords.current ? "visibility_off" : "visibility"}
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
                     <label className="text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 ml-1 mb-1.5 block">New Password</label>
-                    <input 
-                      type="password" 
-                      className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 dark:bg-slate-950 dark:border-slate-700 placeholder:text-slate-400 dark:placeholder:text-slate-500"
-                      value={passwords.new}
-                      onChange={e => setPasswords(prev => ({ ...prev, new: e.target.value }))}
-                      placeholder="Min 8 characters"
-                    />
+                    <div className="relative">
+                      <input 
+                        type={showPasswords.new ? "text" : "password"}
+                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 dark:bg-slate-950 dark:border-slate-700 placeholder:text-slate-400 dark:placeholder:text-slate-500 pr-12"
+                        value={passwords.new}
+                        onChange={e => setPasswords(prev => ({ ...prev, new: e.target.value }))}
+                        placeholder="Min 8 characters"
+                      />
+                      <button 
+                        type="button"
+                        onClick={() => setShowPasswords(prev => ({ ...prev, new: !prev.new }))}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-xl">
+                          {showPasswords.new ? "visibility_off" : "visibility"}
+                        </span>
+                      </button>
+                    </div>
                   </div>
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-black uppercase text-slate-600 dark:text-slate-300 ml-1 mb-1.5 block">Confirm New Password</label>
-                    <input 
-                      type="password" 
-                      className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 dark:bg-slate-950 dark:border-slate-700 placeholder:text-slate-400 dark:placeholder:text-slate-500"
-                      value={passwords.confirm}
-                      onChange={e => setPasswords(prev => ({ ...prev, confirm: e.target.value }))}
-                    />
+                    <div className="relative">
+                      <input 
+                        type={showPasswords.confirm ? "text" : "password"}
+                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/20 dark:bg-slate-950 dark:border-slate-700 placeholder:text-slate-400 dark:placeholder:text-slate-500 pr-12"
+                        value={passwords.confirm}
+                        onChange={e => setPasswords(prev => ({ ...prev, confirm: e.target.value }))}
+                      />
+                      <button 
+                        type="button"
+                        onClick={() => setShowPasswords(prev => ({ ...prev, confirm: !prev.confirm }))}
+                        className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-xl">
+                          {showPasswords.confirm ? "visibility_off" : "visibility"}
+                        </span>
+                      </button>
+                    </div>
                   </div>
                   <button type="submit" className="px-6 py-3 bg-slate-900 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-800 transition-all">
                     Update Password

@@ -1,22 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useApp } from "@/context/AppContext";
-import { formatDate } from "@/utils/format";
 
 export default function AdminReports() {
-  const { listings, users, bids, currentUser } = useApp();
+  const { listings, users, bids } = useApp();
   const [activeTab, setActiveTab] = useState<"platform" | "clients" | "vendors">("platform");
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => { setMounted(true); }, []);
 
-  const isDemo = currentUser?.email === process.env.ADMIN_EMAIL;
-
   // Calculations
   const completedListings = listings.filter(l => l.status === "completed" || l.auctionPhase === "completed");
-  const activeListings = listings.filter(l => l.status === "active" || l.auctionPhase === "live");
-  
   const totalWeight = completedListings.reduce((sum, l) => sum + (l.weight || 0), 0);
   const totalRevenue = bids.filter(b => b.status === "accepted").reduce((sum, b) => sum + b.amount, 0);
   const totalCommissions = totalRevenue * 0.05;
@@ -24,42 +19,47 @@ export default function AdminReports() {
   const vendors = users.filter(u => u.role === "vendor");
   const clients = users.filter(u => u.role === "client");
 
-  const metrics = [
-    { label: "Total E-Waste Processed", value: `${totalWeight.toLocaleString()} KG`, delta: "+15%", icon: "recycling" },
-    { label: "Total Platform Revenue", value: `₹${(totalRevenue / 1000).toFixed(1)}K`, delta: "+8.2%", icon: "payments" },
-    { label: "Platform Commissions", value: `₹${(totalCommissions / 1000).toFixed(1)}K`, delta: "+11%", icon: "account_balance" },
-    { label: "Active Recycling Partners", value: vendors.length.toString(), delta: `+${vendors.filter(v => (new Date().getTime() - new Date(v.registeredAt || 0).getTime()) < 30 * 86400000).length}`, icon: "handshake" },
-  ];
+  const metrics = useMemo(() => [
+    { label: "Total E-Waste Processed", value: `${totalWeight.toLocaleString()} KG`, delta: "0%", icon: "recycling" },
+    { label: "Total Platform Revenue", value: `₹${(totalRevenue / 1000).toFixed(1)}K`, delta: "0%", icon: "payments" },
+    { label: "Platform Commissions", value: `₹${(totalCommissions / 1000).toFixed(1)}K`, delta: "0%", icon: "account_balance" },
+    { label: "Active Recycling Partners", value: vendors.length.toString(), delta: "0", icon: "handshake" },
+  ], [totalWeight, totalRevenue, totalCommissions, vendors.length]);
 
-  const getMonthlyData = () => {
+  const monthlyData = useMemo(() => {
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
     return months.map((month, i) => {
       const weight = listings
-        .filter(l => l.status === "completed" && new Date(l.createdAt).getMonth() === i)
-        .reduce((sum, l) => sum + l.weight, 0);
+        .filter(l => {
+          const d = new Date(l.createdAt);
+          return (l.status === "completed" || l.auctionPhase === "completed") && d.getMonth() === i && d.getFullYear() === currentYear;
+        })
+        .reduce((sum, l) => sum + (l.weight || 0), 0);
       
-      const co2 = Math.round(weight * 1.5); 
-      const seedCo2 = isDemo && i <= currentMonth ? 100 + i * 20 : 0;
-      
-      return { month, co2: co2 || seedCo2, waste: weight };
+      const co2 = Number((weight * 1.5 / 1000).toFixed(2)); // in MT
+      return { month, co2, waste: weight };
     });
-  };
+  }, [listings]);
 
-  const getCategoryData = () => {
-    const categories = Array.from(new Set(listings.map(l => l.category)));
-    const total = listings.length || 1;
-    return categories.map(cat => ({
-      label: cat,
-      pct: Math.round((listings.filter(l => l.category === cat).length / total) * 100),
-      color: cat === "Display Units" ? "bg-blue-500" : cat === "IT Equipment" ? "bg-emerald-500" : "bg-amber-500"
-    })).sort((a,b) => b.pct - a.pct).slice(0, 4);
-  };
+  const categoryData = useMemo(() => {
+    const categories: Record<string, number> = {};
+    let total = 0;
+    listings.forEach(l => {
+      categories[l.category] = (categories[l.category] || 0) + 1;
+      total++;
+    });
+
+    const colors = ["bg-blue-500", "bg-emerald-500", "bg-amber-500", "bg-purple-500", "bg-rose-500"];
+
+    return Object.entries(categories).map(([label, count], i) => ({
+      label,
+      pct: total > 0 ? Math.round((count / total) * 100) : 0,
+      color: colors[i % colors.length]
+    })).sort((a,b) => b.pct - a.pct).slice(0, 5);
+  }, [listings]);
 
   const handleDownload = (name: string) => alert(`Downloading ${name}...`);
-
-  const monthlyData = getMonthlyData();
-  const categoryData = getCategoryData();
 
   if (!mounted) return <div className="min-h-screen bg-slate-50 flex items-center justify-center dark:bg-slate-950"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div></div>;
 
@@ -145,7 +145,7 @@ export default function AdminReports() {
             </div>
           </div>
 
-          {/* EPR Tracking */}
+          {/* EPR Tracking - Header only, removed mock rows */}
           <div className="bg-white rounded-3xl border border-slate-200 p-8 dark:bg-slate-900 dark:border-slate-700">
             <h4 className="font-headline font-bold text-slate-900 mb-6 flex items-center justify-between dark:text-white">
                 EPR Tracking (Extended Producer Responsibility)
@@ -163,36 +163,10 @@ export default function AdminReports() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {[
-                    { name: "Dell India Pvt Ltd", category: "IT Equipment", target: 450 },
-                    { name: "Samsung Electronics", category: "Display Units", target: 800 },
-                    { name: "HP Inc", category: "Printers", target: 200 },
-                    { name: "LG Electronics", category: "Consumer Electronics", target: 650 }
-                  ].map((epr, idx) => {
-                    const achieved = listings
-                        .filter(l => l.status === "completed" && l.category === epr.category)
-                        .reduce((sum, l) => sum + l.weight, 0);
-                    
-                    const displayAchieved = achieved || (isDemo ? (idx === 0 ? 320 : idx === 1 ? 410 : 120) : 0);
-                    const pct = Math.min(100, Math.round((displayAchieved / epr.target) * 100));
-                    
-                    return (
-                      <tr key={idx} className="hover:bg-slate-50 dark:hover:bg-slate-800/30">
-                        <td className="px-6 py-4 font-bold text-slate-900 dark:text-white">{epr.name}</td>
-                        <td className="px-6 py-4 text-slate-500 text-xs">{epr.category}</td>
-                        <td className="px-6 py-4 text-slate-400 text-right">{epr.target}</td>
-                        <td className="px-6 py-4 font-bold text-emerald-700 text-right">{displayAchieved}</td>
-                        <td className="px-6 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden dark:bg-slate-800">
-                              <div className={`h-full ${pct > 90 ? 'bg-emerald-500' : pct > 50 ? 'bg-amber-500' : 'bg-red-500'}`} style={{ width: `${pct}%` }}></div>
-                            </div>
-                            <span className="text-xs font-bold text-slate-500 min-w-[32px]">{pct}%</span>
-                          </div>
-                        </td>
-                      </tr>
-                    )
-                  })}
+                   {/* This would be populated from a producer/client relationship mapping if available */}
+                   <tr>
+                     <td colSpan={5} className="px-6 py-12 text-center text-slate-400 italic">No producer data mapped for EPR tracking</td>
+                   </tr>
                 </tbody>
               </table>
             </div>
@@ -219,7 +193,7 @@ export default function AdminReports() {
                   <tbody className="divide-y divide-slate-100">
                     {clients.map(client => {
                        const clientListings = listings.filter(l => l.userId === client.id);
-                       const clientWeight = clientListings.reduce((s, l) => s + l.weight, 0);
+                       const clientWeight = clientListings.reduce((s, l) => s + (l.weight || 0), 0);
                        const clientRevenue = bids.filter(b => b.status === "accepted" && clientListings.some(l => l.id === b.listingId)).reduce((s, b) => s + b.amount, 0);
                        return (
                          <tr key={client.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
@@ -234,6 +208,11 @@ export default function AdminReports() {
                          </tr>
                        )
                     })}
+                    {clients.length === 0 && (
+                      <tr>
+                        <td colSpan={6} className="p-12 text-center text-slate-400 italic">No client records found</td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -285,6 +264,11 @@ export default function AdminReports() {
                          </tr>
                        )
                     })}
+                    {vendors.length === 0 && (
+                      <tr>
+                        <td colSpan={6} className="p-12 text-center text-slate-400 italic">No vendor records found</td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>

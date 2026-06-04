@@ -123,9 +123,9 @@ export default function AdminDocuments() {
 
   const filtered = docs.filter(d =>
     (category === "all" || d.category === category) &&
-    (d.fileName.toLowerCase().includes(search.toLowerCase()) ||
-      d.ownerName.toLowerCase().includes(search.toLowerCase()) ||
-      d.type.toLowerCase().includes(search.toLowerCase()))
+    ((d.fileName?.toLowerCase() || "").includes(search.toLowerCase()) ||
+      (d.ownerName?.toLowerCase() || "").includes(search.toLowerCase()) ||
+      (d.type?.toLowerCase() || "").includes(search.toLowerCase()))
   );
 
   const counts = {

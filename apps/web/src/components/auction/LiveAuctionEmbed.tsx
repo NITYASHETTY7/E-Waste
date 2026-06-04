@@ -192,8 +192,8 @@ export default function LiveAuctionEmbed({ listing: initialListing, userRole = "
         return [i + 1, vendorName, bid.amount, new Date(bid.createdAt).toLocaleString("en-IN")];
       }),
     ];
-    const csv = rows.map(r => r.map(c => `"${c}"`).join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
+    const csv = "\uFEFF" + rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;

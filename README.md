@@ -422,7 +422,7 @@ ecoloop-app/
 | `/admin/audits` | Admin | Site audit invitation management |
 | `/admin/contracts` | Admin | Final quote review & deal closing |
 | `/admin/payments` | Admin | Payment proof verification |
-| `/admin/transactions` | Admin | Transaction history log |
+| `/admin/bidding` | Admin | Bidding & Transaction history log |
 | `/admin/logistics` | Admin | Pickup & document tracking |
 | `/admin/compliance` | Admin | Compliance verification centre |
 | `/admin/documents` | Admin | Central document library |

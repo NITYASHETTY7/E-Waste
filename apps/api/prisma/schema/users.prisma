@@ -56,6 +56,9 @@ model Company {
   isLocked           Boolean             @default(false)
   lockReason         String?
   penaltyAmount      Float?
+  cpcbNo             String?
+  processingCapacity String?
+  companyRegistrationNo String?
   auctions           Auction[]           @relation("ClientAuctions")
   wonAuctions        Auction[]           @relation("WinnerAuctions")
   auditInvitations   AuditInvitation[]   @relation("VendorAuditInvitations")

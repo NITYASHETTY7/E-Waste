@@ -6,17 +6,17 @@ applications:
         build:
           commands:
             - npm install -g @nestjs/cli
-            - npm install
+            - cd ../.. && npm install
             - npx prisma generate --schema=prisma/schema
-            - npm run build
+            - cd apps/api && npm run build
     frontend:
       phases:
         preBuild:
           commands:
-            - npm install
+            - cd ../.. && npm install
         build:
           commands:
-            - npm run build
+            - cd apps/api && npm run build
       artifacts:
         baseDirectory: dist
         files:
@@ -30,7 +30,9 @@ applications:
       phases:
         preBuild:
           commands:
-            - npm install
+            - cd ../.. && npm install
+            - cd packages/types && npm run build
+            - cd ../../apps/web
         build:
           commands:
             - npm run build

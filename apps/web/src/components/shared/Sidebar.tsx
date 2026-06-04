@@ -101,6 +101,7 @@ export default function Sidebar() {
     const isLockedRoute = currentUser.isLocked &&
       role === "vendor" &&
       link.href !== "/vendor/dashboard" &&
+      link.href !== "/vendor/profile" &&
       link.href !== "/vendor/help";
 
     if (isLockedRoute) {

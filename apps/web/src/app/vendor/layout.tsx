@@ -22,7 +22,7 @@ export default function VendorLayout({ children }: { children: React.ReactNode }
       return;
     }
     if (currentUser.isLocked) {
-      if (pathname !== "/vendor/dashboard" && pathname !== "/vendor/help") {
+      if (pathname !== "/vendor/dashboard" && pathname !== "/vendor/help" && pathname !== "/vendor/profile") {
         router.push("/vendor/dashboard");
       }
     }

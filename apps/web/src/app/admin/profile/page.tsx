@@ -1,15 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useApp } from "@/context/AppContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
 
 export default function AdminProfile() {
-  const { currentUser, updateUserProfile, changePassword, deleteAccount } = useApp();
+  const { currentUser, updateUserProfile, changePassword, deleteAccount, listings } = useApp();
   const router = useRouter();
   
-  const [tab, setTab] = useState<"profile" | "settings">("profile");
+  const [tab, setTab] = useState<"profile" | "settings" | "insights">("profile");
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState({
     name: currentUser?.name || '',
@@ -53,6 +53,47 @@ export default function AdminProfile() {
     router.push('/');
   };
 
+  const monthlyData = useMemo(() => {
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const now = new Date();
+    const result = [];
+    
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthLabel = months[d.getMonth()];
+      const year = d.getFullYear();
+      
+      const weight = (listings || [])
+        .filter(l => {
+          const ld = new Date(l.createdAt);
+          return (l.status === "completed" || l.auctionPhase === "completed") && 
+                 ld.getMonth() === d.getMonth() && 
+                 ld.getFullYear() === year;
+        })
+        .reduce((sum, l) => sum + (l.weight || 0), 0);
+      
+      const co2 = Number((weight * 1.5 / 1000).toFixed(2)); // in MT
+      result.push({ month: monthLabel, co2, waste: weight });
+    }
+    return result;
+  }, [listings]);
+
+  const handleDownload = (name: string) => {
+    showFeedback('success', `Generating ${name}...`);
+    setTimeout(() => {
+      const csvContent = "data:text/csv;charset=utf-8,Date,CO2 Saved (MT),E-Waste Weight (KG)\n" + 
+        monthlyData.map(d => `${d.month},${d.co2},${d.waste}`).join("\n");
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `${name.replace(/\s+/g, "_")}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      showFeedback('success', `${name} downloaded successfully.`);
+    }, 1200);
+  };
+
   const showFeedback = (type: 'success' | 'error', msg: string) => {
     setFeedback({ type, msg });
     setTimeout(() => setFeedback(null), 3000);
@@ -86,6 +127,7 @@ export default function AdminProfile() {
         <div className="space-y-2">
           {[
             { id: "profile", label: "Admin Identity", icon: "badge" },
+            { id: "insights", label: "Reports & Insights", icon: "analytics" },
             { id: "settings", label: "Security & Safety", icon: "shield_lock" },
           ].map((t) => (
             <button
@@ -165,6 +207,37 @@ export default function AdminProfile() {
                   ))}
                 </div>
               )}
+            </div>
+          )}
+
+          {tab === "insights" && (
+            <div className="p-8 space-y-8 animate-fade-in">
+              <div className="flex flex-col gap-1">
+                <h3 className="text-2xl font-black text-slate-900 dark:text-white">Environmental Performance</h3>
+                <p className="text-slate-500 text-xs font-medium">Real-time statistics of greenhouse gas savings mapped to completed recycle listings.</p>
+              </div>
+              
+              <div className="bg-slate-50 dark:bg-slate-950 rounded-3xl border border-slate-100 dark:border-slate-800 p-6 md:p-8">
+                <h4 className="font-headline font-bold text-slate-900 mb-8 flex items-center justify-between dark:text-white">
+                  Environmental Impact (CO2 Saved)
+                  <button onClick={() => handleDownload("Environmental Impact")} className="text-xs font-bold text-emerald-600 hover:underline">Download Report</button>
+                </h4>
+                <div className="h-64 flex items-end justify-between gap-4 px-4 relative">
+                  <div className="absolute inset-0 flex flex-col justify-between py-2 text-[10px] text-slate-200 dark:text-slate-800 pointer-events-none">
+                    {[300, 225, 150, 75, 0].map(v => <div key={v} className="border-b border-slate-200 dark:border-slate-800 w-full h-px" />)}
+                  </div>
+                  {monthlyData.map((d) => (
+                    <div key={d.month} className="flex-1 flex flex-col items-center gap-2 group relative z-10">
+                      <div className="w-full bg-emerald-600/20 rounded-t-lg transition-all hover:bg-emerald-600/40 cursor-pointer" style={{ height: `${Math.max(8, Math.min(100, (d.co2 / 300) * 100))}%` }}>
+                        <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-20 font-bold">
+                          {d.co2} MT CO2
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{d.month}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           )}
 

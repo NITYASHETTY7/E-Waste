@@ -224,18 +224,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       
     const liveApprovalStatus = req.auction?.liveApprovalStatus;
 
-    // Compliance mapping
+    // Compliance & Reconciliation mapping
     const payment = req.auction?.payment;
     const pickup = req.auction?.pickup || payment?.pickup;
     const pickupDocs = pickup?.pickupDocs || [];
     let complianceStatus: Listing['complianceStatus'] = undefined;
+    let reconciliationStatus: Listing['reconciliationStatus'] = 'pending';
     
     if (pickup) {
       complianceStatus = 'pending';
       if (pickup.status === 'COMPLETED' || pickup.status === 'RECONCILIATION_DONE' || pickup.status === 'INVOICE_GENERATED') {
         complianceStatus = 'verified';
+        reconciliationStatus = 'verified';
       } else if (pickup.status === 'DOCUMENTS_UPLOADED' || pickup.status === 'VENDOR_ACKNOWLEDGED' || pickup.status === 'IN_TRANSIT') {
         complianceStatus = 'documents_uploaded';
+        reconciliationStatus = 'submitted';
       } else if (pickup.status === 'SCHEDULED' || pickup.status === 'GATE_PASS_ISSUED') {
         complianceStatus = 'pickup_scheduled';
       }
@@ -273,6 +276,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       auctionStartDate,
       auctionEndDate,
       complianceStatus,
+      reconciliationStatus,
+      reconciliationFinalWeight: pickup?.finalWeight,
+      reconciliationFinalValue: pickup?.finalAmount,
+      reconciliationNotes: pickup?.reconciliationNotes,
+      reconciliationSubmittedAt: pickup?.updatedAt,
       paymentStatus: payment?.status?.toLowerCase() === 'confirmed' ? 'confirmed' : (payment?.proofS3Key ? 'proof_uploaded' : 'pending'),
       paymentProofUrl: payment?.paymentProofUrl,
       paymentClientAmount: payment?.clientAmount,

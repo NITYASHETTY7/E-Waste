@@ -65,19 +65,19 @@ export default function AdminCompliance() {
             const allDocsPresent = DOCS.every(d => !!listing[d.key]);
 
             return (
-              <div key={listing.id} className={`card p-0 overflow-hidden border-2 ${isVerified ? "border-emerald-200" : "border-slate-100"}`}>
-                <div className={`p-5 border-b ${isVerified ? "bg-emerald-50/50 border-emerald-100" : "bg-slate-50/50 border-slate-100"}`}>
+              <div key={listing.id} className={`card p-0 overflow-hidden border-2 ${isVerified ? "border-emerald-200 dark:border-emerald-900/50" : "border-slate-100 dark:border-slate-800"}`}>
+                <div className={`p-5 border-b ${isVerified ? "bg-emerald-50/10 border-emerald-100 dark:border-emerald-900/20" : "bg-transparent border-slate-100 dark:border-slate-800"}`}>
                   <div className="flex items-start justify-between gap-4">
                     <div>
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs font-black text-slate-400">{listing.id}</span>
-                        <span className={`text-[9px] px-2.5 py-0.5 rounded-full font-black uppercase ${isVerified ? "bg-emerald-100 text-emerald-700" : "bg-blue-100 text-blue-700"}`}>
+                        <span className="text-xs font-black text-slate-400 dark:text-slate-500">{listing.id}</span>
+                        <span className={`text-[9px] px-2.5 py-0.5 rounded-full font-black uppercase ${isVerified ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" : "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"}`}>
                           {isVerified ? "Verified" : "Pending Verification"}
                         </span>
                       </div>
                       <h3 className="font-bold text-slate-900 dark:text-white">{listing.title}</h3>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        {listing.location} · Vendor: {winner?.vendorName || "—"} · Client: {client?.name || listing.userName}
+                      <p className="text-xs text-slate-600 dark:text-slate-300 mt-0.5 font-medium">
+                        {listing.location} · <span className="text-slate-400 dark:text-slate-500">Vendor:</span> <span className="text-slate-800 dark:text-slate-100">{winner?.vendorName || "—"}</span> · <span className="text-slate-400 dark:text-slate-500">Client:</span> <span className="text-slate-800 dark:text-slate-100">{client?.name || listing.userName}</span>
                       </p>
                     </div>
                     {!isVerified && allDocsPresent && (
@@ -99,13 +99,13 @@ export default function AdminCompliance() {
                     {DOCS.map(doc => {
                       const url = listing[doc.key];
                       return (
-                        <div key={doc.key} className={`p-3 rounded-xl border text-center transition-all ${url ? "border-emerald-200 bg-emerald-50 dark:bg-emerald-950/20" : "border-dashed border-slate-200 bg-white dark:bg-slate-900/50 dark:border-slate-800"}`}>
-                          <span className={`material-symbols-outlined text-xl block mb-1 ${url ? "text-emerald-600" : "text-slate-400 dark:text-slate-500"}`}>{doc.icon}</span>
-                          <p className={`text-[9px] font-black uppercase leading-tight ${url ? "text-emerald-800 dark:text-emerald-400" : "text-slate-700 dark:text-slate-300"}`}>{doc.label}</p>
+                        <div key={doc.key} className={`p-3 rounded-xl border text-center transition-all ${url ? "border-emerald-500/30 bg-emerald-500/10" : "border-dashed border-slate-700 bg-slate-900/50"}`}>
+                          <span className={`material-symbols-outlined text-xl block mb-1 ${url ? "text-emerald-400" : "text-slate-500"}`}>{doc.icon}</span>
+                          <p className={`text-[10px] font-black uppercase leading-tight !text-white`}>{doc.label}</p>
                           {url ? (
-                            <a href={url} download className="text-[9px] text-primary font-bold hover:underline block mt-1">Download</a>
+                            <a href={url} download className="text-[10px] text-emerald-400 font-bold hover:underline block mt-1">Download</a>
                           ) : (
-                            <p className="text-[9px] text-slate-500 dark:text-slate-400 mt-1">Not uploaded</p>
+                            <p className="text-[10px] text-slate-500 mt-1">Not uploaded</p>
                           )}
                         </div>
                       );

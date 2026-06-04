@@ -5,7 +5,7 @@ import { useApp } from "@/context/AppContext";
 export default function AdminReconciliationPage() {
   const { listings, verifyReconciliation } = useApp();
 
-  const reconListings = listings.filter(l => l.reconciliationStatus && l.reconciliationStatus !== 'pending');
+  const reconListings = listings.filter(l => l.complianceStatus !== undefined);
 
   const stats = {
     total: reconListings.length,
@@ -71,8 +71,8 @@ export default function AdminReconciliationPage() {
                 <div className="flex items-center justify-between px-6 py-4 border-b border-slate-100 dark:border-slate-800">
                   <div>
                     <p className="font-black text-slate-900 dark:text-white">{listing.title}</p>
-                    <p className="text-xs text-slate-500">
-                      {listing.id} · Client: {listing.userName} · Vendor: {listing.winnerVendorName}
+                    <p className="text-xs text-slate-600 dark:text-slate-300 font-medium">
+                      <span className="text-slate-400 dark:text-slate-500">{listing.id}</span> · <span className="text-slate-500 dark:text-slate-400">Client:</span> <span className="text-slate-800 dark:text-slate-100">{listing.userName}</span> · <span className="text-slate-500 dark:text-slate-400">Vendor:</span> <span className="text-slate-800 dark:text-slate-100">{listing.winnerVendorName}</span>
                     </p>
                   </div>
                   <div className="flex items-center gap-3">
@@ -160,8 +160,8 @@ export default function AdminReconciliationPage() {
                 {listing.reconciliationStatus === 'submitted' && (
                   <div className="flex gap-3 px-6 pb-5">
                     <button onClick={() => verifyReconciliation(listing.id)}
-                      className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl text-sm font-bold transition-colors flex items-center gap-2">
-                      <span className="material-symbols-outlined text-base">verified</span>
+                      className="px-4 py-2 bg-green-600 hover:bg-green-700 !text-white rounded-xl text-sm font-bold transition-colors flex items-center gap-2">
+                      <span className="material-symbols-outlined text-base !text-white">verified</span>
                       Verify & Close Deal
                     </button>
                     <button className="px-4 py-2 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 rounded-xl text-sm font-bold transition-colors flex items-center gap-2">

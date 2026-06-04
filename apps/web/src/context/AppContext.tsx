@@ -180,14 +180,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     }
   }, [state.theme, state.isSidebarOpen, state.isSidebarCollapsed, state.currentUser, isInitialized]);
 
-  // Poll backend for changes every 30 seconds when logged in
-  useEffect(() => {
-    if (!isInitialized || !state.currentUser) return;
-    const interval = setInterval(() => {
-      fetchAllData().catch(() => {});
-    }, 30000);
-    return () => clearInterval(interval);
-  }, [isInitialized, state.currentUser?.id]);
+  // Polling removed in favor of React Query hooks
 
   const mapRequirementToListing = (req: any): Listing => {
     // Derive auctionPhase from auction status; new requirements without auction show as 'pending'

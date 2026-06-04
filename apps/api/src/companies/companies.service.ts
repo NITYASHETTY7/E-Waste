@@ -243,7 +243,7 @@ export class CompaniesService {
           primaryUser.name,
           primaryUser.phone ?? undefined,
         )
-        .catch(() => {});
+        .catch((err) => console.error('Background task error:', err));
       await this.notifications
         .createInAppNotification({
           userId: primaryUser.id,
@@ -252,7 +252,7 @@ export class CompaniesService {
           message: `Your company ${company.name} has been approved. Welcome to Ecoloop!`,
           link: '/vendor/dashboard',
         })
-        .catch(() => {});
+        .catch((err) => console.error('Background task error:', err));
     }
 
     return this.prisma.company.findUnique({
@@ -288,7 +288,7 @@ export class CompaniesService {
           primaryUser.phone ?? undefined,
           reason,
         )
-        .catch(() => {});
+        .catch((err) => console.error('Background task error:', err));
       await this.notifications
         .createInAppNotification({
           userId: primaryUser.id,
@@ -296,7 +296,7 @@ export class CompaniesService {
           title: 'Company Account On Hold',
           message: `Your company account has been placed on hold. ${reason ? `Reason: ${reason}` : ''}`,
         })
-        .catch(() => {});
+        .catch((err) => console.error('Background task error:', err));
     }
 
     return this.prisma.company.findUnique({
@@ -332,7 +332,7 @@ export class CompaniesService {
           primaryUser.phone ?? undefined,
           reason,
         )
-        .catch(() => {});
+        .catch((err) => console.error('Background task error:', err));
       await this.notifications
         .createInAppNotification({
           userId: primaryUser.id,
@@ -340,7 +340,7 @@ export class CompaniesService {
           title: 'Company Application Update',
           message: `Your company application was not approved. ${reason ? `Reason: ${reason}` : ''}`,
         })
-        .catch(() => {});
+        .catch((err) => console.error('Background task error:', err));
     }
 
     return this.prisma.company.findUnique({
@@ -366,7 +366,7 @@ export class CompaniesService {
         title: 'Company Account Locked',
         message: `Your company account has been locked by an administrator. Reason: ${reason}`,
       })
-      .catch(() => {});
+      .catch((err) => console.error('Background task error:', err));
 
     const primaryUser = company.users[0];
     if (primaryUser?.email) {
@@ -382,7 +382,7 @@ export class CompaniesService {
           <p>You will not be able to place bids or participate in auctions until this issue is resolved. Please contact support immediately.</p>
         `,
         })
-        .catch(() => {});
+        .catch((err) => console.error('Background task error:', err));
     }
 
     return company;
@@ -403,7 +403,7 @@ export class CompaniesService {
           'Your company account has been unlocked. Full platform services restored.',
         link: '/vendor/dashboard',
       })
-      .catch(() => {});
+      .catch((err) => console.error('Background task error:', err));
 
     const primaryUser = company.users[0];
     if (primaryUser?.email) {
@@ -417,7 +417,7 @@ export class CompaniesService {
           <p>Your company account has been unlocked. You may now resume full platform activity.</p>
         `,
         })
-        .catch(() => {});
+        .catch((err) => console.error('Background task error:', err));
     }
 
     return company;
@@ -441,7 +441,7 @@ export class CompaniesService {
         title: 'Penalty Notice',
         message: `A penalty of ₹${amount.toLocaleString('en-IN')} has been applied to your company account. Reason: ${reason}`,
       })
-      .catch(() => {});
+      .catch((err) => console.error('Background task error:', err));
 
     const primaryUser = updated.users[0];
     if (primaryUser?.email) {
@@ -458,7 +458,7 @@ export class CompaniesService {
           <p>Please clear this penalty immediately to avoid suspension of services.</p>
         `,
         })
-        .catch(() => {});
+        .catch((err) => console.error('Background task error:', err));
     }
 
     return updated;

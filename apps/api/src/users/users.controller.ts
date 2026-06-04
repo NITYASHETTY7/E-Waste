@@ -74,7 +74,7 @@ export class UsersController {
     const user = await this.usersService.approveUser(id);
     this.notifications
       .notifyAccountApproved(user.email, user.name, user.phone ?? undefined)
-      .catch(() => {});
+      .catch((err) => console.error('Background task error:', err));
     const dashboardLink =
       user.role === 'CLIENT'
         ? '/client/dashboard'
@@ -89,7 +89,7 @@ export class UsersController {
         message: 'Your account has been approved. Welcome to Ecoloop!',
         link: dashboardLink,
       })
-      .catch(() => {});
+      .catch((err) => console.error('Background task error:', err));
     return user;
   }
 
@@ -103,7 +103,7 @@ export class UsersController {
         user.phone ?? undefined,
         reason,
       )
-      .catch(() => {});
+      .catch((err) => console.error('Background task error:', err));
     await this.notifications
       .createInAppNotification({
         userId: user.id,
@@ -111,7 +111,7 @@ export class UsersController {
         title: 'Account Application Update',
         message: `Your account application was not approved. ${reason ? `Reason: ${reason}` : ''}`,
       })
-      .catch(() => {});
+      .catch((err) => console.error('Background task error:', err));
     return user;
   }
 
@@ -125,7 +125,7 @@ export class UsersController {
         user.phone ?? undefined,
         reason,
       )
-      .catch(() => {});
+      .catch((err) => console.error('Background task error:', err));
     await this.notifications
       .createInAppNotification({
         userId: user.id,
@@ -133,7 +133,7 @@ export class UsersController {
         title: 'Account On Hold',
         message: `Your account has been placed on hold. ${reason ? `Reason: ${reason}` : ''}`,
       })
-      .catch(() => {});
+      .catch((err) => console.error('Background task error:', err));
     return user;
   }
 

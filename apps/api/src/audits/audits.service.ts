@@ -42,7 +42,7 @@ export class AuditsService {
             user.name || vendor.name,
             requirement?.title || 'E-Waste Requirement',
           )
-          .catch(() => {});
+          .catch((err) => console.error('Background task error:', err));
       }
       await this.notifications
         .notifyCompanyUsers(vendor.id, {
@@ -51,7 +51,7 @@ export class AuditsService {
           message: `You have been invited to perform a site audit for "${requirement?.title || 'E-Waste Requirement'}".`,
           link: '/vendor/audits',
         })
-        .catch(() => {});
+        .catch((err) => console.error('Background task error:', err));
     }
 
     return invitations;
@@ -106,7 +106,7 @@ export class AuditsService {
           inv.spocPhone || '',
           inv.siteAddress,
         )
-        .catch(() => {});
+        .catch((err) => console.error('Background task error:', err));
     }
 
     // In-app notifications
@@ -117,7 +117,7 @@ export class AuditsService {
         message: `Vendor "${inv.vendor.name}" accepted the audit invitation for "${inv.requirement.title}".`,
         link: '/admin/audits',
       })
-      .catch(() => {});
+      .catch((err) => console.error('Background task error:', err));
 
     const clientUsers = await this.prisma.user.findMany({
       where: { companyId: inv.requirement.client.id },
@@ -132,7 +132,7 @@ export class AuditsService {
             message: `Vendor "${inv.vendor.name}" accepted the audit invitation for "${inv.requirement.title}".`,
             link: `/client/listings/${inv.requirementId}`,
           })
-          .catch(() => {}),
+          .catch((err) => console.error('Background task error:', err)),
       ),
     );
 
@@ -158,7 +158,7 @@ export class AuditsService {
           message: `Vendor "${inv.vendor.name}" declined the audit invitation for "${inv.requirement.title}".`,
           link: '/admin/audits',
         })
-        .catch(() => {});
+        .catch((err) => console.error('Background task error:', err));
 
       const clientUsers = await this.prisma.user.findMany({
         where: { companyId: inv.requirement.client.id },
@@ -173,7 +173,7 @@ export class AuditsService {
               message: `Vendor "${inv.vendor.name}" declined the audit invitation for "${inv.requirement.title}".`,
               link: `/client/listings/${inv.requirementId}`,
             })
-            .catch(() => {}),
+            .catch((err) => console.error('Background task error:', err)),
         ),
       );
     }
@@ -212,7 +212,7 @@ export class AuditsService {
         message: `The site audit for "${inv.requirement.title}" has been scheduled. SPOC details are now available.`,
         link: '/vendor/audits',
       })
-      .catch(() => {});
+      .catch((err) => console.error('Background task error:', err));
 
     return inv;
   }
@@ -290,7 +290,7 @@ export class AuditsService {
           message: `Vendor "${invitation.vendor.name}" has submitted the site audit report for "${invitation.requirement.title}".`,
           link: `/admin/listings/${invitation.requirementId}/audit-docs`,
         })
-        .catch(() => {});
+        .catch((err) => console.error('Background task error:', err));
 
       const clientUsers = await this.prisma.user.findMany({
         where: { companyId: invitation.requirement.clientId },
@@ -305,7 +305,7 @@ export class AuditsService {
               message: `Vendor "${invitation.vendor.name}" has submitted the site audit report for "${invitation.requirement.title}".`,
               link: `/client/listings/${invitation.requirementId}`,
             })
-            .catch(() => {}),
+            .catch((err) => console.error('Background task error:', err)),
         ),
       );
     }

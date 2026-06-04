@@ -73,7 +73,7 @@ export class UserProductsService {
         message: `A new product listing "${product.name}" has been created by "${product.user?.name || 'User'}" and is pending review.`,
         link: `/admin/individual-products`,
       })
-      .catch(() => {});
+      .catch((err) => console.error('Background task error:', err));
 
     return product;
   }
@@ -203,7 +203,7 @@ export class UserProductsService {
           subject: 'Your product listing has been approved',
           body: `Hi ${product.user.name},\n\nYour product "${product.name}" has been approved and is now visible to vendors for quoting.\n\nWeConnect Team`,
         })
-        .catch(() => {});
+        .catch((err) => console.error('Background task error:', err));
     } else {
       this.notifications
         .sendEmail({
@@ -211,7 +211,7 @@ export class UserProductsService {
           subject: 'Update on your product listing',
           body: `Hi ${product.user.name},\n\nYour product "${product.name}" was not approved.\nReason: ${remarks ?? 'Not specified'}\n\nWeConnect Team`,
         })
-        .catch(() => {});
+        .catch((err) => console.error('Background task error:', err));
     }
 
     // In-app notification to the owner user
@@ -229,7 +229,7 @@ export class UserProductsService {
             : `Your product listing "${product.name}" was not approved. Remarks: ${remarks || 'None'}`,
         link: `/client/listings`,
       })
-      .catch(() => {});
+      .catch((err) => console.error('Background task error:', err));
 
     return updated;
   }
@@ -278,7 +278,7 @@ export class UserProductsService {
         message: `You have received a new quote of ₹${offeredPrice.toLocaleString('en-IN')} from "${quote.vendorCompany.name}" for your product "${product.name}".`,
         link: `/client/listings`,
       })
-      .catch(() => {});
+      .catch((err) => console.error('Background task error:', err));
 
     return quote;
   }
@@ -342,7 +342,7 @@ export class UserProductsService {
           product.user.email,
           product.user.phone ?? null,
         )
-        .catch(() => {});
+        .catch((err) => console.error('Background task error:', err));
     }
 
     // Notify vendor company users in-app
@@ -353,7 +353,7 @@ export class UserProductsService {
         message: `Your quote of ₹${quote.offeredPrice.toLocaleString('en-IN')} for "${product.name}" has been accepted. Pickup is requested.`,
         link: `/vendor/individual-products`,
       })
-      .catch(() => {});
+      .catch((err) => console.error('Background task error:', err));
 
     return { success: true };
   }
@@ -420,7 +420,7 @@ export class UserProductsService {
           message,
           link: `/client/listings`,
         })
-        .catch(() => {});
+        .catch((err) => console.error('Background task error:', err));
     }
 
     return { success: true };

@@ -117,9 +117,9 @@ export default function OnboardingStep2() {
             <div key={slot.key}
               className={`rounded-xl border-2 transition-all ${
                 uploaded ? "border-[color:var(--color-primary)] bg-[color:var(--color-primary-fixed)]/5" :
-                hasError ? "border-red-400 bg-red-50" :
+                hasError ? "border-red-500/50 bg-red-500/10" :
                 isDraggingOver ? "border-[color:var(--color-tertiary)] bg-[color:var(--color-surface-container)]" :
-                "border-[color:var(--color-outline-variant)] bg-slate-50 hover:border-[color:var(--color-primary)]/40"
+                "border-[color:var(--color-outline-variant)] bg-[color:var(--color-surface-container-lowest)] hover:border-[color:var(--color-primary)]/40 hover:bg-[color:var(--color-surface-container-low)]"
               }`}
               onDragOver={e => { e.preventDefault(); setDragging(slot.key); }}
               onDragLeave={() => setDragging(null)}
@@ -140,14 +140,14 @@ export default function OnboardingStep2() {
                     <p className="text-[10px] text-[color:var(--color-on-surface-variant)]">{uploaded.size} · Uploaded</p>
                   </div>
                   <button onClick={() => removeUpload(slot.key)}
-                    className="w-8 h-8 rounded-lg bg-red-50 text-red-400 hover:bg-red-100 flex items-center justify-center shrink-0 transition-colors">
+                    className="w-8 h-8 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 flex items-center justify-center shrink-0 transition-colors">
                     <span className="material-symbols-outlined text-sm">close</span>
                   </button>
                 </div>
               ) : (
                 <div className="p-5 flex items-center gap-4 cursor-pointer" onClick={() => inputRefs.current[slot.key]?.click()}>
                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
-                    hasError ? "bg-red-100 text-red-500" : "bg-[color:var(--color-secondary-container)] text-[color:var(--color-primary)]"
+                    hasError ? "bg-red-500/10 text-red-500" : "bg-[color:var(--color-secondary-container)] text-[color:var(--color-primary)]"
                   }`}>
                     <span className="material-symbols-outlined">{slot.icon}</span>
                   </div>

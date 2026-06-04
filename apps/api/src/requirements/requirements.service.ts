@@ -175,7 +175,7 @@ export class RequirementsService {
           message: `Your processed sheet for "${req.title}" has been uploaded and is ready for your review.`,
           link: `/client/listings/${req.id}`,
         })
-        .catch(() => {});
+        .catch((err) => console.error('Background task error:', err));
     }
 
     return updated;
@@ -421,7 +421,7 @@ export class RequirementsService {
         message: `${vendorName} has ${action}ed the invitation for "${req.title}".`,
         link: `/admin/listings/${req.id}`,
       })
-      .catch(() => {});
+      .catch((err) => console.error('Background task error:', err));
 
     const clientUsers = await this.prisma.user.findMany({
       where: { companyId: req.clientId },
@@ -436,7 +436,7 @@ export class RequirementsService {
             message: `${vendorName} has ${action}ed the invitation for "${req.title}".`,
             link: `/client/listings/${req.id}`,
           })
-          .catch(() => {}),
+          .catch((err) => console.error('Background task error:', err)),
       ),
     );
 
@@ -522,7 +522,7 @@ export class RequirementsService {
         message: `${vendorName} has submitted audit documents for "${req.title}".`,
         link: `/admin/listings/${req.id}/audit-docs`,
       })
-      .catch(() => {});
+      .catch((err) => console.error('Background task error:', err));
 
     const clientUsers = await this.prisma.user.findMany({
       where: { companyId: req.clientId },
@@ -537,7 +537,7 @@ export class RequirementsService {
             message: `${vendorName} has submitted audit documents for "${req.title}".`,
             link: `/client/listings/${req.id}`,
           })
-          .catch(() => {}),
+          .catch((err) => console.error('Background task error:', err)),
       ),
     );
 
@@ -549,7 +549,7 @@ export class RequirementsService {
         message: `Your audit documents for "${req.title}" have been successfully submitted and are awaiting review.`,
         link: `/vendor/marketplace/${req.id}`,
       })
-      .catch(() => {});
+      .catch((err) => console.error('Background task error:', err));
 
     return doc;
   }
@@ -881,7 +881,7 @@ export class RequirementsService {
               message: `Your sealed bid for "${req.title}" has been shortlisted and shared with the client for review.`,
               link: `/vendor/marketplace/${req.id}`,
             })
-            .catch(() => {}),
+            .catch((err) => console.error('Background task error:', err)),
         ),
       );
     }
@@ -966,7 +966,7 @@ export class RequirementsService {
           subject: `Client requests param changes — ${req.title}`,
           body: `<p>${clientUser?.name || 'Client'} has requested changes to the governance parameters for "${req.title}"${note}.</p><p>Please review and update the parameters in the admin dashboard.</p>`,
         })
-        .catch(() => {});
+        .catch((err) => console.error('Background task error:', err));
       await this.prisma.inAppNotification.create({
         data: {
           userId: admin.id,

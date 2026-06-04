@@ -57,7 +57,7 @@ export class RatingsService {
             ? '/vendor/ratings'
             : '/client/ratings',
       })
-      .catch(() => {});
+      .catch((err) => console.error('Background task error:', err));
 
     return result;
   }

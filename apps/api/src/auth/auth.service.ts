@@ -123,7 +123,7 @@ export class AuthService {
       Your account is currently being reviewed by our admin team.
       You will receive an email within 24-72 hours once approved.`,
       })
-      .catch(() => {});
+      .catch((err) => console.error('Background task error:', err));
 
     // Send in-app notification to all admins
     await this.notifications
@@ -133,7 +133,7 @@ export class AuthService {
         message: `A new ${user.role.toLowerCase()} "${user.name}" (${user.email}) has registered and requires approval.`,
         link: '/admin/users',
       })
-      .catch(() => {});
+      .catch((err) => console.error('Background task error:', err));
 
     // Fetch ALL admins from database
     const admins = await this.prisma.user.findMany({
@@ -159,7 +159,7 @@ export class AuthService {
           </a>
         `,
         })
-        .catch(() => {});
+        .catch((err) => console.error('Background task error:', err));
     }
   }
 

@@ -389,7 +389,7 @@ export class AuctionsService {
           message: `Admin has scheduled the live parameters for "${updated.title}". Please review and approve.`,
           link: `/client/listings/${updated.requirementId || id}/configure-live`,
         })
-        .catch(() => {});
+        .catch((err) => console.error('Background task error:', err));
     }
 
     return updated;
@@ -434,7 +434,7 @@ export class AuctionsService {
           message: `The live auction for "${auction.title}" has been approved. Place your bids now!`,
           link: `/vendor/marketplace/${auction.requirementId || auction.id}`,
         })
-        .catch(() => {});
+        .catch((err) => console.error('Background task error:', err));
     }
 
     return {
@@ -504,7 +504,7 @@ export class AuctionsService {
         message: `Vendor "${vendorUser?.company?.name || vendorUser?.name || 'A vendor'}" submitted a sealed bid of ₹${amount.toLocaleString('en-IN')} for "${auction.title}".`,
         link: `/admin/listings/${auction.requirementId || auctionId}`,
       })
-      .catch(() => {});
+      .catch((err) => console.error('Background task error:', err));
 
     const clientUsers = await this.prisma.user.findMany({
       where: { companyId: auction.clientId },
@@ -519,7 +519,7 @@ export class AuctionsService {
             message: `Vendor "${vendorUser?.company?.name || vendorUser?.name || 'A vendor'}" submitted a sealed bid of ₹${amount.toLocaleString('en-IN')} for "${auction.title}".`,
             link: `/client/listings/${auction.requirementId || auctionId}`,
           })
-          .catch(() => {}),
+          .catch((err) => console.error('Background task error:', err)),
       ),
     );
 
@@ -531,7 +531,7 @@ export class AuctionsService {
         message: `Your sealed bid of ₹${amount.toLocaleString('en-IN')} for "${auction.title}" has been successfully submitted.`,
         link: `/vendor/marketplace/${auction.requirementId || auctionId}`,
       })
-      .catch(() => {});
+      .catch((err) => console.error('Background task error:', err));
 
     return bid;
   }
@@ -602,7 +602,7 @@ export class AuctionsService {
           auction.client.name,
           auction.id,
         )
-        .catch(() => {});
+        .catch((err) => console.error('Background task error:', err));
     }
 
     // In-app notification for the winner
@@ -612,7 +612,7 @@ export class AuctionsService {
       title: 'You Won the Auction!',
       message: `Congratulations! You won the auction for "${auction.title}" with a bid of ₹${winningBid?.amount || 0}.`,
       link: '/vendor/purchase-order',
-    }).catch(() => {});
+    }).catch((err) => console.error('Background task error:', err));
 
     // In-app notifications for client users
     const clientUsers = await this.prisma.user.findMany({
@@ -628,7 +628,7 @@ export class AuctionsService {
             message: `You selected "${winningBid?.vendor?.name || 'a vendor'}" as the winner for "${auction.title}".`,
             link: `/client/purchase-order`,
           })
-          .catch(() => {}),
+          .catch((err) => console.error('Background task error:', err)),
       ),
     );
 
@@ -647,7 +647,7 @@ export class AuctionsService {
             title: 'Auction Concluded',
             message: `The auction for "${auction.title}" has concluded. Thank you for participating.`,
           })
-          .catch(() => {}),
+          .catch((err) => console.error('Background task error:', err)),
       ),
     );
 
@@ -892,7 +892,7 @@ export class AuctionsService {
           message: `Vendor "${auction.winner?.name || 'Winner'}" uploaded the final quote for "${auction.title}".`,
           link: `/admin/auctions`,
         })
-        .catch(() => {});
+        .catch((err) => console.error('Background task error:', err));
 
       const clientUsers = await this.prisma.user.findMany({
         where: { companyId: auction.clientId },
@@ -907,7 +907,7 @@ export class AuctionsService {
               message: `Vendor "${auction.winner?.name || 'Winner'}" uploaded the final quote for "${auction.title}". Please review.`,
               link: `/client/purchase-order`,
             })
-            .catch(() => {}),
+            .catch((err) => console.error('Background task error:', err)),
         ),
       );
     }
@@ -944,7 +944,7 @@ export class AuctionsService {
           message: `Your final quote for "${auction.title}" has been approved. Please submit payment.`,
           link: '/vendor/payments',
         })
-        .catch(() => {});
+        .catch((err) => console.error('Background task error:', err));
     }
 
     // Upsert payment record — safe to call multiple times
@@ -974,7 +974,7 @@ export class AuctionsService {
           message: `Your final quote for "${auction.title}" has been rejected. Remarks: ${remarks}`,
           link: '/vendor/final-quote',
         })
-        .catch(() => {});
+        .catch((err) => console.error('Background task error:', err));
     }
 
     return auction;
@@ -1102,7 +1102,7 @@ export class AuctionsService {
           reason,
           fineAmount,
         )
-        .catch(() => {});
+        .catch((err) => console.error('Background task error:', err));
     }
 
     // 6. In-app notification to the disqualified vendor
@@ -1114,7 +1114,7 @@ export class AuctionsService {
         message: `Your auction win for "${auction.title}" has been revoked by the admin. Reason: ${reason}${fineAmount > 0 ? `. A fine of ₹${fineAmount.toLocaleString('en-IN')} has been levied.` : ''}`,
         link: '/vendor/auctions',
       })
-      .catch(() => {});
+      .catch((err) => console.error('Background task error:', err));
 
     // 7. Now select the next winner using the existing logic
     return this.selectWinner(auctionId, nextWinnerBid.vendorId);

@@ -99,7 +99,7 @@ export class PaymentsService {
         message: `Vendor "${payment.auction.winner?.name || 'Winner'}" uploaded payment proof for "${payment.auction.title}".`,
         link: '/admin/payments',
       })
-      .catch(() => {});
+      .catch((err) => console.error('Background task error:', err));
 
     return updatedPayment;
   }
@@ -167,7 +167,7 @@ export class PaymentsService {
           message: `Your payment for "${auction.title}" has been verified. Please upload required compliance certificates.`,
           link: '/vendor/pickups',
         })
-        .catch(() => {});
+        .catch((err) => console.error('Background task error:', err));
     }
 
     if (clientUser?.id) {
@@ -179,7 +179,7 @@ export class PaymentsService {
           message: `Vendor payment for "${auction.title}" has been verified. Please upload the Gate Pass now.`,
           link: '/client/handover',
         })
-        .catch(() => {});
+        .catch((err) => console.error('Background task error:', err));
     }
 
     return payment;

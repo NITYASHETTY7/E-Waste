@@ -90,7 +90,7 @@ export class PickupsService {
           message: `Gate pass has been issued for "${pickup.auction.title}". You can proceed with logistics/pickup.`,
           link: `/vendor/pickups`,
         })
-        .catch(() => {});
+        .catch((err) => console.error('Background task error:', err));
     }
 
     return pickup;
@@ -135,7 +135,7 @@ export class PickupsService {
           pickup.auction.client.name,
           pickup.gatePassNumber ?? 'N/A',
         )
-        .catch(() => {});
+        .catch((err) => console.error('Background task error:', err));
     }
 
     if (vendorUser?.id) {
@@ -147,7 +147,7 @@ export class PickupsService {
           message: `Gate pass document has been uploaded for "${pickup.auction.title}". Logistics can now proceed.`,
           link: `/vendor/pickups`,
         })
-        .catch(() => {});
+        .catch((err) => console.error('Background task error:', err));
     }
 
     return { success: true };
@@ -194,7 +194,7 @@ export class PickupsService {
           message: `Vendor "${updatedPickup.auction.winner?.name || 'Winner'}" has updated pickup logistics/driver details for "${updatedPickup.auction.title}".`,
           link: `/client/handover`,
         })
-        .catch(() => {});
+        .catch((err) => console.error('Background task error:', err));
     }
 
     await this.notifications
@@ -204,7 +204,7 @@ export class PickupsService {
         message: `Vendor "${updatedPickup.auction.winner?.name || 'Winner'}" updated vehicle & driver details for "${updatedPickup.auction.title}".`,
         link: `/admin/pickups`,
       })
-      .catch(() => {});
+      .catch((err) => console.error('Background task error:', err));
 
     return updatedPickup;
   }
@@ -236,7 +236,7 @@ export class PickupsService {
           message: `Vendor "${pickup.auction.winner?.name || 'Winner'}" has acknowledged the scheduled pickup for "${pickup.auction.title}".`,
           link: `/client/handover`,
         })
-        .catch(() => {});
+        .catch((err) => console.error('Background task error:', err));
     }
 
     await this.notifications
@@ -246,7 +246,7 @@ export class PickupsService {
         message: `Vendor "${pickup.auction.winner?.name || 'Winner'}" acknowledged scheduled pickup details for "${pickup.auction.title}".`,
         link: `/admin/pickups`,
       })
-      .catch(() => {});
+      .catch((err) => console.error('Background task error:', err));
 
     return pickup;
   }
@@ -297,7 +297,7 @@ export class PickupsService {
           message: `Weight for "${pickup.auction.title}" has been reconciled. Final weight: ${data.finalWeight} kg, Final amount: ₹${data.finalAmount}.`,
           link: `/client/handover`,
         })
-        .catch(() => {});
+        .catch((err) => console.error('Background task error:', err));
     }
 
     if (vendorUser?.id) {
@@ -309,7 +309,7 @@ export class PickupsService {
           message: `Weight for "${pickup.auction.title}" has been reconciled. Final weight: ${data.finalWeight} kg, Final amount: ₹${data.finalAmount}.`,
           link: `/vendor/pickups`,
         })
-        .catch(() => {});
+        .catch((err) => console.error('Background task error:', err));
     }
 
     return pickup;
@@ -532,7 +532,7 @@ export class PickupsService {
             message: `Vendor "${pickup.auction?.winner?.name || 'Winner'}" uploaded a compliance certificate (${type.replace('_', ' ')}) for "${pickup.auction?.title}".`,
             link: `/client/handover`,
           })
-          .catch(() => {});
+          .catch((err) => console.error('Background task error:', err));
       }
 
       await this.notifications
@@ -542,7 +542,7 @@ export class PickupsService {
           message: `Vendor "${pickup.auction?.winner?.name || 'Winner'}" uploaded ${type.replace('_', ' ')} for "${pickup.auction?.title}".`,
           link: `/admin/pickups`,
         })
-        .catch(() => {});
+        .catch((err) => console.error('Background task error:', err));
     }
 
     return doc;
@@ -607,7 +607,7 @@ export class PickupsService {
           clientUser.name || pickup.auction.client.name,
           pickup.auction.title,
         )
-        .catch(() => {});
+        .catch((err) => console.error('Background task error:', err));
     }
 
     if (clientUser?.id) {
@@ -619,7 +619,7 @@ export class PickupsService {
           message: `Compliance documents for "${pickup.auction.title}" have been verified. The transaction is now complete.`,
           link: `/client/handover`,
         })
-        .catch(() => {});
+        .catch((err) => console.error('Background task error:', err));
     }
 
     if (vendorUser?.id) {
@@ -631,7 +631,7 @@ export class PickupsService {
           message: `Compliance documents for "${pickup.auction.title}" have been verified by the client. The transaction is now complete.`,
           link: `/vendor/pickups`,
         })
-        .catch(() => {});
+        .catch((err) => console.error('Background task error:', err));
     }
 
     return pickup;

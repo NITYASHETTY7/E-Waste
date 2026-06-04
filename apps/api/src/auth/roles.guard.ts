@@ -12,15 +12,28 @@ export class RolesGuard implements CanActivate {
       ROLES_KEY,
       [context.getHandler(), context.getClass()],
     );
+    
+    const request = context.switchToHttp().getRequest();
+    console.log('RolesGuard -> path:', request.path);
+    console.log('RolesGuard -> requiredRoles:', requiredRoles);
+    
     if (!requiredRoles) {
       return true;
     }
-    const { user } = context.switchToHttp().getRequest();
+    const { user } = request;
+    
     if (!user || !user.role) {
       return false;
     }
-    return requiredRoles.some(
+    
+    // Fallback: If user is an ADMIN, they have access to all protected admin routes
+    if (user.role.toUpperCase() === 'ADMIN') {
+      return true;
+    }
+    
+    const hasRole = requiredRoles.some(
       (role) => role.toUpperCase() === user.role.toUpperCase(),
     );
+    return hasRole;
   }
 }

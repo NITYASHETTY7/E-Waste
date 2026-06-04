@@ -39,7 +39,7 @@ export class PrismaService
         await this.$queryRaw`SELECT 1`;
       } catch (e) {
         // Attempt to reconnect if heartbeat fails
-        this.$connect().catch(() => {});
+        this.$connect().catch((err) => console.error('Background task error:', err));
       }
     }, 30 * 1000);
   }

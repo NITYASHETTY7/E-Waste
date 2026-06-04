@@ -3,9 +3,11 @@
 import React, { useMemo } from "react";
 import { motion } from "framer-motion";
 import { useApp } from "@/context/AppContext";
+import { useRouter } from "next/navigation";
 
 export function AiInsightsCard() {
   const { bids, listings } = useApp();
+  const router = useRouter();
 
   const totalRevenue = useMemo(() => {
     return bids.filter(b => b.status === 'accepted').reduce((sum, b) => sum + b.amount, 0);
@@ -78,9 +80,12 @@ export function AiInsightsCard() {
         </div>
 
         {/* CTA */}
-        <button className="mt-4 flex items-center gap-2 px-5 h-10 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black transition-all active:scale-95 shadow-lg shadow-indigo-600/25 w-fit">
+        <button 
+          onClick={() => router.push('/admin/analytics-hub')}
+          className="mt-4 flex items-center gap-2 px-5 h-10 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-black transition-all active:scale-95 shadow-lg shadow-indigo-600/25 w-fit"
+        >
           <span className="material-symbols-outlined text-sm">insights</span>
-          Analytics Dashboard
+          Analytics Hub
           <span className="material-symbols-outlined text-sm">arrow_forward</span>
         </button>
       </div>

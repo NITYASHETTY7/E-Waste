@@ -9,7 +9,7 @@ export default function AdminVendors() {
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "APPROVED" | "PENDING" | "REJECTED">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "APPROVED" | "PENDING" | "REJECTED" | "BLOCKED">("all");
 
   // Detail modal state
   const [selectedVendor, setSelectedVendor] = useState<any | null>(null);
@@ -147,6 +147,7 @@ export default function AdminVendors() {
     total: vendors.length,
     active: vendors.filter(v => v.status === "APPROVED" && !v.isLocked).length,
     pending: vendors.filter(v => v.status === "PENDING").length,
+    onHold: vendors.filter(v => v.status === "BLOCKED").length,
     locked: vendors.filter(v => v.isLocked).length,
   };
 
@@ -204,10 +205,10 @@ export default function AdminVendors() {
             className="w-full pl-10 pr-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm text-slate-900 dark:text-white placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-[#1E8E3E]/20 focus:border-[#1E8E3E] transition-all" />
         </div>
         <div className="flex gap-1 p-1 bg-slate-100 dark:bg-slate-800/50 rounded-xl w-full sm:w-fit">
-          {(["all", "APPROVED", "PENDING", "REJECTED"] as const).map(f => (
+          {(["all", "APPROVED", "PENDING", "BLOCKED", "REJECTED"] as const).map(f => (
             <button key={f} onClick={() => setStatusFilter(f)}
               className={`flex-1 sm:flex-none px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${statusFilter === f ? "bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white" : "text-slate-500 hover:text-slate-700 dark:hover:text-slate-300"}`}>
-              {f}
+              {f === "BLOCKED" ? "ON HOLD" : f}
             </button>
           ))}
         </div>
@@ -230,8 +231,13 @@ export default function AdminVendors() {
                     {vendor.name.charAt(0)}
                   </div>
                   <div className="flex flex-col items-end gap-1">
-                    <span className={`text-[10px] px-2.5 py-1 rounded-full font-black uppercase ${vendor.status === "APPROVED" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" : vendor.status === "REJECTED" ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" : "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"} group-hover:bg-white/20 group-hover:text-white`}>
-                      {vendor.status}
+                    <span className={`text-[10px] px-2.5 py-1 rounded-full font-black uppercase ${
+                      vendor.status === "APPROVED" ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" : 
+                      vendor.status === "REJECTED" ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" : 
+                      vendor.status === "BLOCKED" ? "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400" : 
+                      "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400"
+                    } group-hover:bg-white/20 group-hover:text-white`}>
+                      {vendor.status === "BLOCKED" ? "ON HOLD" : vendor.status}
                     </span>
                     {vendor.isLocked && (
                       <span className="text-[10px] px-2.5 py-1 rounded-full font-black uppercase bg-red-600 text-white flex items-center gap-1 shadow-sm">
@@ -338,8 +344,13 @@ export default function AdminVendors() {
                     {detailData?.name || selectedVendor.name}
                   </h3>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <span className={`text-[9px] px-2 py-0.5 rounded-full font-black uppercase ${selectedVendor.status === "APPROVED" ? "bg-emerald-100 text-emerald-700" : selectedVendor.status === "REJECTED" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}>
-                      {selectedVendor.status}
+                    <span className={`text-[9px] px-2 py-0.5 rounded-full font-black uppercase ${
+                      selectedVendor.status === "APPROVED" ? "bg-emerald-100 text-emerald-700" : 
+                      selectedVendor.status === "REJECTED" ? "bg-red-100 text-red-700" : 
+                      selectedVendor.status === "BLOCKED" ? "bg-orange-100 text-orange-700" : 
+                      "bg-amber-100 text-amber-700"
+                    }`}>
+                      {selectedVendor.status === "BLOCKED" ? "ON HOLD" : selectedVendor.status}
                     </span>
                     <span className="text-[10px] text-slate-400 font-bold">#{selectedVendor.id.substring(0, 8)}</span>
                   </div>
@@ -490,21 +501,23 @@ export default function AdminVendors() {
 
             {/* Footer — Decision Actions */}
             <div className="border-t border-slate-100 dark:border-slate-800 px-6 py-4 bg-white dark:bg-slate-900 rounded-b-2xl shrink-0">
-              {selectedVendor.status === "PENDING" && !pendingAction && (
+              {(selectedVendor.status === "PENDING" || selectedVendor.status === "BLOCKED") && !pendingAction && (
                 <div className="space-y-2">
                   <p className="text-xs font-black text-amber-700 uppercase tracking-widest flex items-center gap-1.5">
                     <span className="material-symbols-outlined text-base text-amber-500">pending_actions</span>
-                    Pending Review — Take a Decision
+                    {selectedVendor.status === "PENDING" ? "Pending Review — Take a Decision" : "On Hold — Review Application"}
                   </p>
                   <div className="grid grid-cols-3 gap-3">
                     <button onClick={handleApprove} disabled={actionLoading}
                       className="py-3 rounded-xl bg-emerald-600 text-white font-black text-sm hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 shadow-md shadow-emerald-100 disabled:opacity-60">
                       <span className="material-symbols-outlined text-base">check_circle</span> Approve
                     </button>
-                    <button onClick={() => { setPendingAction("hold"); setPendingReason(""); }} disabled={actionLoading}
-                      className="py-3 rounded-xl bg-amber-50 text-amber-700 font-black text-sm hover:bg-amber-100 transition-all border border-amber-200 flex items-center justify-center gap-2 disabled:opacity-60">
-                      <span className="material-symbols-outlined text-base">pause_circle</span> Hold
-                    </button>
+                    {selectedVendor.status !== "BLOCKED" && (
+                      <button onClick={() => { setPendingAction("hold"); setPendingReason(""); }} disabled={actionLoading}
+                        className="py-3 rounded-xl bg-amber-50 text-amber-700 font-black text-sm hover:bg-amber-100 transition-all border border-amber-200 flex items-center justify-center gap-2 disabled:opacity-60">
+                        <span className="material-symbols-outlined text-base">pause_circle</span> Hold
+                      </button>
+                    )}
                     <button onClick={() => { setPendingAction("reject"); setPendingReason(""); }} disabled={actionLoading}
                       className="py-3 rounded-xl bg-red-50 text-red-600 font-black text-sm hover:bg-red-600 hover:text-white transition-all border border-red-200 flex items-center justify-center gap-2 disabled:opacity-60">
                       <span className="material-symbols-outlined text-base">block</span> Reject
@@ -513,7 +526,7 @@ export default function AdminVendors() {
                 </div>
               )}
 
-              {selectedVendor.status === "PENDING" && pendingAction && (
+              {(selectedVendor.status === "PENDING" || selectedVendor.status === "BLOCKED") && pendingAction && (
                 <div className="space-y-3">
                   <p className={`text-xs font-black uppercase tracking-widest flex items-center gap-1.5 ${pendingAction === "hold" ? "text-amber-700" : "text-red-700"}`}>
                     <span className={`material-symbols-outlined text-base ${pendingAction === "hold" ? "text-amber-500" : "text-red-500"}`}>
@@ -541,7 +554,7 @@ export default function AdminVendors() {
                 </div>
               )}
 
-              {selectedVendor.status !== "PENDING" && (
+              {selectedVendor.status !== "PENDING" && selectedVendor.status !== "BLOCKED" && (
                 <div className="flex items-center justify-between">
                   <p className="text-xs font-black uppercase tracking-widest text-slate-400">
                     Status: <span className={selectedVendor.status === "APPROVED" ? "text-emerald-600" : "text-red-600"}>{selectedVendor.status}</span>

@@ -54,10 +54,15 @@ export default function AdminIndividualUsers() {
     if (!selectedUser || !pendingAction || actionLoading) return;
     setActionLoading(true);
     try {
-      await api.patch(`/users/${selectedUser.id}/${pendingAction}`, {
-        reason: pendingReason.trim() || undefined,
-      });
-      showToast(pendingAction === "hold" ? "User placed on hold." : "User rejected.");
+      if (pendingAction === "revoke") {
+        await api.patch(`/users/${selectedUser.id}/hold`, { reason: "Approval revoked by admin." });
+        showToast("User status reset to pending.");
+      } else {
+        await api.patch(`/users/${selectedUser.id}/${pendingAction}`, {
+          reason: pendingReason.trim() || undefined,
+        });
+        showToast(pendingAction === "hold" ? "User placed on hold." : "User rejected.");
+      }
       setSelectedUser(null);
       setPendingAction(null);
       setPendingReason("");
@@ -70,25 +75,26 @@ export default function AdminIndividualUsers() {
   };
 
   const getUserStatus = (u: any) => {
-    if (u.isActive) return "active";
-    if (!u.emailVerified || !u.phoneVerified) return "unverified";
+    if (u.status === "APPROVED") return "active";
+    if (u.status === "REJECTED") return "rejected";
+    if (u.status === "BLOCKED") return "onhold";
     return "pending";
   };
 
   const stats = {
     total: users.length,
-    active: users.filter(u => u.isActive).length,
-    pending: users.filter(u => !u.isActive && u.emailVerified && u.phoneVerified).length,
-    unverified: users.filter(u => !u.emailVerified || !u.phoneVerified).length,
+    active: users.filter(u => u.status === "APPROVED").length,
+    pending: users.filter(u => u.status === "PENDING" || !u.status).length,
+    rejected: users.filter(u => u.status === "REJECTED").length,
   };
 
   const filtered = users
     .filter(u => {
       if (statusFilter === "all") return true;
       const s = getUserStatus(u);
-      if (statusFilter === "pending") return s === "pending";
       if (statusFilter === "active") return s === "active";
-      if (statusFilter === "inactive") return s === "unverified";
+      if (statusFilter === "pending") return s === "pending";
+      if (statusFilter === "rejected") return s === "rejected";
       return true;
     })
     .filter(u =>
@@ -100,8 +106,9 @@ export default function AdminIndividualUsers() {
   const statusBadge = (u: any) => {
     const s = getUserStatus(u);
     if (s === "active") return <span className="text-[10px] px-2.5 py-1 rounded-full font-black uppercase bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">Active</span>;
-    if (s === "pending") return <span className="text-[10px] px-2.5 py-1 rounded-full font-black uppercase bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">Pending Approval</span>;
-    return <span className="text-[10px] px-2.5 py-1 rounded-full font-black uppercase bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300">Not Verified</span>;
+    if (s === "rejected") return <span className="text-[10px] px-2.5 py-1 rounded-full font-black uppercase bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400">Rejected</span>;
+    if (s === "onhold") return <span className="text-[10px] px-2.5 py-1 rounded-full font-black uppercase bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">On Hold</span>;
+    return <span className="text-[10px] px-2.5 py-1 rounded-full font-black uppercase bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">Pending Approval</span>;
   };
 
   return (
@@ -130,7 +137,7 @@ export default function AdminIndividualUsers() {
           { label: "Total Users", value: stats.total, icon: "person", color: "text-blue-600 bg-blue-50" },
           { label: "Active", value: stats.active, icon: "check_circle", color: "text-emerald-600 bg-emerald-50" },
           { label: "Pending Approval", value: stats.pending, icon: "pending_actions", color: "text-amber-600 bg-amber-50" },
-          { label: "Not Verified", value: stats.unverified, icon: "mark_email_unread", color: "text-slate-500 bg-slate-100" },
+          { label: "Rejected", value: stats.rejected, icon: "block", color: "text-red-600 bg-red-50" },
         ].map(s => (
           <div key={s.label} className="card p-5 border border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-3">
@@ -155,10 +162,10 @@ export default function AdminIndividualUsers() {
             className="w-full pl-10 pr-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm text-slate-900 dark:text-white placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-[#1E8E3E]/20 focus:border-[#1E8E3E] transition-all" />
         </div>
         <div className="flex gap-1 p-1 bg-slate-100 dark:bg-slate-800/50 rounded-xl w-full sm:w-fit overflow-x-auto">
-          {(["all", "pending", "active", "inactive"] as const).map(f => (
-            <button key={f} onClick={() => setStatusFilter(f)}
+          {(["all", "pending", "active", "rejected"] as const).map(f => (
+            <button key={f} onClick={() => setStatusFilter(f as any)}
               className={`flex-shrink-0 px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${statusFilter === f ? "bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"}`}>
-              {f === "inactive" ? "Unverified" : f}
+              {f}
             </button>
           ))}
         </div>
@@ -316,15 +323,15 @@ export default function AdminIndividualUsers() {
                     </p>
                     <div className="grid grid-cols-3 gap-3">
                       <button onClick={handleApprove} disabled={actionLoading}
-                        className="py-3 rounded-xl bg-emerald-600 text-white font-black text-sm hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 shadow-md shadow-emerald-100 disabled:opacity-60">
-                        <span className="material-symbols-outlined text-base">check_circle</span> Approve
+                        className="py-3 rounded-xl bg-emerald-600 !text-white font-black text-sm hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 shadow-md shadow-emerald-100 disabled:opacity-60">
+                        <span className="material-symbols-outlined text-base !text-white">check_circle</span> Approve
                       </button>
                       <button onClick={() => { setPendingAction("hold"); setPendingReason(""); }} disabled={actionLoading}
                         className="py-3 rounded-xl bg-amber-50 text-amber-700 font-black text-sm hover:bg-amber-100 border border-amber-200 flex items-center justify-center gap-2 disabled:opacity-60">
                         <span className="material-symbols-outlined text-base">pause_circle</span> Hold
                       </button>
                       <button onClick={() => { setPendingAction("reject"); setPendingReason(""); }} disabled={actionLoading}
-                        className="py-3 rounded-xl bg-red-50 text-red-600 font-black text-sm hover:bg-red-600 hover:text-white border border-red-200 flex items-center justify-center gap-2 disabled:opacity-60">
+                        className="py-3 rounded-xl bg-red-50 text-red-600 font-black text-sm hover:bg-red-600 hover:!text-white transition-all border border-red-200 flex items-center justify-center gap-2 disabled:opacity-60">
                         <span className="material-symbols-outlined text-base">block</span> Reject
                       </button>
                     </div>
@@ -335,6 +342,10 @@ export default function AdminIndividualUsers() {
                       Status: <span className="text-emerald-600">Active</span>
                     </p>
                     <div className="flex gap-2">
+                      <button onClick={() => { setPendingAction("revoke"); setPendingReason(""); }}
+                        className="px-4 py-2 rounded-xl bg-blue-50 text-blue-700 font-bold text-xs hover:bg-blue-100 border border-blue-200 flex items-center gap-1.5 transition-all">
+                        <span className="material-symbols-outlined text-sm">restart_alt</span> Reset to Pending
+                      </button>
                       <button onClick={() => { setPendingAction("hold"); setPendingReason(""); }}
                         className="px-4 py-2 rounded-xl bg-amber-50 text-amber-700 font-bold text-xs hover:bg-amber-100 border border-amber-200 flex items-center gap-1.5">
                         <span className="material-symbols-outlined text-sm">pause_circle</span> Hold

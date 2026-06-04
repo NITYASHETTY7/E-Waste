@@ -4,7 +4,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { UserRole } from '@prisma/client';
+import { UserRole, CompanyStatus } from '@prisma/client';
 
 @Injectable()
 export class UsersService {
@@ -137,14 +137,14 @@ export class UsersService {
   async approveUser(id: string) {
     const user = await this.prisma.user.update({
       where: { id },
-      data: { isActive: true },
+      data: { isActive: true, status: CompanyStatus.APPROVED },
       include: { company: true },
     });
 
     if (user.companyId) {
       await this.prisma.company.update({
         where: { id: user.companyId },
-        data: { status: 'APPROVED' },
+        data: { status: CompanyStatus.APPROVED },
       });
     }
 
@@ -156,14 +156,14 @@ export class UsersService {
     // Optionally deactivating the user
     const user = await this.prisma.user.update({
       where: { id },
-      data: { isActive: false },
+      data: { isActive: false, status: CompanyStatus.REJECTED },
       include: { company: true },
     });
 
     if (user.companyId) {
       await this.prisma.company.update({
         where: { id: user.companyId },
-        data: { status: 'REJECTED' },
+        data: { status: CompanyStatus.REJECTED },
       });
     }
 
@@ -174,14 +174,14 @@ export class UsersService {
   async holdUser(id: string) {
     const user = await this.prisma.user.update({
       where: { id },
-      data: { isActive: false },
+      data: { isActive: false, status: CompanyStatus.BLOCKED },
       include: { company: true },
     });
 
     if (user.companyId) {
       await this.prisma.company.update({
         where: { id: user.companyId },
-        data: { status: 'BLOCKED' },
+        data: { status: CompanyStatus.BLOCKED },
       });
     }
 

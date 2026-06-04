@@ -144,7 +144,7 @@ export default function ForgotPasswordModal({
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="your@email.com"
-                    className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 transition-all dark:bg-slate-950 dark:text-white dark:border-slate-700"
+                    className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 transition-all dark:bg-slate-950 dark:text-white dark:border-slate-700 dark:focus:bg-slate-800"
                   />
                 </div>
                 <button
@@ -199,16 +199,7 @@ export default function ForgotPasswordModal({
                 </div>
               </div>
 
-              {devOtp && (
-                <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl">
-                  <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest mb-1">
-                    Dev Mode — OTP Code
-                  </p>
-                  <p className="text-sm text-amber-800 font-mono font-black">
-                    {devOtp}
-                  </p>
-                </div>
-              )}
+              {/* Dev OTP display removed per user request */}
 
               {error && (
                 <div className="mb-4 p-3 bg-red-50 border border-red-100 rounded-xl flex items-center gap-2">
@@ -234,7 +225,7 @@ export default function ForgotPasswordModal({
                       setOtp(e.target.value.replace(/\D/g, ""))
                     }
                     placeholder="• • • • • •"
-                    className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-mono text-xl tracking-[0.5em] text-center placeholder:text-slate-400 placeholder:tracking-normal focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 transition-all dark:bg-slate-950 dark:text-white dark:border-slate-700"
+                    className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-mono text-xl tracking-[0.5em] text-center placeholder:text-slate-400 placeholder:tracking-normal focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 transition-all dark:bg-slate-950 dark:text-white dark:border-slate-700 dark:focus:bg-slate-800"
                   />
                 </div>
                 <button
@@ -307,7 +298,7 @@ export default function ForgotPasswordModal({
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
                     placeholder="Min. 8 characters"
-                    className="w-full px-4 py-3.5 pr-12 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-mono placeholder:text-slate-400 placeholder:font-sans focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 transition-all dark:bg-slate-950 dark:text-white dark:border-slate-700"
+                    className="w-full px-4 py-3.5 pr-12 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-mono placeholder:text-slate-400 placeholder:font-sans focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 transition-all dark:bg-slate-950 dark:text-white dark:border-slate-700 dark:focus:bg-slate-800"
                   />
                   <button
                     type="button"
@@ -329,7 +320,7 @@ export default function ForgotPasswordModal({
                     value={confirm}
                     onChange={(e) => setConfirm(e.target.value)}
                     placeholder="Repeat password"
-                    className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-mono placeholder:text-slate-400 placeholder:font-sans focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 transition-all dark:bg-slate-950 dark:text-white dark:border-slate-700"
+                    className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 font-mono placeholder:text-slate-400 placeholder:font-sans focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/5 transition-all dark:bg-slate-950 dark:text-white dark:border-slate-700 dark:focus:bg-slate-800"
                   />
                 </div>
                 <button

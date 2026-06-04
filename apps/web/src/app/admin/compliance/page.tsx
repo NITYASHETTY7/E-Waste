@@ -99,13 +99,13 @@ export default function AdminCompliance() {
                     {DOCS.map(doc => {
                       const url = listing[doc.key];
                       return (
-                        <div key={doc.key} className={`p-3 rounded-xl border text-center ${url ? "border-emerald-200 bg-emerald-50" : "border-dashed border-slate-200 bg-slate-50"}`}>
-                          <span className={`material-symbols-outlined text-xl block mb-1 ${url ? "text-emerald-600" : "text-slate-300"}`}>{doc.icon}</span>
-                          <p className="text-[9px] font-black uppercase text-slate-600 leading-tight dark:text-slate-400">{doc.label}</p>
+                        <div key={doc.key} className={`p-3 rounded-xl border text-center transition-all ${url ? "border-emerald-200 bg-emerald-50 dark:bg-emerald-950/20" : "border-dashed border-slate-200 bg-white dark:bg-slate-900/50 dark:border-slate-800"}`}>
+                          <span className={`material-symbols-outlined text-xl block mb-1 ${url ? "text-emerald-600" : "text-slate-400 dark:text-slate-500"}`}>{doc.icon}</span>
+                          <p className={`text-[9px] font-black uppercase leading-tight ${url ? "text-emerald-800 dark:text-emerald-400" : "text-slate-700 dark:text-slate-300"}`}>{doc.label}</p>
                           {url ? (
                             <a href={url} download className="text-[9px] text-primary font-bold hover:underline block mt-1">Download</a>
                           ) : (
-                            <p className="text-[9px] text-slate-400 mt-1">Not uploaded</p>
+                            <p className="text-[9px] text-slate-500 dark:text-slate-400 mt-1">Not uploaded</p>
                           )}
                         </div>
                       );

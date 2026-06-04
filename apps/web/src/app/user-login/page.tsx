@@ -22,7 +22,7 @@ function InputField({ label, type = "text", value, onChange, placeholder, requir
         type={type} required={required} disabled={disabled}
         value={value} onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
-        className={`w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:border-purple-500 focus:bg-white focus:ring-4 focus:ring-purple-500/5 outline-none transition-all dark:bg-slate-950 dark:text-white dark:border-slate-700 dark:focus:bg-slate-800 ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
+        className={`w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/5 outline-none transition-all dark:bg-slate-950 dark:text-white dark:border-slate-700 dark:focus:bg-slate-800 ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
       />
     </div>
   );
@@ -231,7 +231,7 @@ function UserLoginPageContent() {
                       <div className="relative">
                         <input type={showPw ? "text" : "password"} required value={loginPassword} onChange={e => setLoginPassword(e.target.value)}
                           placeholder="••••••••"
-                          className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:border-purple-500 focus:bg-white focus:ring-4 focus:ring-purple-500/5 outline-none transition-all font-mono dark:bg-slate-950 dark:text-white dark:border-slate-700" />
+                          className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:border-purple-500 focus:ring-4 focus:ring-purple-500/5 outline-none transition-all font-mono dark:bg-slate-950 dark:text-white dark:border-slate-700 dark:focus:bg-slate-800" />
                         <button type="button" onClick={() => setShowPw(p => !p)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500">
                           <span className="material-symbols-outlined text-xl">{showPw ? "visibility_off" : "visibility"}</span>
                         </button>
@@ -318,13 +318,7 @@ function UserLoginPageContent() {
                     <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest mt-1">Step 3 of 3 — OTP Verification</p>
                   </div>
 
-                  {(devEmailOtp || devPhoneOtp) && (
-                    <div className="mb-5 p-4 bg-amber-50 border border-amber-200 rounded-2xl dark:bg-amber-900/20 dark:border-amber-800">
-                      <p className="text-[10px] font-black text-amber-600 uppercase tracking-widest mb-1">Dev Mode — OTP Codes</p>
-                      {devEmailOtp && <p className="text-xs text-amber-800 font-mono dark:text-amber-300">Email OTP: <strong>{devEmailOtp}</strong></p>}
-                      {devPhoneOtp && <p className="text-xs text-amber-800 font-mono dark:text-amber-300">Phone OTP: <strong>{devPhoneOtp}</strong></p>}
-                    </div>
-                  )}
+                  {/* OTP display removed per user request (available in terminal) */}
 
                   <form onSubmit={handleStep3} className="space-y-5">
                     {([

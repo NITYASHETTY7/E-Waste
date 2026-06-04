@@ -91,26 +91,26 @@ export default function UploadProductPage() {
           <div>
             <label className="text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] ml-1 mb-2 block dark:text-slate-400">Product Name *</label>
             <input required value={name} onChange={e => setName(e.target.value)} placeholder="e.g. Dell Laptop, iPhone 12, CRT Monitor"
-              className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:border-purple-500 focus:bg-white focus:ring-4 focus:ring-purple-500/5 outline-none transition-all dark:bg-slate-950 dark:text-white dark:border-slate-700" />
+              className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:border-violet-500 focus:ring-4 focus:ring-violet-500/5 outline-none transition-all dark:bg-slate-950 dark:text-white dark:border-slate-700" />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] ml-1 mb-2 block dark:text-slate-400">Weight (kg) *</label>
               <input required type="number" min="0.1" step="0.1" value={weight} onChange={e => setWeight(e.target.value)} placeholder="e.g. 2.5"
-                className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:border-purple-500 focus:bg-white focus:ring-4 focus:ring-purple-500/5 outline-none transition-all dark:bg-slate-950 dark:text-white dark:border-slate-700" />
+                className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:border-violet-500 focus:ring-4 focus:ring-violet-500/5 outline-none transition-all dark:bg-slate-950 dark:text-white dark:border-slate-700" />
             </div>
             <div>
               <label className="text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] ml-1 mb-2 block dark:text-slate-400">Your Asking Price (₹) *</label>
               <input required type="number" min="0" step="1" value={askingPrice} onChange={e => setAskingPrice(e.target.value)} placeholder="e.g. 5000"
-                className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:border-purple-500 focus:bg-white focus:ring-4 focus:ring-purple-500/5 outline-none transition-all dark:bg-slate-950 dark:text-white dark:border-slate-700" />
+                className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:border-violet-500 focus:ring-4 focus:ring-violet-500/5 outline-none transition-all dark:bg-slate-950 dark:text-white dark:border-slate-700" />
             </div>
           </div>
 
           <div>
             <label className="text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] ml-1 mb-2 block dark:text-slate-400">Description (optional)</label>
             <textarea rows={3} value={description} onChange={e => setDescription(e.target.value)} placeholder="Describe the product — model, age, any defects..."
-              className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:border-purple-500 focus:bg-white focus:ring-4 focus:ring-purple-500/5 outline-none transition-all resize-none dark:bg-slate-950 dark:text-white dark:border-slate-700" />
+              className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:border-violet-500 focus:ring-4 focus:ring-violet-500/5 outline-none transition-all resize-none dark:bg-slate-950 dark:text-white dark:border-slate-700" />
           </div>
         </motion.div>
 
@@ -121,10 +121,10 @@ export default function UploadProductPage() {
           <div className="grid grid-cols-2 gap-3">
             {CONDITIONS.map(c => (
               <button key={c.value} type="button" onClick={() => setCondition(c.value)}
-                className={`flex items-center gap-3 p-4 rounded-2xl border-2 transition-all text-left ${condition === c.value ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20' : 'border-slate-200 dark:border-slate-700 hover:border-purple-300'}`}>
-                <span className={`material-symbols-outlined text-xl ${condition === c.value ? 'text-purple-600' : 'text-slate-400'}`}>{c.icon}</span>
+                className={`flex items-center gap-3 p-4 rounded-2xl border-2 transition-all text-left ${condition === c.value ? 'border-violet-500 bg-violet-50 dark:bg-violet-900/20' : 'border-slate-200 dark:border-slate-700 hover:border-violet-300'}`}>
+                <span className={`material-symbols-outlined text-xl ${condition === c.value ? 'text-violet-600' : 'text-slate-400'}`}>{c.icon}</span>
                 <div>
-                  <p className={`text-sm font-black ${condition === c.value ? 'text-purple-700 dark:text-purple-300' : 'text-slate-700 dark:text-slate-300'}`}>{c.label}</p>
+                  <p className={`text-sm font-black ${condition === c.value ? 'text-violet-700 dark:text-violet-300' : 'text-slate-700 dark:text-slate-300'}`}>{c.label}</p>
                   <p className="text-[10px] text-slate-400">{c.desc}</p>
                 </div>
               </button>
@@ -151,7 +151,7 @@ export default function UploadProductPage() {
             ))}
             {photos.length < 5 && (
               <button type="button" onClick={() => photoRef.current?.click()}
-                className="aspect-square rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 flex flex-col items-center justify-center gap-1 hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/10 transition-all">
+                className="aspect-square rounded-xl border-2 border-dashed border-slate-300 dark:border-slate-700 flex flex-col items-center justify-center gap-1 hover:border-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/10 transition-all">
                 <span className="material-symbols-outlined text-2xl text-slate-400">add_photo_alternate</span>
                 <span className="text-[9px] font-bold text-slate-400 uppercase">Add</span>
               </button>
@@ -181,7 +181,7 @@ export default function UploadProductPage() {
             </div>
           ) : (
             <button type="button" onClick={() => invoiceRef.current?.click()}
-              className="w-full p-6 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl flex flex-col items-center gap-2 hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/10 transition-all">
+              className="w-full p-6 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl flex flex-col items-center gap-2 hover:border-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/10 transition-all">
               <span className="material-symbols-outlined text-3xl text-slate-400">upload_file</span>
               <p className="text-sm font-bold text-slate-600 dark:text-slate-400">Click to upload invoice</p>
               <p className="text-[10px] text-slate-400">PDF, JPG, PNG · max 10MB</p>
@@ -197,8 +197,8 @@ export default function UploadProductPage() {
             Cancel
           </button>
           <button type="submit" disabled={loading}
-            className="flex-2 flex-1 py-5 bg-purple-600 text-white font-black text-[11px] uppercase tracking-[0.3em] rounded-2xl hover:bg-purple-700 hover:shadow-2xl hover:shadow-purple-700/20 transition-all flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-50">
-            {loading ? <span className="material-symbols-outlined animate-spin text-lg">progress_activity</span> : <><span className="material-symbols-outlined text-lg">upload_file</span> Submit Product</>}
+            className="flex-2 flex-1 py-5 bg-violet-600 !text-white font-black text-[11px] uppercase tracking-[0.3em] rounded-2xl hover:bg-violet-700 hover:shadow-2xl hover:shadow-violet-700/20 transition-all flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-50">
+            {loading ? <span className="material-symbols-outlined animate-spin text-lg !text-white">progress_activity</span> : <><span className="material-symbols-outlined text-lg !text-white">upload_file</span> Submit Product</>}
           </button>
         </motion.div>
       </form>

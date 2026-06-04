@@ -91,7 +91,15 @@ export class RequirementsService {
                 pickupDocs: true,
               },
             },
-            payment: true,
+            payment: {
+              include: {
+                pickup: {
+                  include: {
+                    pickupDocs: true,
+                  },
+                },
+              },
+            },
           },
         },
       },
@@ -353,10 +361,36 @@ export class RequirementsService {
   }
 
   async reject(id: string, reason?: string) {
-    return this.prisma.requirement.update({
+    const req = await this.prisma.requirement.findUnique({
+      where: { id },
+      include: { client: { include: { users: true } } },
+    });
+    if (!req) throw new NotFoundException('Requirement not found');
+
+    const updated = await this.prisma.requirement.update({
       where: { id },
       data: { status: RequirementStatus.REJECTED },
     });
+
+    // Notify client users
+    if (req.client?.users) {
+      const msg = `Your listing "${req.title}" has been rejected.${reason ? ` Reason: ${reason}` : ''}`;
+      await Promise.all(
+        req.client.users.map(async (u) => {
+          await this.notifications.createInAppNotification({
+            userId: u.id,
+            type: 'listing_rejected',
+            title: 'Listing Rejected',
+            message: msg,
+            link: '/client/listings',
+          }).catch(() => {});
+
+          await this.notifications.notifyListingRejected(u.email, u.name, req.title, reason).catch(() => {});
+        }),
+      );
+    }
+
+    return updated;
   }
 
   async vendorRespond(requirementId: string, vendorUserId: string, action: 'accept' | 'decline') {

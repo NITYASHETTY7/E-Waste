@@ -10,7 +10,7 @@ const fmtDate = (iso?: string) => iso ? new Date(iso).toLocaleString('en-IN', { 
 
 export default function ClientListings() {
   const { listings, bids, users, currentUser, updateListingStatus, editListing, approveRequirement } = useApp();
-  const [filter, setFilter] = useState<"all" | "invites" | "sealed" | "live" | "ended" | "review">("all");
+  const [filter, setFilter] = useState<"all" | "review" | "invites" | "sealed" | "live" | "completed" | "rejected">("all");
   const [selectedListingId, setSelectedListingId] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState<{title: string; weight: number | string; basePrice: number | string; bidIncrement: number | string; description: string}>({title: "", weight: 0, basePrice: 0, bidIncrement: 0, description: ""});
@@ -67,10 +67,11 @@ export default function ClientListings() {
 
   const getDisplayStatus = (listing: Listing) => {
     if (listing.requirementStatus === 'client_review') return "review";
+    if (listing.requirementStatus === 'REJECTED') return "rejected";
     if (listing.auctionPhase === 'invitation_window') return "invites";
     if (listing.auctionPhase === 'sealed_bid') return "sealed";
     if (listing.auctionPhase === 'live') return "live";
-    if (listing.auctionPhase === 'completed') return "ended";
+    if (listing.auctionPhase === 'completed') return "completed";
     return "sealed";
   };
 
@@ -170,11 +171,15 @@ export default function ClientListings() {
                       <span className={`pill shadow-lg backdrop-blur-md ${
                         displayStatus === "live" ? "bg-red-600 text-white animate-pulse" :
                         displayStatus === "invites" ? "bg-amber-600 text-white" :
-                        displayStatus === "sealed" ? "bg-blue-600 text-white" : "bg-slate-800 text-white"
+                        displayStatus === "sealed" ? "bg-blue-600 text-white" : 
+                        displayStatus === "rejected" ? "bg-red-700 text-white" :
+                        "bg-slate-800 text-white"
                       }`}>
                         {displayStatus === "live" ? "🔥 LIVE AUCTION" :
                          displayStatus === "invites" ? "✉️ INVITATION PHASE" :
-                         displayStatus === "sealed" ? "🛡️ SEALED PHASE" : "COMPLETED"}
+                         displayStatus === "sealed" ? "🛡️ SEALED PHASE" : 
+                         displayStatus === "rejected" ? "❌ REJECTED" :
+                         "COMPLETED"}
                       </span>
                     </div>
                   </div>
@@ -270,6 +275,16 @@ export default function ClientListings() {
                           <span className="material-symbols-outlined text-xs">download</span>
                           Download Sheet
                         </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {displayStatus === "rejected" && (
+                    <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-3">
+                      <span className="material-symbols-outlined text-red-500 mt-0.5 shrink-0">block</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-black text-red-800 uppercase tracking-wide">Listing Not Approved</p>
+                        <p className="text-xs text-red-700 mt-0.5">This listing has been rejected by the administrator. Please check your registered email for details on the reason or contact support for further clarification.</p>
                       </div>
                     </div>
                   )}

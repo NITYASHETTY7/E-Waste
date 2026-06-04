@@ -8,7 +8,7 @@ import api from "@/lib/api";
 const STATUS_COLOR: Record<string, string> = {
   PENDING_ADMIN_REVIEW: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
   ADMIN_APPROVED: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
-  QUOTE_RECEIVED: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
+  QUOTE_RECEIVED: "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300",
   QUOTE_ACCEPTED: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300",
   PICKUP_REQUESTED: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300",
   PICKUP_IN_PROGRESS: "bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300",
@@ -57,8 +57,8 @@ function ProductCard({ product }: { product: Product }) {
         {product.photoUrls?.[0] ? (
           <img src={product.photoUrls[0]} alt={product.name} className="w-16 h-16 rounded-xl object-cover shrink-0 border border-slate-200 dark:border-slate-700" />
         ) : (
-          <div className="w-16 h-16 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center shrink-0">
-            <span className="material-symbols-outlined text-purple-600 text-2xl">devices</span>
+          <div className="w-16 h-16 rounded-xl bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center shrink-0">
+            <span className="material-symbols-outlined text-violet-600 text-2xl">devices</span>
           </div>
         )}
         <div className="flex-1 min-w-0">
@@ -82,7 +82,7 @@ function ProductCard({ product }: { product: Product }) {
           )}
 
           {product.quotes?.length > 0 && (
-            <p className="mt-2 text-[11px] font-bold text-purple-600 dark:text-purple-400">
+            <p className="mt-2 text-[11px] font-bold text-violet-600 dark:text-violet-400">
               {product.quotes.length} vendor quote{product.quotes.length > 1 ? 's' : ''} received
             </p>
           )}
@@ -95,11 +95,11 @@ function ProductCard({ product }: { product: Product }) {
           <div className="flex items-center gap-0">
             {STATUS_STEPS.map((s, i) => (
               <div key={s.key} className="flex items-center flex-1 last:flex-none">
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${i <= currentStep ? 'bg-purple-600' : 'bg-slate-200 dark:bg-slate-700'}`}>
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-all ${i <= currentStep ? 'bg-violet-600' : 'bg-slate-200 dark:bg-slate-700'}`}>
                   <span className={`material-symbols-outlined text-xs ${i <= currentStep ? 'text-white' : 'text-slate-400'}`}>{i <= currentStep ? 'check' : 'radio_button_unchecked'}</span>
                 </div>
                 {i < STATUS_STEPS.length - 1 && (
-                  <div className={`flex-1 h-0.5 ${i < currentStep ? 'bg-purple-600' : 'bg-slate-200 dark:bg-slate-700'}`} />
+                  <div className={`flex-1 h-0.5 ${i < currentStep ? 'bg-violet-600' : 'bg-slate-200 dark:bg-slate-700'}`} />
                 )}
               </div>
             ))}
@@ -115,7 +115,7 @@ function ProductCard({ product }: { product: Product }) {
       {/* Actions */}
       <div className="border-t border-slate-100 dark:border-slate-800 px-5 py-3 flex items-center gap-3">
         {product.quotes?.length > 0 && (
-          <Link href="/user/quotes" className="flex items-center gap-1.5 text-[11px] font-black text-purple-600 hover:text-purple-700 uppercase tracking-widest">
+          <Link href="/user/quotes" className="flex items-center gap-1.5 text-[11px] font-black text-violet-600 hover:text-violet-700 uppercase tracking-widest">
             <span className="material-symbols-outlined text-sm">request_quote</span> View Quotes
           </Link>
         )}
@@ -145,23 +145,23 @@ export default function MyProductsPage() {
           <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">Track all your submitted e-waste listings</p>
         </div>
         <Link href="/user/upload"
-          className="flex items-center gap-2 px-5 py-3 bg-purple-600 text-white rounded-2xl font-bold text-sm hover:bg-purple-700 transition-all shadow-lg">
-          <span className="material-symbols-outlined text-base">add</span> New Submission
+          className="flex items-center gap-2 px-5 py-3 bg-violet-600 !text-white rounded-2xl font-bold text-sm hover:bg-violet-700 transition-all shadow-lg">
+          <span className="material-symbols-outlined text-base !text-white">add</span> New Submission
         </Link>
-      </motion.div>
+        </motion.div>
 
-      {loading ? (
+        {loading ? (
         <div className="space-y-4">{[1, 2, 3].map(i => <div key={i} className="h-40 rounded-2xl bg-slate-100 dark:bg-slate-800 animate-pulse" />)}</div>
-      ) : products.length === 0 ? (
+        ) : products.length === 0 ? (
         <div className="text-center py-20 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800">
           <span className="material-symbols-outlined text-5xl text-slate-300 dark:text-slate-600 block mb-4">inventory_2</span>
           <h3 className="text-lg font-black text-slate-700 dark:text-slate-300 mb-2">No products yet</h3>
           <p className="text-slate-400 text-sm mb-6">Submit your first e-waste product to get started</p>
-          <Link href="/user/upload" className="inline-flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-2xl font-bold hover:bg-purple-700 transition-all">
-            <span className="material-symbols-outlined text-base">upload_file</span> Submit a Product
+          <Link href="/user/upload" className="inline-flex items-center gap-2 px-6 py-3 bg-violet-600 !text-white rounded-2xl font-bold hover:bg-violet-700 transition-all">
+            <span className="material-symbols-outlined text-base !text-white">upload_file</span> Submit a Product
           </Link>
         </div>
-      ) : (
+        ) : (
         <div className="space-y-4">
           {products.map(p => <ProductCard key={p.id} product={p} />)}
         </div>

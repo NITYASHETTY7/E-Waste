@@ -200,11 +200,14 @@ export class CompaniesService {
     const company = await this.prisma.company.findUnique({ where: { id }, include: { users: true } });
     if (!company) throw new NotFoundException('Company not found');
 
-    await this.prisma.company.update({ where: { id }, data: { status: 'APPROVED' } });
+    await this.prisma.company.update({ where: { id }, data: { status: CompanyStatus.APPROVED } });
 
     const primaryUser = company.users[0];
     if (primaryUser) {
-      await this.prisma.user.update({ where: { id: primaryUser.id }, data: { isActive: true } });
+      await this.prisma.user.update({
+        where: { id: primaryUser.id },
+        data: { isActive: true, status: CompanyStatus.APPROVED }
+      });
       await this.notifications.notifyAccountApproved(primaryUser.email, primaryUser.name, primaryUser.phone ?? undefined).catch(() => {});
       await this.notifications.createInAppNotification({
         userId: primaryUser.id,
@@ -222,11 +225,14 @@ export class CompaniesService {
     const company = await this.prisma.company.findUnique({ where: { id }, include: { users: true } });
     if (!company) throw new NotFoundException('Company not found');
 
-    await this.prisma.company.update({ where: { id }, data: { status: 'BLOCKED' } });
+    await this.prisma.company.update({ where: { id }, data: { status: CompanyStatus.BLOCKED } });
 
     const primaryUser = company.users[0];
     if (primaryUser) {
-      await this.prisma.user.update({ where: { id: primaryUser.id }, data: { isActive: false } });
+      await this.prisma.user.update({
+        where: { id: primaryUser.id },
+        data: { isActive: false, status: CompanyStatus.BLOCKED }
+      });
       await this.notifications.notifyAccountOnHold(primaryUser.email, primaryUser.name, primaryUser.phone ?? undefined, reason).catch(() => {});
       await this.notifications.createInAppNotification({
         userId: primaryUser.id,
@@ -243,11 +249,14 @@ export class CompaniesService {
     const company = await this.prisma.company.findUnique({ where: { id }, include: { users: true } });
     if (!company) throw new NotFoundException('Company not found');
 
-    await this.prisma.company.update({ where: { id }, data: { status: 'REJECTED' } });
+    await this.prisma.company.update({ where: { id }, data: { status: CompanyStatus.REJECTED } });
 
     const primaryUser = company.users[0];
     if (primaryUser) {
-      await this.prisma.user.update({ where: { id: primaryUser.id }, data: { isActive: false } });
+      await this.prisma.user.update({
+        where: { id: primaryUser.id },
+        data: { isActive: false, status: CompanyStatus.REJECTED }
+      });
       await this.notifications.notifyAccountRejected(primaryUser.email, primaryUser.name, primaryUser.phone ?? undefined, reason).catch(() => {});
       await this.notifications.createInAppNotification({
         userId: primaryUser.id,

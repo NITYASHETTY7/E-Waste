@@ -225,12 +225,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const liveApprovalStatus = req.auction?.liveApprovalStatus;
 
     // Compliance mapping
-    const pickup = req.auction?.payment?.pickup;
+    const payment = req.auction?.payment;
+    const pickup = req.auction?.pickup || payment?.pickup;
     const pickupDocs = pickup?.pickupDocs || [];
-    let complianceStatus: Listing['complianceStatus'] = 'pending';
-    if (pickup?.status === 'COMPLETED') complianceStatus = 'verified';
-    else if (pickup?.status === 'RECONCILED' || pickup?.status === 'PICKED_UP') complianceStatus = 'documents_uploaded';
-    else if (pickup?.status === 'SCHEDULED') complianceStatus = 'pickup_scheduled';
+    let complianceStatus: Listing['complianceStatus'] = undefined;
+    
+    if (pickup) {
+      complianceStatus = 'pending';
+      if (pickup.status === 'COMPLETED' || pickup.status === 'RECONCILIATION_DONE' || pickup.status === 'INVOICE_GENERATED') {
+        complianceStatus = 'verified';
+      } else if (pickup.status === 'DOCUMENTS_UPLOADED' || pickup.status === 'VENDOR_ACKNOWLEDGED' || pickup.status === 'IN_TRANSIT') {
+        complianceStatus = 'documents_uploaded';
+      } else if (pickup.status === 'SCHEDULED' || pickup.status === 'GATE_PASS_ISSUED') {
+        complianceStatus = 'pickup_scheduled';
+      }
+    }
 
     const getDocUrl = (type: string) => pickupDocs.find((d: any) => d.type === type)?.url;
 
@@ -264,11 +273,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       auctionStartDate,
       auctionEndDate,
       complianceStatus,
+      paymentStatus: payment?.status?.toLowerCase() === 'confirmed' ? 'confirmed' : (payment?.proofS3Key ? 'proof_uploaded' : 'pending'),
+      paymentProofUrl: payment?.paymentProofUrl,
+      paymentClientAmount: payment?.clientAmount,
+      paymentCommissionAmount: payment?.commissionAmount,
       form6Url: getDocUrl('FORM_6'),
       weightSlipEmptyUrl: getDocUrl('WEIGHT_SLIP_EMPTY'),
       weightSlipLoadedUrl: getDocUrl('WEIGHT_SLIP_LOADED'),
       recyclingCertUrl: getDocUrl('RECYCLING_CERTIFICATE'),
       disposalCertUrl: getDocUrl('DISPOSAL_CERTIFICATE'),
+      pickupScheduledDate: pickup?.scheduledDate,
     } as Listing;
   };
 

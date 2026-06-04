@@ -243,7 +243,6 @@ export class OtpService {
       const updateData: Record<string, boolean> = {};
       if (type === 'email') {
         updateData.emailVerified = true;
-        updateData.isActive = true;
       } else {
         updateData.phoneVerified = true;
       }

@@ -120,6 +120,14 @@ export class PaymentsService {
     });
 
     const auction = payment.auction;
+
+    // Auto-clear penalty on company once transaction is confirmed
+    if (auction.winnerId && auction.winner?.penaltyAmount) {
+      await this.prisma.company.update({
+        where: { id: auction.winnerId },
+        data: { penaltyAmount: 0 },
+      });
+    }
     const vendorUser = auction.winner?.users?.[0];
     const clientUser = auction.client?.users?.[0];
 

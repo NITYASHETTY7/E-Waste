@@ -83,6 +83,9 @@ export interface User {
   documents?: UploadedDoc[];
   bankDetails?: BankDetails;
   registeredAt?: string;
+  isLocked?: boolean;
+  lockReason?: string;
+  penaltyAmount?: number;
 }
 
 export interface AuditInvitation {
@@ -215,6 +218,7 @@ export interface Listing {
   // Compliance flow
   complianceStatus?: 'pending' | 'pickup_scheduled' | 'documents_uploaded' | 'verified';
   pickupScheduledDate?: string;
+  pickupDocs?: any[];
   form6Url?: string;
   weightSlipEmptyUrl?: string;
   weightSlipLoadedUrl?: string;

@@ -90,6 +90,7 @@ export class RequirementsService {
         auditInvitations: true,
         auction: {
           include: {
+            winner: true,
             pickup: {
               include: {
                 pickupDocs: true,
@@ -117,7 +118,7 @@ export class RequirementsService {
       include: {
         client: true,
         auditInvitations: { include: { vendor: true, report: true } },
-        auction: true,
+        auction: { include: { winner: true } },
       },
     });
     if (!req) throw new NotFoundException('Requirement not found');
@@ -215,7 +216,7 @@ export class RequirementsService {
     const auctionStatus =
       sealedStart <= now ? AuctionStatus.SEALED_PHASE : AuctionStatus.UPCOMING;
 
-    let auction = req.auction;
+    let auction: any = req.auction;
     if (!auction) {
       auction = await this.prisma.auction.create({
         data: {
@@ -305,7 +306,7 @@ export class RequirementsService {
     const auctionStatus =
       sealedStart <= now ? AuctionStatus.SEALED_PHASE : AuctionStatus.UPCOMING;
 
-    let auction = req.auction;
+    let auction: any = req.auction;
     if (!auction) {
       auction = await this.prisma.auction.create({
         data: {
@@ -619,7 +620,20 @@ export class RequirementsService {
       },
       orderBy: { createdAt: 'desc' },
     });
-    return docs;
+    return Promise.all(
+      docs.map(async (doc) => ({
+        ...doc,
+        auditReportUrl: doc.auditReportS3Key
+          ? await this.s3.getSignedUrl(doc.auditReportS3Key).catch(() => null)
+          : null,
+        excelUrl: doc.excelS3Key
+          ? await this.s3.getSignedUrl(doc.excelS3Key).catch(() => null)
+          : null,
+        imageUrls: await Promise.all(
+          doc.imageS3Keys.map((k) => this.s3.getSignedUrl(k).catch(() => '')),
+        ),
+      })),
+    );
   }
 
   // ─── STEP 3: Admin reviews audit docs ─────────────────────────────────────

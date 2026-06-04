@@ -55,6 +55,7 @@ const VENDOR_LINKS = [
   { href: "/vendor/reports", icon: "bar_chart", label: "Reports" },
   { href: "/vendor/notifications", icon: "notifications", label: "Notifications" },
   { href: "/vendor/profile", icon: "badge", label: "Profile & Docs" },
+  { href: "/vendor/help", icon: "help", label: "Help & Support" },
 ];
 
 const CLIENT_LINKS = [
@@ -96,6 +97,28 @@ export default function Sidebar() {
   const renderLink = (link: any) => {
     const isActive = pathname === link.href || pathname.startsWith(link.href + "/");
     const showIndicator = isActive && (role === 'admin' || role === 'client');
+
+    const isLockedRoute = currentUser.isLocked &&
+      role === "vendor" &&
+      link.href !== "/vendor/dashboard" &&
+      link.href !== "/vendor/help";
+
+    if (isLockedRoute) {
+      return (
+        <div key={link.href}
+          title={isSidebarCollapsed ? `${link.label} (Locked)` : "Account Restricted"}
+          className={`relative flex items-center gap-3 px-3 py-2.5 rounded-xl opacity-40 cursor-not-allowed ${
+            isSidebarCollapsed ? 'justify-center' : ''
+          } text-slate-400 dark:text-slate-600`}>
+          <span className="material-symbols-outlined text-xl shrink-0">
+            lock
+          </span>
+          {!isSidebarCollapsed && (
+            <span className="text-sm flex-1 truncate line-through">{link.label}</span>
+          )}
+        </div>
+      );
+    }
 
     return (
       <Link key={link.href} href={link.href}

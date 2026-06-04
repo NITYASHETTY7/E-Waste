@@ -267,7 +267,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       auctionStartDate,
       auctionEndDate,
       price: req.auction?.basePrice,
+      winnerVendorId: req.auction?.winnerId || req.auction?.winner?.id || undefined,
       winnerVendorName: req.auction?.winner?.name,
+      finalQuoteStatus: req.auction?.finalQuoteStatus || undefined,
       highestEmdAmount: req.auction?.highestEmdAmount ?? 0,
       complianceStatus,
       paymentStatus: payment?.status?.toLowerCase() === 'confirmed' ? 'confirmed' : (payment?.proofS3Key ? 'proof_uploaded' : 'pending'),
@@ -280,6 +282,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       recyclingCertUrl: getDocUrl('RECYCLING_CERTIFICATE'),
       disposalCertUrl: getDocUrl('DISPOSAL_CERTIFICATE'),
       pickupScheduledDate: pickup?.scheduledDate,
+      pickupDocs: pickupDocs,
     } as Listing;
   };
 
@@ -315,18 +318,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         state: u.company.state || '',
         pincode: u.company.pincode || '',
       } : undefined,
+      isLocked: u.company?.isLocked || false,
+      lockReason: u.company?.lockReason || undefined,
+      penaltyAmount: u.company?.penaltyAmount || 0,
     };
   };
 
   const fetchAllData = async () => {
     try {
-      const [requirementsRes, bidsRes, usersRes, auctionsRes, auditsRes, notificationsRes] = await Promise.all([
+      const [requirementsRes, bidsRes, usersRes, auctionsRes, auditsRes, notificationsRes, profileRes] = await Promise.all([
         api.get('/requirements').catch(() => ({ data: [] })),
         api.get('/auctions/bids').catch(() => ({ data: [] })),
         api.get('/users').catch(() => ({ data: [] })),
         api.get('/auctions').catch(() => ({ data: [] })),
         api.get('/audits/invitations').catch(() => ({ data: [] })),
         api.get('/notifications').catch(() => ({ data: [] })),
+        api.get('/auth/profile').catch(() => null),
       ]);
 
       const backendListings = (requirementsRes.data || []).map(mapRequirementToListing);
@@ -464,6 +471,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
         return {
           ...prev,
+          currentUser: profileRes?.data ? mapBackendUser(profileRes.data) : prev.currentUser,
           listings: finalListings,
           bids: finalBids,
           users: finalUsers,

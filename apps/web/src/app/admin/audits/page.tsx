@@ -288,22 +288,40 @@ export default function AdminAudits() {
                                 {audit.status}
                               </span>
                             </div>
-                            {audit.status === "COMPLETED" && audit.report && (
-                              <div className={`mt-3 p-4 rounded-xl border ${isMismatch ? "bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800" : "bg-emerald-50 border-emerald-100 dark:bg-emerald-900/10 dark:border-emerald-800"}`}>
-                                <div className="flex items-center gap-2 mb-2">
-                                  <span className={`material-symbols-outlined ${isMismatch ? "text-red-500" : "text-emerald-500"}`}>
-                                    {isMismatch ? "warning" : "check_circle"}
-                                  </span>
-                                  <p className={`text-sm font-bold ${isMismatch ? "text-red-700 dark:text-red-400" : "text-emerald-700 dark:text-emerald-400"}`}>
-                                    Product Match: {isMismatch ? "NO (MISMATCH)" : "YES"}
-                                  </p>
+                            {audit.status === "COMPLETED" && audit.report && (() => {
+                              const matchingDoc = vendorDocs.find(d => d.requirementId === audit.requirementId && d.vendorUserId === audit.vendorId);
+                              return (
+                                <div className="space-y-3 mt-3">
+                                  <div className={`p-4 rounded-xl border ${isMismatch ? "bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800" : "bg-emerald-50 border-emerald-100 dark:bg-emerald-900/10 dark:border-emerald-800"}`}>
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <span className={`material-symbols-outlined ${isMismatch ? "text-red-500" : "text-emerald-500"}`}>
+                                        {isMismatch ? "warning" : "check_circle"}
+                                      </span>
+                                      <p className={`text-sm font-bold ${isMismatch ? "text-red-700 dark:text-red-400" : "text-emerald-700 dark:text-emerald-400"}`}>
+                                        Product Match: {isMismatch ? "NO (MISMATCH)" : "YES"}
+                                      </p>
+                                    </div>
+                                    {audit.report.remarks && (
+                                      <p className="text-sm text-slate-700 dark:text-slate-300 italic mt-1">"{audit.report.remarks}"</p>
+                                    )}
+                                    <p className="text-xs text-slate-400 mt-2">Completed: {new Date(audit.report.completedAt).toLocaleString()}</p>
+                                  </div>
+
+                                  {matchingDoc?.imageUrls && matchingDoc.imageUrls.length > 0 && (
+                                    <div>
+                                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Site Visit Photos ({matchingDoc.imageUrls.length})</p>
+                                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                                        {matchingDoc.imageUrls.map((url: string, i: number) => (
+                                          <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="block aspect-video rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800 group relative">
+                                            <img src={url} alt={`Site photo ${i + 1}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200" />
+                                          </a>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
-                                {audit.report.remarks && (
-                                  <p className="text-sm text-slate-700 dark:text-slate-300 italic mt-1">"{audit.report.remarks}"</p>
-                                )}
-                                <p className="text-xs text-slate-400 mt-2">Completed: {new Date(audit.report.completedAt).toLocaleString()}</p>
-                              </div>
-                            )}
+                              );
+                            })()}
                           </div>
                         </div>
                       );

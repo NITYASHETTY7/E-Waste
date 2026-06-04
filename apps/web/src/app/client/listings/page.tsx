@@ -67,7 +67,7 @@ export default function ClientListings() {
 
   const getDisplayStatus = (listing: Listing) => {
     if (listing.requirementStatus === 'client_review') return "review";
-    if (listing.requirementStatus === 'REJECTED') return "rejected";
+    if (listing.requirementStatus === 'rejected' || listing.requirementStatus === 'REJECTED') return "rejected";
     if (listing.auctionPhase === 'invitation_window') return "invites";
     if (listing.auctionPhase === 'sealed_bid') return "sealed";
     if (listing.auctionPhase === 'live') return "live";
@@ -86,6 +86,7 @@ export default function ClientListings() {
   };
 
   const openDetails = (listing: Listing) => {
+    if (getDisplayStatus(listing) === "rejected") return; // block opening details
     setSelectedListingId(listing.id);
     setIsEditing(false);
     setEditForm({
@@ -126,7 +127,7 @@ export default function ClientListings() {
       </div>
 
       <div className="flex gap-1 p-1 bg-surface-container-low rounded-xl w-fit flex-wrap border border-outline-variant/10">
-        {(["all", "review", "invites", "sealed", "live", "ended"] as const).map(f => (
+        {(["all", "review", "invites", "sealed", "live", "completed", "rejected"] as const).map(f => (
           <button key={f} onClick={() => setFilter(f)}
             className={`relative px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all flex items-center gap-1.5 ${
               filter === f 
@@ -290,8 +291,21 @@ export default function ClientListings() {
                   )}
 
                   <div className="flex items-center justify-between mt-auto pt-4 border-t border-[color:var(--color-outline-variant)]/20">
-                    <button onClick={() => openDetails(listing)} className="btn-outline text-[11px] py-2 px-4 uppercase tracking-widest font-black">Details</button>
+                    {displayStatus === "rejected" ? (
+                      <button disabled className="btn-outline text-[11px] py-2 px-4 uppercase tracking-widest font-black opacity-50 cursor-not-allowed flex items-center gap-1">
+                        <span className="material-symbols-outlined text-xs">lock</span>
+                        Locked
+                      </button>
+                    ) : (
+                      <button onClick={() => openDetails(listing)} className="btn-outline text-[11px] py-2 px-4 uppercase tracking-widest font-black">Details</button>
+                    )}
                     <div className="flex gap-2">
+                      {displayStatus === "rejected" && (
+                        <span className="text-[11px] font-black px-5 py-2.5 bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400 rounded-xl uppercase tracking-widest border border-red-200 dark:border-red-900 flex items-center gap-1.5 shadow-sm">
+                          <span className="material-symbols-outlined text-sm">cancel</span>
+                          Rejected
+                        </span>
+                      )}
                       {displayStatus === "review" && (
                         <button
                           onClick={() => { setApproveModal({ isOpen: true, listingId: listing.id, title: listing.title }); setTargetPrice(""); }}
@@ -387,7 +401,9 @@ export default function ClientListings() {
                           Monitor Live
                         </Link>
                       )}
-                      <Link href="/client/bids" className="btn-outline text-[11px] py-2.5 px-6 uppercase tracking-widest font-black">Ledger</Link>
+                      {displayStatus !== "rejected" && (
+                        <Link href="/client/bids" className="btn-outline text-[11px] py-2.5 px-6 uppercase tracking-widest font-black">Ledger</Link>
+                      )}
                     </div>
                   </div>
                 </div>

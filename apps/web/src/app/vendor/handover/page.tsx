@@ -5,17 +5,17 @@ import { useApp } from "@/context/AppContext";
 import api from "@/lib/api";
 
 const COMPLIANCE_DOC_TYPES = [
-  { type: "FORM_6", label: "Form 6 / Manifest", icon: "article" },
-  { type: "RECYCLING_CERTIFICATE", label: "Recycling Certificate", icon: "recycling" },
-  { type: "DISPOSAL_CERTIFICATE", label: "Disposal Certificate", icon: "delete_forever" },
-  { type: "EWASTE_RECYCLING_CERTIFICATE", label: "E-Waste Recycling Certificate", icon: "eco" },
-  { type: "DATA_DESTRUCTION_CERTIFICATE", label: "Data Destruction Certificate", icon: "security" },
-  { type: "EWAY_BILL", label: "E-Way Bill", icon: "local_shipping" },
-  { type: "DELIVERY_CHALLAN", label: "Delivery Challan", icon: "receipt" },
-  { type: "WEIGHT_SLIP_EMPTY", label: "Weight Slip (Empty)", icon: "scale" },
-  { type: "WEIGHT_SLIP_LOADED", label: "Weight Slip (Loaded)", icon: "scale" },
-  { type: "MATERIAL_ACKNOWLEDGEMENT", label: "Material Acknowledgement", icon: "assignment_turned_in" },
-  { type: "ASSET_HANDOVER_FORM", label: "Asset Handover Form", icon: "handshake" },
+  { type: "FORM_6", label: "Form 6 / Manifest", icon: "article", required: true },
+  { type: "RECYCLING_CERTIFICATE", label: "Recycling Certificate", icon: "recycling", required: true },
+  { type: "DISPOSAL_CERTIFICATE", label: "Disposal Certificate", icon: "delete_forever", required: true },
+  { type: "EWASTE_RECYCLING_CERTIFICATE", label: "E-Waste Recycling Certificate", icon: "eco", required: true },
+  { type: "DATA_DESTRUCTION_CERTIFICATE", label: "Data Destruction Certificate", icon: "security", required: false },
+  { type: "EWAY_BILL", label: "E-Way Bill", icon: "local_shipping", required: true },
+  { type: "DELIVERY_CHALLAN", label: "Delivery Challan", icon: "receipt", required: true },
+  { type: "WEIGHT_SLIP_EMPTY", label: "Weight Slip (Empty)", icon: "scale", required: true },
+  { type: "WEIGHT_SLIP_LOADED", label: "Weight Slip (Loaded)", icon: "scale", required: true },
+  { type: "MATERIAL_ACKNOWLEDGEMENT", label: "Material Acknowledgement", icon: "assignment_turned_in", required: false },
+  { type: "ASSET_HANDOVER_FORM", label: "Asset Handover Form", icon: "handshake", required: true },
 ];
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
@@ -263,24 +263,55 @@ export default function VendorHandoverPage() {
 
                     {/* Compliance Document Upload */}
                     <div className="px-6 py-5">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Compliance & Handover Documents</p>
+                      <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Compliance &amp; Handover Documents</p>
+                        <div className="flex items-center gap-3 text-[10px] font-semibold text-slate-500">
+                          <span className="flex items-center gap-1">
+                            <span className="text-red-500 font-black text-sm leading-none">*</span> Required
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-slate-600 inline-block" /> Optional
+                          </span>
+                        </div>
+                      </div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {COMPLIANCE_DOC_TYPES.map(docDef => {
                           const isUploaded = uploadedTypes.has(docDef.type);
                           const uploadedDoc = docs.find((d: any) => d.type === docDef.type);
                           const busyKey = pickup.id + "_" + docDef.type;
                           return (
-                            <div key={docDef.type} className={`flex items-center gap-3 p-3 rounded-xl border ${isUploaded ? "bg-green-50 border-green-200 dark:bg-green-900/10 dark:border-green-800" : "bg-slate-50 border-slate-200 dark:bg-slate-800/40 dark:border-slate-700"}`}>
-                              <span className={`material-symbols-outlined text-base ${isUploaded ? "text-green-600" : "text-slate-400"}`}>{isUploaded ? "check_circle" : docDef.icon}</span>
+                            <div key={docDef.type} className={`flex items-center gap-3 p-3 rounded-xl border transition-colors ${
+                              isUploaded
+                                ? "bg-green-50 border-green-200 dark:bg-green-900/10 dark:border-green-800"
+                                : docDef.required
+                                ? "bg-red-50/40 border-red-200 dark:bg-red-950/20 dark:border-red-900/50"
+                                : "bg-slate-50 border-slate-200 dark:bg-slate-800/40 dark:border-slate-700"
+                            }`}>
+                              <span className={`material-symbols-outlined text-base flex-shrink-0 ${
+                                isUploaded ? "text-green-600" : docDef.required ? "text-red-400" : "text-slate-400"
+                              }`}>{isUploaded ? "check_circle" : docDef.icon}</span>
                               <div className="flex-1 min-w-0">
-                                <p className={`text-xs font-bold truncate ${isUploaded ? "text-green-700 dark:text-green-400" : "text-slate-700 dark:text-slate-300"}`}>{docDef.label}</p>
+                                <p className={`text-xs font-bold flex items-center gap-1 flex-wrap ${
+                                  isUploaded ? "text-green-700 dark:text-green-400" : "text-slate-700 dark:text-slate-300"
+                                }`}>
+                                  <span className="truncate">{docDef.label}</span>
+                                  {!isUploaded && docDef.required && (
+                                    <span className="text-red-500 font-black text-sm leading-none" title="Required">*</span>
+                                  )}
+                                </p>
                                 {isUploaded ? (
                                   <p className="text-[10px] text-green-600 truncate">{uploadedDoc?.fileName} · <span className="font-bold">Uploaded ✓</span></p>
-                                ) : null}
+                                ) : (
+                                  <p className={`text-[10px] mt-0.5 font-semibold ${
+                                    docDef.required ? "text-red-500" : "text-slate-400"
+                                  }`}>
+                                    {docDef.required ? "Required" : "Optional"}
+                                  </p>
+                                )}
                               </div>
                               {isUploaded ? (
                                 <a href={uploadedDoc?.signedUrl} target="_blank" rel="noreferrer"
-                                  className="p-1.5 rounded-lg bg-green-100 hover:bg-green-200 text-green-700 transition-colors" title="View uploaded file">
+                                  className="p-1.5 rounded-lg bg-green-100 hover:bg-green-200 text-green-700 transition-colors flex-shrink-0" title="View uploaded file">
                                   <span className="material-symbols-outlined text-sm">visibility</span>
                                 </a>
                               ) : (
@@ -297,7 +328,11 @@ export default function VendorHandoverPage() {
                                   />
                                   <button onClick={() => fileRefs.current[busyKey]?.click()}
                                     disabled={uploading === busyKey}
-                                    className="p-1.5 rounded-lg bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300 transition-colors disabled:opacity-50">
+                                    className={`p-1.5 rounded-lg transition-colors flex-shrink-0 disabled:opacity-50 ${
+                                      docDef.required
+                                        ? "bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400"
+                                        : "bg-slate-200 hover:bg-slate-300 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-300"
+                                    }`}>
                                     <span className="material-symbols-outlined text-sm">{uploading === busyKey ? "progress_activity" : "upload"}</span>
                                   </button>
                                 </>

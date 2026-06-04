@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useApp } from "@/context/AppContext";
 import Sidebar from "@/components/shared/Sidebar";
 import TopBar from "@/components/shared/TopBar";
@@ -9,15 +9,24 @@ import TopBar from "@/components/shared/TopBar";
 export default function VendorLayout({ children }: { children: React.ReactNode }) {
   const { currentUser, isSidebarCollapsed, isInitialized } = useApp();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     if (!isInitialized) return;
     if (!currentUser) {
       router.push("/");
-    } else if (currentUser.role !== "vendor") {
-      router.push("/");
+      return;
     }
-  }, [currentUser, router, isInitialized]);
+    if (currentUser.role !== "vendor") {
+      router.push("/");
+      return;
+    }
+    if (currentUser.isLocked) {
+      if (pathname !== "/vendor/dashboard" && pathname !== "/vendor/help") {
+        router.push("/vendor/dashboard");
+      }
+    }
+  }, [currentUser, router, isInitialized, pathname]);
 
   if (!isInitialized || !currentUser || currentUser.role !== "vendor") return null;
 

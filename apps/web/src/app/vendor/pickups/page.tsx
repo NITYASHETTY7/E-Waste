@@ -157,7 +157,13 @@ export default function VendorPickups() {
                 <div className="p-6">
                   <div className="flex items-center justify-between mb-4">
                     <h4 className="text-sm font-black uppercase tracking-widest text-slate-500">Document Checklist</h4>
-                    <span className="text-xs font-bold text-slate-400">{completedRequired} / {requiredCount} Required Uploaded</span>
+                    <div className="flex items-center gap-3 text-[10px] font-semibold text-slate-400">
+                      <span className="flex items-center gap-1">
+                        <span className="text-red-500 font-black text-sm leading-none">*</span> Required
+                      </span>
+                      <span className="text-slate-300 dark:text-slate-700">·</span>
+                      <span className="font-bold text-slate-400">{completedRequired} / {requiredCount} uploaded</span>
+                    </div>
                   </div>
 
                   <div className="space-y-3">
@@ -167,12 +173,27 @@ export default function VendorPickups() {
                       const isUploading = uploadingDocId?.pickupId === pickup.id && uploadingDocId?.docType === (doc.typeParam || doc.endpoint);
 
                       return (
-                        <div key={doc.key} className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 border rounded-xl transition-colors ${isUploaded ? "bg-emerald-50/30 border-emerald-200 dark:bg-emerald-900/10 dark:border-emerald-800/50" : "bg-[color:var(--color-surface)] border-slate-200 dark:border-slate-700"}`}>
+                        <div key={doc.key} className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 border rounded-xl transition-colors ${
+                          isUploaded
+                            ? "bg-emerald-50/30 border-emerald-200 dark:bg-emerald-900/10 dark:border-emerald-800/50"
+                            : doc.required
+                            ? "bg-red-50/40 border-red-200 dark:bg-red-950/20 dark:border-red-900/50"
+                            : "bg-[color:var(--color-surface)] border-slate-200 dark:border-slate-700"
+                        }`}>
                           <div>
-                            <p className="text-sm font-bold flex items-center gap-2 text-slate-800 dark:text-slate-200">
+                            <p className="text-sm font-bold flex items-center gap-1.5 text-slate-800 dark:text-slate-200">
                               {doc.label}
-                              {doc.required && <span className="text-red-500 text-[10px]">*</span>}
+                              {!isUploaded && doc.required && (
+                                <span className="text-red-500 font-black text-sm leading-none" title="Required">*</span>
+                              )}
                             </p>
+                            {!isUploaded && (
+                              <p className={`text-[10px] mt-0.5 font-semibold ${
+                                doc.required ? "text-red-500" : "text-slate-400"
+                              }`}>
+                                {doc.required ? "Required" : "Optional"}
+                              </p>
+                            )}
                             {isUploaded && uploadedDoc && (
                               <p className="text-xs text-slate-500 mt-1 truncate max-w-[200px] sm:max-w-[300px]">
                                 {uploadedDoc.fileName}

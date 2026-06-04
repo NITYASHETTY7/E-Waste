@@ -32,7 +32,7 @@ export default function AdminPurchaseOrders() {
   };
 
   // Only listings with a winner selected (post-auction)
-  const poListings = listings.filter(l => l.winnerVendorId && l.finalQuoteStatus === "approved");
+  const poListings = listings.filter(l => l.winnerVendorId);
 
   const getWinBid = (listingId: string, vendorId: string) =>
     bids.find(b => b.listingId === listingId && b.vendorId === vendorId && b.status === "accepted") ||

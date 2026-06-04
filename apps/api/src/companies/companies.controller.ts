@@ -90,14 +90,14 @@ export class CompaniesController {
   }
 
   @Patch('admin/:id/hold')
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   holdCompany(@Param('id') id: string, @Body('reason') reason?: string) {
     return this.companiesService.holdCompany(id, reason);
   }
 
   @Patch('admin/:id/reject')
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   rejectCompany(@Param('id') id: string, @Body('reason') reason?: string) {
     return this.companiesService.rejectCompany(id, reason);
@@ -106,21 +106,21 @@ export class CompaniesController {
   // --- Admin Risk Control Endpoints ---
 
   @Patch('admin/:id/lock')
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   lockVendor(@Param('id') id: string, @Body('reason') reason: string) {
     return this.companiesService.lockCompany(id, reason);
   }
 
   @Patch('admin/:id/unlock')
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   unlockVendor(@Param('id') id: string) {
     return this.companiesService.unlockCompany(id);
   }
 
   @Post('admin/:id/penalty')
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(UserRole.ADMIN)
   applyPenalty(
     @Param('id') id: string,

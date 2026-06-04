@@ -1,10 +1,13 @@
 "use client";
 
+import { useState } from "react";
 import { useApp } from "@/context/AppContext";
 import Link from "next/link";
 
 export default function VendorNotifications() {
   const { notifications, listings, currentUser, markNotificationRead } = useApp();
+  const [expandedNotifId, setExpandedNotifId] = useState<string | null>(null);
+
   const myNotifs = (notifications || [])
     .filter(n => n.userId === currentUser?.id)
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
@@ -59,9 +62,10 @@ export default function VendorNotifications() {
       ) : (
         <div className="space-y-3">
           {myNotifs.map(n => {
+            const isExpanded = expandedNotifId === n.id;
             const Content = (
               <div
-                className={`card p-4 flex items-start gap-4 cursor-pointer transition-all hover:shadow-md h-full ${!n.read ? "border-l-4 border-[color:var(--color-primary)]" : ""}`}>
+                className={`card p-4 flex items-start gap-4 cursor-pointer transition-all hover:shadow-sm h-full ${!n.read ? "border-l-4 border-[color:var(--color-primary)]" : ""}`}>
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${typeColors[n.type] || typeColors.general}`}>
                   <span className="material-symbols-outlined text-lg">{typeIcons[n.type] || "notifications"}</span>
                 </div>
@@ -70,42 +74,46 @@ export default function VendorNotifications() {
                     <p className={`font-bold text-sm ${!n.read ? "text-[color:var(--color-on-surface)]" : "text-[color:var(--color-on-surface-variant)]"}`}>{n.title}</p>
                     <span className="text-[10px] text-[color:var(--color-on-surface-variant)] shrink-0 ml-2">{timeAgo(n.createdAt)}</span>
                   </div>
-                  <p className="text-xs text-[color:var(--color-on-surface-variant)] mt-0.5 leading-relaxed break-words">{n.message}</p>
+                  <p className={`text-xs text-[color:var(--color-on-surface-variant)] mt-0.5 leading-relaxed break-words ${isExpanded ? "" : "line-clamp-1"}`}>{n.message}</p>
+                  
+                  {isExpanded && n.link && (() => {
+                    const link = n.link;
+                    return (
+                      <div className="mt-3 flex justify-start">
+                        <Link href={link} onClick={(e) => {
+                          const listingIdMatch = link.match(/\/(?:listings|auctions|invitations|marketplace)\/([a-zA-Z0-9_-]+)/);
+                          if (listingIdMatch) {
+                            const targetId = listingIdMatch[1];
+                            const listing = (listings || []).find(l => l.id === targetId || l.auctionId === targetId);
+                            const isAuctionDone = listing && (
+                              listing.auctionPhase === 'completed' || 
+                              listing.status === 'completed' ||
+                              (listing.status as string) === 'closed'
+                            );
+                            if (isAuctionDone && (link.includes('configure-live') || link.includes('invitations') || link.includes('marketplace'))) {
+                              e.preventDefault();
+                              alert("already completed /exhausted");
+                            }
+                          }
+                        }} className="px-3 py-1.5 bg-primary hover:bg-primary/90 text-white rounded-lg text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 transition-colors">
+                          Go to Page <span className="material-symbols-outlined text-xs">arrow_forward</span>
+                        </Link>
+                      </div>
+                    );
+                  })()}
                 </div>
                 {!n.read && <div className="w-2 h-2 rounded-full bg-[color:var(--color-primary)] shrink-0 mt-1" />}
               </div>
             );
 
-            const handleClick = (e: React.MouseEvent) => {
-              if (n.link) {
-                const listingIdMatch = n.link.match(/\/(?:listings|auctions|invitations|marketplace)\/([a-zA-Z0-9_-]+)/);
-                if (listingIdMatch) {
-                  const targetId = listingIdMatch[1];
-                  const listing = (listings || []).find(l => l.id === targetId || l.auctionId === targetId);
-                  
-                  const isAuctionDone = listing && (
-                    listing.auctionPhase === 'completed' || 
-                    listing.status === 'completed' ||
-                    listing.status === 'closed'
-                  );
-
-                  if (isAuctionDone && (n.link.includes('configure-live') || n.link.includes('invitations') || n.link.includes('marketplace'))) {
-                    e.preventDefault();
-                    alert("already completed /exhausted");
-                    return;
-                  }
-                }
+            const handleClick = () => {
+              if (isExpanded) {
+                setExpandedNotifId(null);
+              } else {
+                setExpandedNotifId(n.id);
+                if (!n.read) markNotificationRead(n.id);
               }
-              if (!n.read) markNotificationRead(n.id);
             };
-
-            if (n.link) {
-              return (
-                <Link key={n.id} href={n.link} onClick={handleClick} className="block">
-                  {Content}
-                </Link>
-              );
-            }
 
             return (
               <div key={n.id} onClick={handleClick}>

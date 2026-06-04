@@ -158,20 +158,20 @@ export default function ClientPost() {
 
       {step === "category" && (
         <div className="animate-fade-in card p-6">
-          <h3 className="text-sm font-black uppercase tracking-widest text-[color:var(--color-on-surface-variant)] mb-4">Select Category</h3>
+          <h3 className="text-sm font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-4">Select Category</h3>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
             {CATEGORIES.map(cat => (
               <button key={cat.label} type="button" onClick={() => setSelectedCategory(cat.label)}
                 className={`p-4 rounded-xl border-2 text-center transition-all ${
                   selectedCategory === cat.label
-                    ? "border-[color:var(--color-primary)] bg-[color:var(--color-secondary-container)]"
-                    : "border-[color:var(--color-outline-variant)] bg-[color:var(--color-surface)] hover:border-[color:var(--color-primary)]/30 hover:bg-[color:var(--color-surface-variant)]"
+                    ? "border-primary bg-emerald-50 dark:bg-emerald-950/20"
+                    : "border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-primary/30 hover:bg-slate-50 dark:hover:bg-slate-800/80"
                 }`}>
-                <span className={`material-symbols-outlined text-3xl block mb-2 ${selectedCategory === cat.label ? "text-[color:var(--color-primary)]" : "text-slate-500"}`}
+                <span className={`material-symbols-outlined text-3xl block mb-2 ${selectedCategory === cat.label ? "text-primary dark:text-emerald-400" : "text-slate-450 dark:text-slate-500"}`}
                   style={selectedCategory === cat.label ? { fontVariationSettings: "'FILL' 1" } : undefined}>
                   {cat.icon}
                 </span>
-                <p className="font-black text-xs text-[color:var(--color-on-surface)] leading-tight">{cat.label}</p>
+                <p className={`font-black text-xs leading-tight ${selectedCategory === cat.label ? "text-primary dark:text-emerald-400" : "text-slate-800 dark:text-slate-200"}`}>{cat.label}</p>
               </button>
             ))}
           </div>

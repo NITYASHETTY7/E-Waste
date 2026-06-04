@@ -50,6 +50,7 @@ export default function TopBar() {
   const menuRef = useRef<HTMLDivElement>(null);
   const [notifOpen, setNotifOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
+  const [expandedNotifId, setExpandedNotifId] = useState<string | null>(null);
 
   const title = PAGE_TITLES[pathname] || "We Connect";
   const userNotifications = (notifications || []).filter(n => n.userId === currentUser?.id);
@@ -125,7 +126,7 @@ export default function TopBar() {
         </div>
       <div className="flex items-center gap-2 md:gap-4">
         {/* Quick Add - Only for Clients */}
-        {role === "client" && role !== "admin" && (
+        {role === "client" && (
           <button 
             onClick={() => router.push('/client/post')}
             className="hidden sm:flex w-10 h-10 rounded-2xl bg-primary text-white items-center justify-center hover:shadow-lg hover:shadow-primary/30 active:scale-95 transition-all" 
@@ -170,87 +171,95 @@ export default function TopBar() {
                     <p className="text-xs text-slate-450 dark:text-slate-550 font-bold">No notifications</p>
                   </div>
                 ) : (
-                  userNotifications.slice(0, 20).map(n => (
-                    <div 
-                      key={n.id} 
-                      className={`flex gap-3 px-4 py-3 cursor-pointer hover:bg-emerald-950/30 transition-all group ${n.read ? 'opacity-60 hover:opacity-100' : ''}`}
-                      onClick={() => {
-                        markNotificationRead(n.id);
-                        
-                        // Check if redirect is allowed based on auction status
-                        let allowRedirect = true;
-                        if (n.link) {
-                          // Match ID from either relative or absolute URL
-                          const listingIdMatch = n.link.match(/\/(?:listings|auctions|invitations|marketplace)\/([a-zA-Z0-9_-]+)/);
-                          if (listingIdMatch) {
-                            const targetId = listingIdMatch[1];
-                            const listing = (listings || []).find(l => l.id === targetId || l.auctionId === targetId);
-                            
-                            // Check for completed/exhausted status
-                            const isAuctionActive = listing && (
-                              listing.auctionPhase === 'live' ||
-                              listing.auctionPhase === 'sealed_bid' ||
-                              listing.auctionPhase === 'invitation_window'
-                            );
-                            const isAuctionDone = listing && (
-                              listing.auctionPhase === 'completed' || 
-                              listing.status === 'completed' ||
-                              listing.status === 'closed'
-                            );
-
-                            if (n.link.includes('configure-live')) {
-                              // If it's already live or done, block re-configuration
-                              if (listing.auctionPhase === 'live' || isAuctionDone) {
-                                allowRedirect = false;
-                                alert("already completed /exhausted");
-                              }
-                            } else if (n.link.includes('invitations')) {
-                              // If bidding is already done, block invitation access
-                              if (isAuctionDone) {
-                                allowRedirect = false;
-                                alert("already completed /exhausted");
-                              }
-                            } else if (n.link.includes('marketplace')) {
-                              // For vendors, block if auction finished
-                              if (isAuctionDone) {
-                                allowRedirect = false;
-                                alert("already completed /exhausted");
-                              }
-                            }
+                  userNotifications.slice(0, 20).map(n => {
+                    const isExpanded = expandedNotifId === n.id;
+                    return (
+                      <div 
+                        key={n.id} 
+                        className={`flex gap-3 px-4 py-3 cursor-pointer hover:bg-emerald-950/30 transition-all group ${n.read ? 'opacity-60 hover:opacity-100' : ''}`}
+                        onClick={() => {
+                          if (isExpanded) {
+                            setExpandedNotifId(null);
+                          } else {
+                            setExpandedNotifId(n.id);
+                            markNotificationRead(n.id);
                           }
-                        }
+                        }}
+                      >
+                        <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${n.read ? 'bg-slate-300 dark:bg-slate-700' : 'bg-blue-500'} group-hover:bg-white`} />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-bold text-slate-900 dark:text-white leading-tight group-hover:text-white">{n.title}</p>
+                          <p className={`text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-snug group-hover:text-emerald-50 break-words ${isExpanded ? "" : "line-clamp-1"}`}>{n.message}</p>
+                          
+                          {isExpanded && n.link && (() => {
+                            const link = n.link;
+                            return (
+                              <div className="mt-2 flex justify-start">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    let allowRedirect = true;
+                                    const listingIdMatch = link.match(/\/(?:listings|auctions|invitations|marketplace)\/([a-zA-Z0-9_-]+)/);
+                                    if (listingIdMatch) {
+                                      const targetId = listingIdMatch[1];
+                                      const listing = (listings || []).find(l => l.id === targetId || l.auctionId === targetId);
+                                      
+                                      const isAuctionDone = listing && (
+                                        listing.auctionPhase === 'completed' || 
+                                        listing.status === 'completed' ||
+                                        (listing.status as string) === 'closed'
+                                      );
 
-                        if (n.link && allowRedirect) { 
-                          // If it's an absolute URL for our site, make it relative for router
-                          let targetPath = n.link;
-                          try {
-                            const url = new URL(n.link);
-                            if (url.origin === window.location.origin) {
-                              targetPath = url.pathname + url.search + url.hash;
-                            }
-                          } catch (e) {
-                            // Link is already relative or invalid URL
-                          }
-                          router.push(targetPath); 
-                        }
-                        setNotifOpen(false);
-                      }}
-                    >
-                      <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${n.read ? 'bg-slate-300 dark:bg-slate-700' : 'bg-blue-500'} group-hover:bg-white`} />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-xs font-bold text-slate-900 dark:text-white leading-tight group-hover:text-white">{n.title}</p>
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5 leading-snug group-hover:text-emerald-50 break-words">{n.message}</p>
-                        <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 group-hover:text-emerald-100">
-                          {new Date(n.createdAt).toLocaleDateString('en-IN', { 
-                            day: '2-digit', 
-                            month: 'short', 
-                            hour: '2-digit', 
-                            minute: '2-digit' 
-                          })}
-                        </p>
+                                      if (link.includes('configure-live')) {
+                                        if (listing && (listing.auctionPhase === 'live' || isAuctionDone)) {
+                                          allowRedirect = false;
+                                          alert("already completed /exhausted");
+                                        }
+                                      } else if (link.includes('invitations')) {
+                                        if (isAuctionDone) {
+                                          allowRedirect = false;
+                                          alert("already completed /exhausted");
+                                        }
+                                      } else if (link.includes('marketplace')) {
+                                        if (isAuctionDone) {
+                                          allowRedirect = false;
+                                          alert("already completed /exhausted");
+                                        }
+                                      }
+                                    }
+
+                                    if (allowRedirect) { 
+                                      let targetPath = link;
+                                      try {
+                                        const url = new URL(link);
+                                        if (url.origin === window.location.origin) {
+                                          targetPath = url.pathname + url.search + url.hash;
+                                        }
+                                      } catch (e) {}
+                                      router.push(targetPath); 
+                                      setNotifOpen(false);
+                                    }
+                                  }}
+                                  className="px-2 py-1 bg-primary text-white rounded text-[9px] font-black uppercase tracking-wider hover:bg-primary/90 flex items-center gap-0.5 transition-colors border-none"
+                                >
+                                  Go to Page <span className="material-symbols-outlined text-[10px]">arrow_forward</span>
+                                </button>
+                              </div>
+                            );
+                          })()}
+
+                          <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 group-hover:text-emerald-100 font-mono">
+                            {new Date(n.createdAt).toLocaleDateString('en-IN', { 
+                              day: '2-digit', 
+                              month: 'short', 
+                              hour: '2-digit', 
+                              minute: '2-digit' 
+                            })}
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             </div>

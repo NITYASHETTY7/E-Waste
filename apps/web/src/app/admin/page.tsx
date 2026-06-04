@@ -3,11 +3,17 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useApp } from "@/context/AppContext";
+import { motion } from "framer-motion";
+import ForgotPasswordModal from "@/components/ForgotPasswordModal";
 
 export default function AdminLoginPage() {
-  const [password, setPassword] = useState("");
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showForgot, setShowForgot] = useState(false);
+
   const router = useRouter();
   const { login } = useApp();
 
@@ -15,97 +21,111 @@ export default function AdminLoginPage() {
     e.preventDefault();
     setError("");
     setLoading(true);
-    await new Promise(r => setTimeout(r, 600)); // Simulate auth check
-    if (password === "admin123") {
-      login("admin", "Super Admin");
+    try {
+      await login("admin", loginEmail, loginPassword);
       router.push("/admin/dashboard");
-    } else {
-      setError("Invalid access key. Please verify your credentials.");
+    } catch {
+      setError("Invalid administrative credentials or unauthorized access.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
+  };
+
+  const quickDemo = () => {
+    setLoginEmail(process.env.NEXT_PUBLIC_ADMIN_EMAIL || "admin@weconnect.com");
+    setLoginPassword("password");
   };
 
   return (
-    <main className="min-h-screen bg-[#0b1f1e] flex items-center justify-center p-6 relative overflow-hidden">
-      {/* Subtle background grid pattern */}
-      <div
-        className="absolute inset-0 opacity-5"
-        style={{
-          backgroundImage: "radial-gradient(circle at 1px 1px, rgba(150,243,228,0.4) 1px, transparent 0)",
-          backgroundSize: "40px 40px",
-        }}
-      />
-      {/* Glow orbs */}
-      <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-[color:var(--color-primary)] opacity-10 rounded-full blur-3xl" />
-      <div className="absolute bottom-1/4 right-1/4 w-48 h-48 bg-[color:var(--color-primary-fixed)] opacity-10 rounded-full blur-3xl" />
+    <>
+      {showForgot && (
+        <ForgotPasswordModal accentColor="#0B5ED7" onClose={() => setShowForgot(false)} />
+      )}
+      <div className="min-h-screen flex items-center justify-center p-4 md:p-6 relative overflow-hidden bg-[#F5F7FA] dark:bg-slate-950">
+        {/* Brand Background Elements */}
+        <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-[#0B5ED7]/5 rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-[#1E8E3E]/5 rounded-full blur-[120px] pointer-events-none" />
 
-      <div className="w-full max-w-md relative z-10">
-        {/* Security badge */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 bg-[color:var(--color-primary-fixed)]/10 border border-[color:var(--color-primary-fixed)]/20 text-[color:var(--color-primary-fixed-dim)] px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest mb-6">
-            <span className="material-symbols-outlined text-sm">security</span>
-            Restricted Access — Admin Only
-          </div>
-          <div className="w-16 h-16 mx-auto rounded-2xl bg-[color:var(--color-primary-container)] flex items-center justify-center mb-4">
-            <span className="material-symbols-outlined text-3xl text-[color:var(--color-on-primary-container)]">admin_panel_settings</span>
-          </div>
-          <h1 className="text-3xl font-bold font-headline text-white mb-2">WeConnect Console</h1>
-          <p className="text-slate-400 text-sm">Enterprise administration portal</p>
-        </div>
+        <div className="w-full max-w-[440px] relative z-10 px-4">
+          {/* Security Badge */}
+          <motion.div 
+            initial={{ y: -20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            className="mb-4 flex items-center justify-between bg-white border border-slate-200 rounded-xl p-3 shadow-sm dark:bg-slate-900 dark:border-slate-700"
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-lg bg-slate-100 flex items-center justify-center dark:bg-slate-800">
+                <span className="material-symbols-outlined text-slate-500 text-base">shield_lock</span>
+              </div>
+              <div className="flex flex-col">
+                <p className="text-[10px] font-bold text-slate-600 uppercase tracking-widest leading-none">Administrative Control</p>
+                <button onClick={quickDemo} className="text-[9px] font-black text-[#0B5ED7] uppercase tracking-widest hover:underline text-left mt-0.5">Quick Demo Login</button>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-emerald-50 border border-emerald-100 rounded-full">
+              <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="text-[8px] font-black text-emerald-600 uppercase tracking-[0.2em]">Live</span>
+            </div>
+          </motion.div>
 
-        {/* Login Card */}
-        <div className="bg-[#0F2A3F] rounded-2xl p-8 border border-slate-700/50 shadow-[0_32px_64px_rgba(0,0,0,0.4)]">
-          <form onSubmit={handleLogin} className="space-y-5">
-            <div className="space-y-1">
-              <label className="text-[10px] uppercase tracking-widest font-bold text-slate-400 block">
-                Administrator Access Key
-              </label>
-              <input
-                type="password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••••••"
-                className="w-full bg-[#203433] border border-slate-700/50 rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-[color:var(--color-primary-fixed)] outline-none font-mono placeholder-slate-600 transition-all"
-              />
+          <div className="bg-white border border-slate-200 rounded-[2rem] p-6 md:p-10 shadow-[0_20px_50px_rgba(0,0,0,0.05)] overflow-hidden relative dark:bg-slate-900 dark:border-slate-700">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-[#0B5ED7]/5 rounded-full blur-3xl pointer-events-none" />
+            
+            {/* Branding */}
+            <div className="flex justify-center mb-8 cursor-pointer" onClick={() => router.push('/')}>
+              <img src="/logo%203.png" alt="We Connect" className="h-12 object-contain" />
+            </div>
+
+            <div className="text-center mb-8">
+              <h2 className="text-xl font-black text-slate-900 mb-1 tracking-tight dark:text-white">Access Portal</h2>
+              <p className="text-slate-400 text-[9px] font-bold uppercase tracking-[0.2em]">Enterprise Login</p>
             </div>
 
             {error && (
-              <div className="flex items-center gap-2 p-3 bg-red-900/20 border border-red-800/30 rounded-lg">
-                <span className="material-symbols-outlined text-red-400 text-sm">error</span>
-                <p className="text-red-400 text-xs">{error}</p>
-              </div>
+              <motion.div 
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                className="mb-8 p-4 bg-red-50 border border-red-100 rounded-2xl flex items-center gap-3"
+              >
+                <span className="material-symbols-outlined text-red-500 text-sm">error</span>
+                <p className="text-red-700 text-xs font-bold">{error}</p>
+              </motion.div>
             )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full btn-primary py-4 rounded-xl justify-center disabled:opacity-60 disabled:cursor-not-allowed"
-            >
-              {loading ? (
-                <>
-                  <span className="material-symbols-outlined text-lg animate-spin">progress_activity</span>
-                  Authenticating...
-                </>
-              ) : (
-                <>
-                  <span className="material-symbols-outlined text-lg">lock_open</span>
-                  Authenticate
-                </>
-              )}
-            </button>
-          </form>
+            <form onSubmit={handleLogin} className="space-y-6" suppressHydrationWarning>
+              <div>
+                <label className="text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] ml-1 mb-2 block">Admin Identifier</label>
+                <input type="text" required value={loginEmail} onChange={e => setLoginEmail(e.target.value)}
+                  placeholder={process.env.NEXT_PUBLIC_ADMIN_EMAIL || "admin@weconnect.com"}
+                  className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:border-[#0B5ED7] focus:bg-white dark:focus:bg-slate-800 dark:focus:text-white focus:ring-4 focus:ring-[#0B5ED7]/5 outline-none transition-all font-medium dark:bg-slate-950 dark:text-white dark:border-slate-700" 
+                />
+              </div>
+              <div>
+                <div className="flex justify-between items-center mb-2">
+                  <label className="text-[10px] font-black text-slate-600 uppercase tracking-[0.2em] ml-1">Pin Code</label>
+                  <button type="button" onClick={() => setShowForgot(true)} className="text-[10px] font-black text-[#0B5ED7] uppercase tracking-widest hover:underline">Reset</button>
+                </div>
+                <div className="relative">
+                  <input type={showPassword ? "text" : "password"} required value={loginPassword} onChange={e => setLoginPassword(e.target.value)}
+                    placeholder="••••••••" 
+                    className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl text-slate-900 placeholder:text-slate-400 focus:border-[#0B5ED7] focus:bg-white dark:focus:bg-slate-800 dark:focus:text-white focus:ring-4 focus:ring-[#0B5ED7]/5 outline-none transition-all font-mono dark:bg-slate-950 dark:text-white dark:border-slate-700" 
+                  />
+                  <button type="button" onClick={() => setShowPassword(p => !p)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700 transition-colors">
+                    <span className="material-symbols-outlined text-xl">{showPassword ? "visibility_off" : "visibility"}</span>
+                  </button>
+                </div>
+              </div>
+              <button type="submit" disabled={loading} className="w-full py-5 bg-[#0B5ED7] text-white font-black text-[11px] uppercase tracking-[0.3em] rounded-2xl mt-8 hover:bg-[#084295] shadow-xl hover:shadow-[#0B5ED7]/20 transition-all flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-50">
+                {loading ? <span className="material-symbols-outlined animate-spin text-lg">progress_activity</span> : <><span className="material-symbols-outlined text-lg">admin_panel_settings</span> Secure Admin Login</>}
+              </button>
+            </form>
 
-          <div className="mt-6 pt-5 border-t border-slate-700/50 text-center space-y-2">
-            <p className="text-xs text-slate-500">
-              Demo credentials: <span className="text-slate-300 font-mono">admin123</span>
-            </p>
-            <a href="/" className="text-xs text-slate-500 hover:text-slate-300 transition-colors block">
-              ← Return to public gateway
-            </a>
+            <div className="mt-12 text-center">
+              <p className="text-[9px] font-bold text-slate-500 uppercase tracking-[0.4em]">Proprietary System — Unauthorized trace will occur</p>
+            </div>
           </div>
         </div>
       </div>
-    </main>
+    </>
   );
 }

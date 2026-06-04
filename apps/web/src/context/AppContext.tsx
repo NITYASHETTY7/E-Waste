@@ -7,7 +7,7 @@ import axios from 'axios';
 
 interface AppContextType extends AppState {
   refreshData: () => Promise<void>;
-  login: (role: UserRole, email: string, password?: string) => Promise<void>;
+  login: (role: UserRole, email: string, password?: string) => Promise<User>;
   logout: () => void;
   register: (role: UserRole, name: string, email: string, password?: string, phone?: string) => Promise<{ devEmailOtp?: string; devPhoneOtp?: string; resumed?: boolean; resumeStep?: number }>;
   startOnboarding: (role: 'client' | 'vendor' | 'consumer', email: string, password: string) => void;
@@ -424,7 +424,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const isAdmin = prev.currentUser?.role === 'admin';
 
         // Preserve local state for fields not yet fully implemented in the backend (e.g. closingDocuments, images)
-        const mergedListings = hasBackendListings ? backendListings.map(bl => {
+        const mergedListings = hasBackendListings ? backendListings.map((bl: any) => {
           const existing = prev.listings.find(pl => pl.id === bl.id);
           if (existing) {
             return {

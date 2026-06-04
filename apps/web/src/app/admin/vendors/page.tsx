@@ -28,6 +28,7 @@ export default function AdminVendors() {
   const [lockReason, setLockReason] = useState("");
   const [penaltyAmount, setPenaltyAmount] = useState("");
   const [penaltyReason, setPenaltyReason] = useState("");
+  const [applyingPenalty, setApplyingPenalty] = useState(false);
 
   const fetchVendors = async () => {
     try {
@@ -130,7 +131,8 @@ export default function AdminVendors() {
   };
 
   const handlePenalty = async () => {
-    if (!penaltyModal.vendorId || !penaltyAmount || !penaltyReason.trim()) return;
+    if (!penaltyModal.vendorId || !penaltyAmount || !penaltyReason.trim() || applyingPenalty) return;
+    setApplyingPenalty(true);
     try {
       await api.post(`/companies/admin/${penaltyModal.vendorId}/penalty`, { amount: Number(penaltyAmount), reason: penaltyReason });
       showToast("Penalty applied.");
@@ -140,6 +142,8 @@ export default function AdminVendors() {
       fetchVendors();
     } catch (err: any) {
       showToast(err.response?.data?.message || "Failed to apply penalty.", "error");
+    } finally {
+      setApplyingPenalty(false);
     }
   };
 
@@ -613,9 +617,11 @@ export default function AdminVendors() {
             </div>
             <div className="flex justify-end gap-3">
               <button onClick={() => { setPenaltyModal({ isOpen: false, vendorId: null }); setPenaltyAmount(""); setPenaltyReason(""); }}
-                className="px-5 py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 hover:bg-slate-50">Cancel</button>
-              <button onClick={handlePenalty} disabled={!penaltyAmount || !penaltyReason.trim()}
-                className="px-5 py-2.5 rounded-xl bg-orange-600 text-white text-sm font-bold hover:bg-orange-700 disabled:opacity-50">Apply Penalty</button>
+                className="px-5 py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 hover:bg-slate-50" disabled={applyingPenalty}>Cancel</button>
+              <button onClick={handlePenalty} disabled={!penaltyAmount || !penaltyReason.trim() || applyingPenalty}
+                className="px-5 py-2.5 rounded-xl bg-orange-600 text-white text-sm font-bold hover:bg-orange-700 disabled:opacity-50">
+                {applyingPenalty ? "Applying..." : "Apply Penalty"}
+              </button>
             </div>
           </div>
         </div>

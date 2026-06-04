@@ -28,29 +28,39 @@ export default function AdminReports() {
 
   const monthlyData = useMemo(() => {
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    const currentYear = new Date().getFullYear();
-    return months.map((month, i) => {
+    const now = new Date();
+    const result = [];
+    
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthLabel = months[d.getMonth()];
+      const year = d.getFullYear();
+      
       const weight = listings
         .filter(l => {
-          const d = new Date(l.createdAt);
-          return (l.status === "completed" || l.auctionPhase === "completed") && d.getMonth() === i && d.getFullYear() === currentYear;
+          const ld = new Date(l.createdAt);
+          return (l.status === "completed" || l.auctionPhase === "completed") && 
+                 ld.getMonth() === d.getMonth() && 
+                 ld.getFullYear() === year;
         })
         .reduce((sum, l) => sum + (l.weight || 0), 0);
       
       const co2 = Number((weight * 1.5 / 1000).toFixed(2)); // in MT
-      return { month, co2, waste: weight };
-    });
+      result.push({ month: monthLabel, co2, waste: weight });
+    }
+    return result;
   }, [listings]);
 
   const categoryData = useMemo(() => {
     const categories: Record<string, number> = {};
     let total = 0;
     listings.forEach(l => {
-      categories[l.category] = (categories[l.category] || 0) + 1;
+      const cat = l.category || "Other";
+      categories[cat] = (categories[cat] || 0) + 1;
       total++;
     });
 
-    const colors = ["bg-blue-500", "bg-emerald-500", "bg-amber-500", "bg-purple-500", "bg-rose-500"];
+    const colors = ["bg-violet-500", "bg-blue-500", "bg-emerald-500", "bg-amber-500", "bg-rose-500"];
 
     return Object.entries(categories).map(([label, count], i) => ({
       label,
@@ -58,6 +68,21 @@ export default function AdminReports() {
       color: colors[i % colors.length]
     })).sort((a,b) => b.pct - a.pct).slice(0, 5);
   }, [listings]);
+
+  const eprData = useMemo(() => {
+    return clients.map(client => {
+      const clientListings = listings.filter(l => l.userId === client.id && (l.status === "completed" || l.auctionPhase === "completed"));
+      const achieved = clientListings.reduce((s, l) => s + (l.weight || 0), 0) / 1000; // MT
+      const target = 5.0; // Default target 5MT since it's not in DB yet
+      return {
+        name: client.name,
+        category: "IT / Consumer",
+        target,
+        achieved: Number(achieved.toFixed(2)),
+        progress: Math.min(Math.round((achieved / target) * 100), 100)
+      };
+    }).sort((a,b) => b.achieved - a.achieved);
+  }, [clients, listings]);
 
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
 
@@ -178,28 +203,44 @@ export default function AdminReports() {
             </div>
           </div>
 
-          {/* EPR Tracking - Header only, removed mock rows */}
+          {/* EPR Tracking */}
           <div className="bg-white rounded-3xl border border-slate-200 p-8 dark:bg-slate-900 dark:border-slate-700">
             <h4 className="font-headline font-bold text-slate-900 mb-6 flex items-center justify-between dark:text-white">
                 EPR Tracking (Extended Producer Responsibility)
-                <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">FY 2024-25 Q2</span>
+                <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full dark:bg-emerald-900/20">FY 2024-25 Q2</span>
             </h4>
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
-                <thead className="bg-slate-50 text-slate-500 text-xs uppercase font-black tracking-wider dark:bg-slate-950">
+                <thead className="bg-slate-50 text-slate-500 text-[10px] uppercase font-black tracking-widest dark:bg-slate-950">
                   <tr>
                     <th className="px-6 py-4">Producer Name</th>
                     <th className="px-6 py-4">Category</th>
                     <th className="px-6 py-4 text-right">Target (MT)</th>
                     <th className="px-6 py-4 text-right">Achieved (MT)</th>
-                    <th className="px-6 py-4 w-1/3">Progress</th>
+                    <th className="px-6 py-4 w-1/4 text-center">Progress</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
-                   {/* This would be populated from a producer/client relationship mapping if available */}
-                   <tr>
-                     <td colSpan={5} className="px-6 py-12 text-center text-slate-400 italic">No producer data mapped for EPR tracking</td>
-                   </tr>
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                   {eprData.length > 0 ? eprData.map((row, i) => (
+                     <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                       <td className="px-6 py-4 font-bold text-slate-900 dark:text-white">{row.name}</td>
+                       <td className="px-6 py-4 text-xs text-slate-500">{row.category}</td>
+                       <td className="px-6 py-4 text-right font-mono text-slate-500">{row.target.toFixed(2)}</td>
+                       <td className="px-6 py-4 text-right font-mono font-bold text-emerald-600">{row.achieved.toFixed(2)}</td>
+                       <td className="px-6 py-4">
+                         <div className="flex items-center gap-3">
+                           <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden dark:bg-slate-800">
+                             <div className="h-full bg-emerald-500" style={{ width: `${row.progress}%` }} />
+                           </div>
+                           <span className="text-[10px] font-bold text-slate-500 w-8">{row.progress}%</span>
+                         </div>
+                       </td>
+                     </tr>
+                   )) : (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-12 text-center text-slate-400 italic">No producer data available for EPR tracking</td>
+                    </tr>
+                   )}
                 </tbody>
               </table>
             </div>

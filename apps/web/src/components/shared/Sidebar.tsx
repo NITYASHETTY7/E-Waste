@@ -13,7 +13,7 @@ const ADMIN_SECTIONS = [
       { href: "/admin/users", icon: "group", label: "Clients" },
       { href: "/admin/vendors", icon: "recycling", label: "Vendors" },
       { href: "/admin/individual-users", icon: "person_check", label: "Individual Users" },
-      { href: "/admin/user-products", icon: "person_pin", label: "Individual Products", badge: "New" },
+      { href: "/admin/user-products", icon: "person_pin", label: "Individual Products" },
       { href: "/admin/listings", icon: "inventory_2", label: "Requests" },
       { href: "/admin/auctions", icon: "gavel", label: "Auctions" },
       { href: "/admin/payments", icon: "payments", label: "Payments" },
@@ -37,7 +37,7 @@ const ADMIN_SECTIONS = [
     links: [
       { href: "/admin/reports", icon: "analytics", label: "Reports & Insights" },
       { href: "/admin/performance", icon: "troubleshoot", label: "Performance" },
-      { href: "/admin/analytics-hub", icon: "hub", label: "Analytics Hub", badge: "New" },
+      { href: "/admin/analytics-hub", icon: "hub", label: "Analytics Hub" },
     ]
   }
 ];

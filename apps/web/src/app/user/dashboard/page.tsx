@@ -45,7 +45,7 @@ export default function UserDashboard() {
   const pending = products.filter(p => ['PICKUP_REQUESTED', 'PICKUP_IN_PROGRESS'].includes(p.status)).length;
 
   const quickActions = [
-    { href: "/user/upload", icon: "upload_file", label: "Submit Product", desc: "List a new e-waste item", color: "bg-purple-600 text-white shadow-purple-200/50 dark:shadow-purple-900/50" },
+    { href: "/user/upload", icon: "upload_file", label: "Submit Product", desc: "List a new e-waste item", color: "bg-violet-600 !text-white shadow-violet-200/50 dark:shadow-violet-900/50" },
     { href: "/user/my-products", icon: "inventory_2", label: "My Products", desc: "View all your submissions", color: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200" },
     { href: "/user/quotes", icon: "request_quote", label: "Vendor Quotes", desc: "Review & accept offers", color: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200" },
     { href: "/user/track", icon: "local_shipping", label: "Track Pickup", desc: "Monitor pickup status", color: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200" },
@@ -57,13 +57,13 @@ export default function UserDashboard() {
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
-            Welcome back, <span className="text-purple-600">{currentUser?.name?.split(' ')[0]}</span>
+            Welcome back, <span className="text-violet-600">{currentUser?.name?.split(' ')[0]}</span>
           </h1>
           <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">Manage your e-waste submissions and track payments</p>
         </div>
         <Link href="/user/upload"
-          className="flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-2xl font-bold hover:bg-purple-700 transition-all shadow-lg shadow-purple-200/50 dark:shadow-purple-900/50 text-sm">
-          <span className="material-symbols-outlined text-lg">upload_file</span>
+          className="flex items-center gap-2 px-6 py-3 bg-violet-600 !text-white rounded-2xl font-bold hover:bg-violet-700 transition-all shadow-lg shadow-violet-200/50 dark:shadow-violet-900/50 text-sm">
+          <span className="material-symbols-outlined text-lg !text-white">upload_file</span>
           Submit New Product
         </Link>
       </motion.div>
@@ -71,9 +71,9 @@ export default function UserDashboard() {
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: "Products Submitted", value: total, icon: "inventory_2", color: "text-purple-600" },
+          { label: "Products Submitted", value: total, icon: "inventory_2", color: "text-violet-600" },
           { label: "Quotes Received", value: withQuotes, icon: "request_quote", color: "text-blue-600" },
-          { label: "Pickups In Progress", value: pending, icon: "local_shipping", color: "text-orange-500" },
+          { label: "Pickups In Progress", value: pending, icon: "orange-500" },
           { label: "Completed", value: completed, icon: "task_alt", color: "text-green-600" },
         ].map((k, i) => (
           <motion.div key={k.label} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
@@ -95,10 +95,10 @@ export default function UserDashboard() {
           {quickActions.map(a => (
             <Link key={a.href} href={a.href}
               className={`flex flex-col items-center gap-3 p-5 rounded-2xl transition-all hover:scale-[1.02] active:scale-[0.98] shadow-sm ${a.color}`}>
-              <span className="material-symbols-outlined text-3xl">{a.icon}</span>
+              <span className={`material-symbols-outlined text-3xl ${a.color.includes('bg-violet-600') ? '!text-white' : ''}`}>{a.icon}</span>
               <div className="text-center">
-                <p className="font-black text-sm">{a.label}</p>
-                <p className="text-[10px] opacity-70 mt-0.5">{a.desc}</p>
+                <p className={`font-black text-sm ${a.color.includes('bg-violet-600') ? '!text-white' : ''}`}>{a.label}</p>
+                <p className={`text-[10px] opacity-80 mt-0.5 ${a.color.includes('bg-violet-600') ? '!text-white' : ''}`}>{a.desc}</p>
               </div>
             </Link>
           ))}
@@ -110,7 +110,7 @@ export default function UserDashboard() {
         className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6">
         <div className="flex items-center justify-between mb-5">
           <h2 className="text-sm font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">Recent Submissions</h2>
-          <Link href="/user/my-products" className="text-[10px] font-black uppercase tracking-widest text-purple-600 hover:underline">View All</Link>
+          <Link href="/user/my-products" className="text-[10px] font-black uppercase tracking-widest text-violet-600 hover:underline hover:text-violet-700">View All</Link>
         </div>
 
         {loading ? (
@@ -119,8 +119,8 @@ export default function UserDashboard() {
           <div className="text-center py-12">
             <span className="material-symbols-outlined text-4xl text-slate-300 dark:text-slate-600 block mb-3">inventory_2</span>
             <p className="text-slate-500 dark:text-slate-400 font-bold">No products submitted yet</p>
-            <Link href="/user/upload" className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 bg-purple-600 text-white rounded-xl font-bold text-sm hover:bg-purple-700 transition-all">
-              <span className="material-symbols-outlined text-base">add</span> Submit your first product
+            <Link href="/user/upload" className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 bg-violet-600 !text-white rounded-xl font-bold text-sm hover:bg-violet-700 transition-all">
+              <span className="material-symbols-outlined text-base !text-white">add</span> Submit your first product
             </Link>
           </div>
         ) : (
@@ -128,8 +128,8 @@ export default function UserDashboard() {
             {products.slice(0, 5).map(p => (
               <div key={p.id} className="flex items-center justify-between py-3.5">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-                    <span className="material-symbols-outlined text-purple-600 text-lg">devices</span>
+                  <div className="w-10 h-10 rounded-xl bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center">
+                    <span className="material-symbols-outlined text-violet-600 text-lg">devices</span>
                   </div>
                   <div>
                     <p className="font-bold text-sm text-slate-900 dark:text-white">{p.name}</p>

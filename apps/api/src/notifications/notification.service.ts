@@ -315,6 +315,31 @@ export class NotificationService {
     });
   }
 
+  async notifyListingRejected(
+    clientEmail: string,
+    clientName: string,
+    listingTitle: string,
+    reason?: string,
+  ) {
+    const webUrl = process.env.WEB_URL || 'http://localhost:3000';
+    return this.sendEmail({
+      to: clientEmail,
+      subject: `[WeConnect] Listing Rejection Notice — ${listingTitle}`,
+      body: emailLayout(`
+        ${alertBanner('❌', 'Listing Application Not Approved', '#fef2f2', '#fca5a5', '#991b1b')}
+        ${greeting(clientName)}
+        <p style="color:#475569;font-size:14px;margin:0 0 16px;">We regret to inform you that your listing <strong>"${listingTitle}"</strong> has not been approved for auction at this time.</p>
+        ${reason ? infoBox(`
+          <p style="margin:0 0 6px;font-weight:700;font-size:13px;color:#64748b;">Reason provided by admin:</p>
+          <p style="margin:0;color:#1e293b;font-size:14px;">${reason}</p>
+        `, '#ef4444', '#fef2f2') : ''}
+        <p style="color:#475569;font-size:14px;margin:16px 0;">You can review your listing status and any comments in your dashboard. If you need to make corrections, you can submit a new listing with the updated information.</p>
+        ${ctaButton('View My Listings', `${webUrl}/client/listings`, '#1e293b')}
+        ${signOff}
+      `, '#ef4444'),
+    });
+  }
+
   async notifyClientLiveAuctionApproval(
     clientEmail: string,
     clientName: string,

@@ -10,7 +10,7 @@ type ReviewStep = "decision" | "approve";
 export default function AdminListings() {
   const { listings, bids, users, uploadProcessedSheet, refreshData, addNotification } = useApp();
   const [search, setSearch] = useState("");
-  const [filter, setFilter] = useState<"all" | "pending" | "review" | "active" | "rejected">("all");
+  const [filter, setFilter] = useState<"all" | "pending" | "review" | "active" | "rejected" | "completed">("all");
 
   // Review modal (approve / reject flow)
   const [reviewModal, setReviewModal] = useState<{ open: boolean; listingId: string | null; step: ReviewStep }>({
@@ -56,8 +56,9 @@ export default function AdminListings() {
 
   const getDisplayStatus = (l: any) => {
     if (l.requirementStatus === "client_review") return "review";
-    if (l.requirementStatus === "rejected") return "rejected";
-    if (l.status === "active") return "active";
+    if (l.requirementStatus === "rejected" || l.status === "rejected") return "rejected";
+    if (l.status === "completed") return "completed";
+    if (l.status === "active" || l.auctionId) return "active";
     return "pending";
   };
 
@@ -73,6 +74,7 @@ export default function AdminListings() {
     review: listings.filter(l => getDisplayStatus(l) === "review").length,
     active: listings.filter(l => getDisplayStatus(l) === "active").length,
     rejected: listings.filter(l => getDisplayStatus(l) === "rejected").length,
+    completed: listings.filter(l => getDisplayStatus(l) === "completed").length,
   };
 
   const handleReject = async () => {
@@ -177,7 +179,7 @@ export default function AdminListings() {
         {[
           { label: "Pending Review", value: counts.pending, color: "bg-amber-50 dark:bg-amber-900/20", textColor: "text-amber-700 dark:text-amber-400", icon: "pending", key: "pending" },
           { label: "Awaiting Client", value: counts.review, color: "bg-blue-50 dark:bg-blue-900/20", textColor: "text-blue-700 dark:text-blue-400", icon: "hourglass_top", key: "review" },
-          { label: "Approved & Active", value: counts.active, color: "bg-emerald-50 dark:bg-emerald-900/20", textColor: "text-emerald-700 dark:text-emerald-400", icon: "check_circle", key: "active" },
+          { label: "Approved", value: counts.active, color: "bg-emerald-50 dark:bg-emerald-900/20", textColor: "text-emerald-700 dark:text-emerald-400", icon: "check_circle", key: "active" },
           { label: "Rejected", value: counts.rejected, color: "bg-red-50 dark:bg-red-900/20", textColor: "text-red-700 dark:text-red-400", icon: "cancel", key: "rejected" },
         ].map(s => (
           <button key={s.key} onClick={() => setFilter(s.key as any)}
@@ -195,7 +197,7 @@ export default function AdminListings() {
 
       {/* Filter tabs */}
       <div className="flex gap-1 p-1 bg-surface-container-low rounded-xl w-fit border border-outline-variant/10">
-        {(["all", "pending", "review", "active", "rejected"] as const).map(f => (
+        {(["all", "pending", "review", "active", "completed", "rejected"] as const).map(f => (
           <button key={f} onClick={() => setFilter(f)}
             className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all flex items-center gap-1.5 ${
               filter === f 
@@ -203,7 +205,7 @@ export default function AdminListings() {
                 : "text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high/50"
             }`}>
             {f === "pending" && counts.pending > 0 && <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />}
-            {f} {f !== "all" && `(${counts[f] ?? listings.length})`}
+            {f === "active" ? "approved" : f} {f !== "all" && `(${counts[f] ?? listings.length})`}
           </button>
         ))}
       </div>
@@ -228,6 +230,7 @@ export default function AdminListings() {
                 pending: { label: "Pending Review", className: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400" },
                 review: { label: "Awaiting Client", className: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" },
                 active: { label: "Approved", className: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400" },
+                completed: { label: "Completed", className: "bg-slate-100 text-slate-700 dark:bg-slate-800/30 dark:text-slate-300" },
                 rejected: { label: "Rejected", className: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400" },
               };
               const sc = statusConfig[displayStatus] ?? { label: displayStatus, className: "bg-slate-100 text-slate-600" };
@@ -260,16 +263,16 @@ export default function AdminListings() {
                       {displayStatus === "pending" && (
                         <button
                           onClick={() => openReview(listing.id)}
-                          className="flex items-center gap-1.5 text-xs font-extrabold px-4 py-2 bg-emerald-700 text-white rounded-lg hover:bg-emerald-800 transition-all shadow-sm group-hover:bg-white group-hover:text-emerald-700"
+                          className="flex items-center gap-1.5 text-xs font-extrabold px-4 py-2 bg-emerald-700 !text-white rounded-lg hover:bg-emerald-800 transition-all shadow-sm group-hover:bg-white group-hover:!text-emerald-700"
                         >
-                          <span className="material-symbols-outlined text-sm font-extrabold">fact_check</span>
+                          <span className="material-symbols-outlined text-sm font-extrabold !text-white group-hover:!text-emerald-700">fact_check</span>
                           Review
                         </button>
                       )}
                       {displayStatus === "active" && listing.auctionPhase === "live" && (!listing.auctionStartDate || new Date() >= new Date(listing.auctionStartDate)) && (
                         <Link href={`/admin/auctions/${listing.id}/live`}
-                          className="flex items-center gap-1 text-xs font-extrabold px-3 py-1.5 bg-purple-700 text-white rounded-lg hover:bg-purple-800 transition-colors border border-purple-800 group-hover:bg-white group-hover:text-purple-700 group-hover:border-white">
-                          <span className="material-symbols-outlined text-sm font-extrabold">visibility</span>
+                          className="flex items-center gap-1 text-xs font-extrabold px-3 py-1.5 bg-violet-700 !text-white rounded-lg hover:bg-violet-800 transition-colors border border-violet-800 group-hover:bg-white group-hover:!text-violet-700 group-hover:border-white">
+                          <span className="material-symbols-outlined text-sm font-extrabold !text-white group-hover:!text-violet-700">visibility</span>
                           Watch Live
                         </Link>
                       )}
@@ -278,8 +281,8 @@ export default function AdminListings() {
                       )}
                       {displayStatus === "active" && listing.auctionPhase !== "live" && listing.auctionPhase !== "completed" && (
                         <Link href={`/admin/listings/${listing.requirementId || listing.id}/audit-docs`}
-                          className="flex items-center gap-1 text-xs font-extrabold px-3 py-1.5 bg-blue-800 text-white rounded-lg hover:bg-blue-900 transition-colors border border-blue-900 group-hover:bg-white group-hover:text-blue-800 group-hover:border-white">
-                          <span className="material-symbols-outlined text-sm font-extrabold">fact_check</span>
+                          className="flex items-center gap-1 text-xs font-extrabold px-3 py-1.5 bg-blue-800 !text-white rounded-lg hover:bg-blue-900 transition-colors border border-blue-900 group-hover:bg-white group-hover:!text-blue-800 group-hover:border-white">
+                          <span className="material-symbols-outlined text-sm font-extrabold !text-white group-hover:!text-blue-800">fact_check</span>
                           Audit Docs
                         </Link>
                       )}

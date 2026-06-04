@@ -189,8 +189,8 @@ export default function AdminDocuments() {
         </div>
       ) : (
         <div className="card overflow-hidden border border-slate-100 dark:border-slate-800">
-          <div className="p-4 border-b border-slate-100 bg-slate-50/50 dark:border-slate-800">
-            <p className="text-sm font-bold text-slate-600 dark:text-slate-400">{filtered.length} document{filtered.length !== 1 ? "s" : ""}</p>
+          <div className="p-4 border-b border-slate-100 bg-slate-50/50 dark:border-slate-800 dark:bg-slate-900/50">
+            <p className="text-sm font-black text-slate-700 dark:text-slate-200">{filtered.length} document{filtered.length !== 1 ? "s" : ""}</p>
           </div>
 
           {filtered.length === 0 ? (

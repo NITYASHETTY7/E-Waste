@@ -226,16 +226,13 @@ export class CompaniesService {
     });
     if (!company) throw new NotFoundException('Company not found');
 
-    await this.prisma.company.update({
-      where: { id },
-      data: { status: 'APPROVED' },
-    });
+    await this.prisma.company.update({ where: { id }, data: { status: CompanyStatus.APPROVED } });
 
     const primaryUser = company.users[0];
     if (primaryUser) {
       await this.prisma.user.update({
         where: { id: primaryUser.id },
-        data: { isActive: true },
+        data: { isActive: true, status: CompanyStatus.APPROVED },
       });
       await this.notifications
         .notifyAccountApproved(
@@ -270,16 +267,13 @@ export class CompaniesService {
     });
     if (!company) throw new NotFoundException('Company not found');
 
-    await this.prisma.company.update({
-      where: { id },
-      data: { status: 'BLOCKED' },
-    });
+    await this.prisma.company.update({ where: { id }, data: { status: CompanyStatus.BLOCKED } });
 
     const primaryUser = company.users[0];
     if (primaryUser) {
       await this.prisma.user.update({
         where: { id: primaryUser.id },
-        data: { isActive: false },
+        data: { isActive: false, status: CompanyStatus.BLOCKED },
       });
       await this.notifications
         .notifyAccountOnHold(
@@ -314,16 +308,13 @@ export class CompaniesService {
     });
     if (!company) throw new NotFoundException('Company not found');
 
-    await this.prisma.company.update({
-      where: { id },
-      data: { status: 'REJECTED' },
-    });
+    await this.prisma.company.update({ where: { id }, data: { status: CompanyStatus.REJECTED } });
 
     const primaryUser = company.users[0];
     if (primaryUser) {
       await this.prisma.user.update({
         where: { id: primaryUser.id },
-        data: { isActive: false },
+        data: { isActive: false, status: CompanyStatus.REJECTED },
       });
       await this.notifications
         .notifyAccountRejected(

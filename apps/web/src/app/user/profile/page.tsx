@@ -24,13 +24,13 @@ export default function UserProfilePage() {
         className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6">
         {/* Avatar */}
         <div className="flex items-center gap-5 mb-8 pb-6 border-b border-slate-100 dark:border-slate-800">
-          <div className="w-16 h-16 rounded-2xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-            <span className="text-2xl font-black text-purple-600">{currentUser?.name?.[0]?.toUpperCase() ?? "U"}</span>
+          <div className="w-16 h-16 rounded-2xl bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center">
+            <span className="text-2xl font-black text-violet-600">{currentUser?.name?.[0]?.toUpperCase() ?? "U"}</span>
           </div>
           <div>
             <p className="font-black text-xl text-slate-900 dark:text-white">{currentUser?.name}</p>
             <p className="text-sm text-slate-500 dark:text-slate-400">{currentUser?.email}</p>
-            <span className="mt-1 inline-block px-2.5 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-[10px] font-black uppercase tracking-widest rounded-full">Individual User</span>
+            <span className="mt-1 inline-block px-2.5 py-1 bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 text-[10px] font-black uppercase tracking-widest rounded-full">Individual User</span>
           </div>
         </div>
 

@@ -101,7 +101,7 @@ export default function AdminLogistics() {
                     {winner && (
                       <p className="text-xs text-slate-500 mt-1">
                         <span className="font-bold">Vendor:</span> {winner.vendorName}
-                        {listing.pickupScheduledDate && <> · <span className="font-bold">Scheduled:</span> {new Date(listing.pickupScheduledDate).toLocaleDateString("en-IN")}</>}
+                        {listing.pickupScheduledDate && <> · <span className="font-bold">Scheduled:</span> {new Date(listing.pickupScheduledDate).toLocaleDateString("en-IN", { day: '2-digit', month: 'short', year: 'numeric' })}</>}
                       </p>
                     )}
 
@@ -115,11 +115,13 @@ export default function AdminLogistics() {
                           { label: "Recycling Cert", url: listing.recyclingCertUrl, icon: "recycling" },
                           { label: "Disposal Cert", url: listing.disposalCertUrl, icon: "delete_forever" },
                         ].map(doc => (
-                          <div key={doc.label} className={`p-2 rounded-xl border text-center ${doc.url ? "border-emerald-200 bg-emerald-50" : "border-slate-200 bg-slate-50"}`}>
-                            <span className={`material-symbols-outlined text-lg block mb-0.5 ${doc.url ? "text-emerald-600" : "text-slate-300"}`}>{doc.icon}</span>
-                            <p className="text-[9px] font-bold uppercase text-slate-600 dark:text-slate-400">{doc.label}</p>
-                            {doc.url && (
-                              <a href={doc.url} download className="text-[9px] text-primary hover:underline">Download</a>
+                          <div key={doc.label} className={`p-2 rounded-xl border text-center transition-all ${doc.url ? "border-emerald-200 bg-emerald-50 dark:bg-emerald-950/20" : "border-slate-200 bg-white dark:bg-slate-900/50 dark:border-slate-800"}`}>
+                            <span className={`material-symbols-outlined text-lg block mb-0.5 ${doc.url ? "text-emerald-600" : "text-slate-400 dark:text-slate-500"}`}>{doc.icon}</span>
+                            <p className={`text-[9px] font-black uppercase leading-tight ${doc.url ? "text-emerald-800 dark:text-emerald-400" : "text-slate-700 dark:text-slate-300"}`}>{doc.label}</p>
+                            {doc.url ? (
+                              <a href={doc.url} download className="text-[9px] text-primary font-bold hover:underline">Download</a>
+                            ) : (
+                              <span className="text-[9px] text-slate-500 dark:text-slate-400">Missing</span>
                             )}
                           </div>
                         ))}

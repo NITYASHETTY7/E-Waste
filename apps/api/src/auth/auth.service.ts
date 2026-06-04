@@ -44,10 +44,13 @@ export class AuthService {
     return { success: true, message: 'Registration complete' };
   }
   async register(dto: RegisterDto) {
-    // Check for an incomplete registration to resume
+    // Check for an incomplete registration to resume or a rejected one to block
     const existing = await this.usersService.findByEmail(dto.email);
     if (existing) {
-      if (existing.isActive)
+      if (existing.status === 'REJECTED') {
+        throw new ConflictException('Your previous account application was rejected. You cannot register again with this email.');
+      }
+      if (existing.isActive || existing.status === 'APPROVED')
         throw new ConflictException('Email already registered');
 
       // Incomplete registration — verify the password matches before resuming
@@ -198,11 +201,25 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    if (user.isActive === false || user.company?.status === 'PENDING') {
-      throw new UnauthorizedException(
-        'Your account is pending admin approval. Check your email for updates.',
-      );
+    // 1. Handle explicit rejection blocks (Universal for all roles)
+    if (user.status === 'REJECTED' || user.company?.status === 'REJECTED') {
+      throw new UnauthorizedException('Your account application has been rejected. You cannot sign in or register again with this email.');
     }
+
+    // 2. Allow Admins immediately if active
+    if (user.role === 'ADMIN' && user.isActive) {
+      return this.buildResponse(user);
+    }
+
+    // 3. Check for Active status (Restores access for all existing approved users)
+    if (!user.isActive) {
+      const isBlocked = user.status === 'BLOCKED' || user.company?.status === 'BLOCKED';
+      const msg = isBlocked 
+        ? 'Your account has been placed on hold. Check your email for updates.' 
+        : 'Your account is pending admin approval. Check your email for updates.';
+      throw new UnauthorizedException(msg);
+    }
+
     return this.buildResponse(user);
   }
 
@@ -218,16 +235,10 @@ export class AuthService {
       type === 'email' ? { emailVerified: true } : { phoneVerified: true };
     await this.prisma.user.update({ where: { id: user.id }, data: updateData });
 
-    // Activate account once both email and phone are verified
+    // Account activation is now strictly manual via admin approval for all roles
     const fresh = await this.prisma.user.findUnique({ where: { id: user.id } });
     if (fresh?.emailVerified && fresh?.phoneVerified) {
-      // CLIENT/VENDOR are activated via company approval; USER role needs admin approval
-      if (fresh.role !== 'USER') {
-        await this.prisma.user.update({
-          where: { id: user.id },
-          data: { isActive: true },
-        });
-      }
+      // Logic for auto-activation removed to enforce manual admin approval
     }
   }
 

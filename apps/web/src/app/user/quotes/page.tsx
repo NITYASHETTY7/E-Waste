@@ -97,8 +97,8 @@ export default function VendorQuotesPage() {
                   {product.photoUrls?.[0] ? (
                     <img src={product.photoUrls[0]} alt={product.name} className="w-14 h-14 rounded-xl object-cover border border-slate-200 dark:border-slate-700" />
                   ) : (
-                    <div className="w-14 h-14 rounded-xl bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-                      <span className="material-symbols-outlined text-purple-600 text-xl">devices</span>
+                    <div className="w-14 h-14 rounded-xl bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center">
+                      <span className="material-symbols-outlined text-violet-600 text-xl">devices</span>
                     </div>
                   )}
                   <div>
@@ -137,7 +137,7 @@ export default function VendorQuotesPage() {
                         <button
                           onClick={() => handleAccept(product.id, q.id)}
                           disabled={accepting === q.id}
-                          className="shrink-0 flex items-center gap-2 px-5 py-3 bg-purple-600 text-white rounded-xl font-black text-xs uppercase tracking-widest hover:bg-purple-700 transition-all disabled:opacity-50 shadow-lg shadow-purple-200/50 dark:shadow-purple-900/50">
+                          className="shrink-0 flex items-center gap-2 px-5 py-3 bg-violet-600 text-white rounded-xl font-black text-xs uppercase tracking-widest hover:bg-violet-700 transition-all disabled:opacity-50 shadow-lg shadow-violet-200/50 dark:shadow-violet-900/50">
                           {accepting === q.id ? <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span> : <><span className="material-symbols-outlined text-sm">handshake</span> Accept & Request Pickup</>}
                         </button>
                       )}

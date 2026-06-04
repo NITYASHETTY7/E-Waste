@@ -333,16 +333,16 @@ export default function AdminAuditDocsPage() {
                   <div className="flex gap-3 pt-1">
                     <button
                       onClick={() => { setReviewingId(doc.id); setRemarks(""); }}
-                      className="flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white rounded-xl font-bold text-sm hover:bg-green-700 transition-colors"
+                      className="flex items-center gap-2 px-5 py-2.5 bg-green-600 !text-white rounded-xl font-bold text-sm hover:bg-green-700 transition-colors"
                     >
-                      <span className="material-symbols-outlined text-base">check_circle</span>
+                      <span className="material-symbols-outlined text-base !text-white">check_circle</span>
                       Approve
                     </button>
                     <button
                       onClick={() => { setReviewingId(doc.id + "_reject"); setRemarks(""); }}
-                      className="flex items-center gap-2 px-5 py-2.5 bg-red-600 text-white rounded-xl font-bold text-sm hover:bg-red-700 transition-colors"
+                      className="flex items-center gap-2 px-5 py-2.5 bg-red-600 !text-white rounded-xl font-bold text-sm hover:bg-red-700 transition-colors"
                     >
-                      <span className="material-symbols-outlined text-base">cancel</span>
+                      <span className="material-symbols-outlined text-base !text-white">cancel</span>
                       Reject
                     </button>
                   </div>

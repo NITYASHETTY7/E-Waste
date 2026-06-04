@@ -59,12 +59,45 @@ export default function AdminReports() {
     })).sort((a,b) => b.pct - a.pct).slice(0, 5);
   }, [listings]);
 
-  const handleDownload = (name: string) => alert(`Downloading ${name}...`);
+  const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
+
+  const showToast = (msg: string, type: "success" | "error" = "success") => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3500);
+  };
+
+  const handleDownload = (name: string) => {
+    showToast(`Generating ${name}...`);
+    
+    // Simulate a CSV download
+    setTimeout(() => {
+      const csvContent = "data:text/csv;charset=utf-8,Date,Entity,Category,Weight,Amount\n2026-06-03,Test Client,E-Waste,1000kg,₹50000";
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `${name.replace(/\s+/g, "_")}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      showToast(`${name} downloaded successfully.`);
+    }, 1500);
+  };
 
   if (!mounted) return <div className="min-h-screen bg-slate-50 flex items-center justify-center dark:bg-slate-950"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div></div>;
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto pb-20 px-4 md:px-8 pt-8">
+    <div className="space-y-8 max-w-7xl mx-auto pb-20 px-4 md:px-8 pt-8 relative">
+      {/* Toast */}
+      {toast && (
+        <div className={`fixed top-6 right-6 z-[200] px-6 py-3 rounded-2xl shadow-2xl text-sm font-black text-white transition-all transform animate-in fade-in slide-in-from-top-4 ${toast.type === "error" ? "bg-red-600" : "bg-emerald-600"}`}>
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-base">{toast.type === "error" ? "error" : "check_circle"}</span>
+            {toast.msg}
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <h2 className="text-3xl font-headline font-extrabold tracking-tight text-slate-900 dark:text-white">Analytical Intelligence</h2>

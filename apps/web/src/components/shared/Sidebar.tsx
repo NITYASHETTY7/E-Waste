@@ -17,7 +17,7 @@ const ADMIN_SECTIONS = [
       { href: "/admin/listings", icon: "inventory_2", label: "Requests" },
       { href: "/admin/auctions", icon: "gavel", label: "Auctions" },
       { href: "/admin/payments", icon: "payments", label: "Payments" },
-      { href: "/admin/bidding", icon: "gavel", label: "Bidding / Live Bids" },
+      { href: "/admin/bidding", icon: "gavel", label: "Bids" },
     ]
   },
   {

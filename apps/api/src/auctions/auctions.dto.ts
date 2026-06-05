@@ -99,8 +99,19 @@ export class SubmitSealedBidDto {
 }
 
 export class GenerateDocsDto {
-  paymentTerms: string;
-  deliveryTerms: string;
-  penaltyClause: string;
-  specialConditions: string;
+  @IsString()
+  @IsOptional()
+  paymentTerms?: string;
+
+  @IsString()
+  @IsOptional()
+  deliveryTerms?: string;
+
+  @IsString()
+  @IsOptional()
+  penaltyClause?: string;
+
+  @IsString()
+  @IsOptional()
+  specialConditions?: string;
 }

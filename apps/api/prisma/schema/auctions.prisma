@@ -25,6 +25,11 @@ model Auction {
   createdAt            DateTime      @default(now())
   updatedAt            DateTime      @updatedAt
 
+  poPaymentTerms      String?
+  poDeliveryTerms     String?
+  poPenaltyClause     String?
+  poSpecialConditions String?
+
   client      Company          @relation("ClientAuctions", fields: [clientId], references: [id])
   requirement Requirement?     @relation(fields: [requirementId], references: [id])
   winner      Company?         @relation("WinnerAuctions", fields: [winnerId], references: [id])

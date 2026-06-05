@@ -23,6 +23,7 @@ import {
   CreateAuctionDto,
   ScheduleAuctionDto,
   SubmitSealedBidDto,
+  GenerateDocsDto,
 } from './auctions.dto';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -183,8 +184,8 @@ export class AuctionsController {
 
   @Post(':id/generate-docs')
   @Roles(UserRole.ADMIN)
-  generateDocs(@Param('id') id: string) {
-    return this.svc.generatePostAuctionDocs(id);
+  generateDocs(@Param('id') id: string, @Body() body: GenerateDocsDto) {
+    return this.svc.generatePostAuctionDocs(id, body);
   }
 
   @Get(':id/generate-docs')

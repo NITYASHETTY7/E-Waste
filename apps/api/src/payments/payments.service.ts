@@ -73,16 +73,21 @@ export class PaymentsService {
     });
   }
 
-  // Fetch all payments where the company is the client OR the winning vendor
+  // Fetch all payments where the company is the client, the winning vendor, or the penalized company
   async findByCompany(companyId: string) {
     return this.prisma.payment.findMany({
       where: {
-        auction: {
-          OR: [
-            { clientId: companyId },
-            { winnerId: companyId },
-          ],
-        },
+        OR: [
+          {
+            auction: {
+              OR: [
+                { clientId: companyId },
+                { winnerId: companyId },
+              ],
+            },
+          },
+          { penaltyCompanyId: companyId }
+        ]
       },
       include: {
         auction: {
@@ -91,6 +96,7 @@ export class PaymentsService {
             winner: { select: { id: true, name: true } },
           },
         },
+        penaltyCompany: { select: { id: true, name: true } },
       },
       orderBy: { createdAt: 'desc' },
     });

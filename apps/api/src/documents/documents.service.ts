@@ -22,6 +22,7 @@ export class DocumentsService {
     auctionTitle: string,
     totalWeight: number,
     winningAmount: number,
+    terms?: { paymentTerms: string; deliveryTerms: string; penaltyClause: string; specialConditions: string },
   ): Promise<string> {
     const s3Key = `work-orders/${auctionId}/WO-${Date.now()}.pdf`;
 
@@ -34,6 +35,7 @@ export class DocumentsService {
       totalWeight,
       winningAmount,
       s3Key,
+      terms,
     };
 
     if (this.pdfQueue) {
@@ -69,6 +71,10 @@ export class DocumentsService {
     winningAmount: number;
     commissionAmount: number;
     date?: string;
+    paymentTerms?: string;
+    deliveryTerms?: string;
+    penaltyClause?: string;
+    specialConditions?: string;
   }): Promise<string> {
     const { auctionId } = params;
     const html = this.buildPoHtml(params);
@@ -87,6 +93,10 @@ export class DocumentsService {
     totalWeight: number;
     winningAmount: number;
     date: string;
+    paymentTerms?: string;
+    deliveryTerms?: string;
+    penaltyClause?: string;
+    specialConditions?: string;
   }): Promise<string> {
     const { auctionId } = params;
     const html = this.buildAgreementHtml(params);
@@ -217,8 +227,10 @@ export class DocumentsService {
 </div>
 <div class="section"><div class="section-title">Terms & Conditions</div>
   <ul style="padding-left:18px;line-height:1.8">
-    <li>Payment to be made within 7 working days of PO issuance.</li>
-    <li>Material pickup to be completed within 15 working days of PO acknowledgement.</li>
+    ${p.paymentTerms ? `<li><strong>Payment Terms:</strong> ${p.paymentTerms}</li>` : ''}
+    ${p.deliveryTerms ? `<li><strong>Delivery Terms:</strong> ${p.deliveryTerms}</li>` : ''}
+    ${p.penaltyClause ? `<li><strong>Penalty Clause:</strong> ${p.penaltyClause}</li>` : ''}
+    ${p.specialConditions ? `<li><strong>Special Conditions:</strong> ${p.specialConditions}</li>` : ''}
     <li>Vendor must comply with CPCB e-waste handling guidelines.</li>
     <li>Recycling/disposal certificates must be submitted within 30 days of pickup.</li>
     <li>Any shortage or excess in weight to be reconciled at actual rates.</li>
@@ -268,8 +280,14 @@ export class DocumentsService {
   <li>Ensure material is as described in the auction listing.</li>
   <li>Process payment as per the agreed terms.</li>
 </ul>
-<h2>4. Payment Terms</h2>
-<p>Party B shall pay ₹${p.winningAmount.toLocaleString('en-IN')} to Party A as material value. An additional platform fee of 5% is payable to WeConnect. All payments shall be made within 7 working days of PO issuance.</p>
+<h2>4. Commercial Terms</h2>
+<ul>
+  <li><strong>Payment Terms:</strong> ${p.paymentTerms || 'Payment shall be made as per agreed terms.'}</li>
+  <li><strong>Delivery Terms:</strong> ${p.deliveryTerms || 'Pickup within 15 working days.'}</li>
+  <li><strong>Penalty Clause:</strong> ${p.penaltyClause || 'Standard penalties apply.'}</li>
+  ${p.specialConditions ? `<li><strong>Special Conditions:</strong> ${p.specialConditions}</li>` : ''}
+  <li>Party B shall pay ₹${p.winningAmount.toLocaleString('en-IN')} to Party A as material value. An additional platform fee of 5% is payable to WeConnect.</li>
+</ul>
 <h2>5. Compliance & Liability</h2>
 <p>Party B shall be solely responsible for compliance with all applicable environmental regulations. Any non-compliance shall constitute a material breach of this agreement and may result in penalties, account suspension, or legal action.</p>
 <h2>6. Governing Law</h2>
@@ -347,6 +365,7 @@ export class DocumentsService {
       totalWeight,
       winningAmount,
       s3Key,
+      terms,
     } = payload;
     this.logger.log(`Executing Work Order Generation for Auction ${auctionId}`);
 
@@ -415,7 +434,11 @@ export class DocumentsService {
         <div class="section">
             <div class="section-title">3. Terms & Conditions</div>
             <ul>
-                <li>The Vendor agrees to pick up the material within 7 working days.</li>
+                <% if (terms && terms.paymentTerms) { %><li><strong>Payment Terms:</strong> <%= terms.paymentTerms %></li><% } %>
+                <% if (terms && terms.deliveryTerms) { %><li><strong>Delivery Terms:</strong> <%= terms.deliveryTerms %></li><% } %>
+                <% if (terms && terms.penaltyClause) { %><li><strong>Penalty Clause:</strong> <%= terms.penaltyClause %></li><% } %>
+                <% if (terms && terms.specialConditions) { %><li><strong>Special Conditions:</strong> <%= terms.specialConditions %></li><% } %>
+                <li>The Vendor agrees to pick up the material securely.</li>
                 <li>The Vendor must provide a valid Pickup Challan at the time of material handover.</li>
                 <li>The Vendor is strictly bound to process the e-waste in compliance with CPCB guidelines.</li>
                 <li>The Vendor must upload the final E-Waste Recycling Certificate to the EcoLoop portal to close the EPR loop.</li>
@@ -446,6 +469,7 @@ export class DocumentsService {
       auctionTitle,
       totalWeight: totalWeight || 0,
       winningAmount,
+      terms: terms || {},
     });
 
     let browser;

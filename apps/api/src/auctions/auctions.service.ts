@@ -304,6 +304,7 @@ export class AuctionsService {
         client: true,
         winner: true,
         bids: { orderBy: { amount: 'desc' }, take: 1 },
+        auctionDocs: true,
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -654,7 +655,7 @@ export class AuctionsService {
     return auction;
   }
 
-  async generatePostAuctionDocs(id: string) {
+  async generatePostAuctionDocs(id: string, data?: { paymentTerms: string; deliveryTerms: string; penaltyClause: string; specialConditions: string }) {
     const auction = await this.prisma.auction.findUnique({
       where: { id },
       include: {
@@ -674,6 +675,19 @@ export class AuctionsService {
       throw new BadRequestException(
         'Winner must be selected and approved before generating documents.',
       );
+    }
+
+    // Save terms if provided
+    if (data) {
+      await this.prisma.auction.update({
+        where: { id },
+        data: {
+          poPaymentTerms: data.paymentTerms,
+          poDeliveryTerms: data.deliveryTerms,
+          poPenaltyClause: data.penaltyClause,
+          poSpecialConditions: data.specialConditions,
+        },
+      });
     }
 
     const winningBid =
@@ -715,6 +729,10 @@ export class AuctionsService {
           winningAmount,
           commissionAmount,
           date,
+          paymentTerms: data?.paymentTerms,
+          deliveryTerms: data?.deliveryTerms,
+          penaltyClause: data?.penaltyClause,
+          specialConditions: data?.specialConditions,
         });
         await this.prisma.auctionDocument.create({
           data: {
@@ -753,6 +771,10 @@ export class AuctionsService {
           totalWeight,
           winningAmount,
           date,
+          paymentTerms: data?.paymentTerms,
+          deliveryTerms: data?.deliveryTerms,
+          penaltyClause: data?.penaltyClause,
+          specialConditions: data?.specialConditions,
         });
         await this.prisma.auctionDocument.create({
           data: {
@@ -791,6 +813,7 @@ export class AuctionsService {
           auction.title,
           totalWeight,
           winningAmount,
+          data
         );
         await this.prisma.auctionDocument.create({
           data: {

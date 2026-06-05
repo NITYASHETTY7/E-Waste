@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import api from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -118,11 +118,13 @@ export default function AdminVendors() {
     }
   };
 
+  const isLockingRef = useRef(false);
   const handleLock = async () => {
-    if (!lockModal.vendorId || !lockReason.trim() || lockingVendor) return;
+    if (!lockModal.vendorId || !lockReason.trim() || isLockingRef.current) return;
+    isLockingRef.current = true;
     setLockingVendor(true);
     try {
-      await api.patch(`/companies/admin/${lockModal.vendorId}/lock`, { reason: lockReason });
+      await api.patch(\`/companies/admin/\${lockModal.vendorId}/lock\`, { reason: lockReason });
       showToast("Vendor locked.");
       setLockModal({ isOpen: false, vendorId: null });
       setLockReason("");
@@ -131,14 +133,17 @@ export default function AdminVendors() {
       showToast(err.response?.data?.message || "Failed to lock.", "error");
     } finally {
       setLockingVendor(false);
+      isLockingRef.current = false;
     }
   };
 
+  const isApplyingPenaltyRef = useRef(false);
   const handlePenalty = async () => {
-    if (!penaltyModal.vendorId || !penaltyAmount || !penaltyReason.trim() || applyingPenalty) return;
+    if (!penaltyModal.vendorId || !penaltyAmount || !penaltyReason.trim() || isApplyingPenaltyRef.current) return;
+    isApplyingPenaltyRef.current = true;
     setApplyingPenalty(true);
     try {
-      await api.post(`/companies/admin/${penaltyModal.vendorId}/penalty`, { amount: Number(penaltyAmount), reason: penaltyReason });
+      await api.post(\`/companies/admin/\${penaltyModal.vendorId}/penalty\`, { amount: Number(penaltyAmount), reason: penaltyReason });
       showToast("Penalty applied.");
       setPenaltyModal({ isOpen: false, vendorId: null });
       setPenaltyAmount("");
@@ -148,6 +153,7 @@ export default function AdminVendors() {
       showToast(err.response?.data?.message || "Failed to apply penalty.", "error");
     } finally {
       setApplyingPenalty(false);
+      isApplyingPenaltyRef.current = false;
     }
   };
 

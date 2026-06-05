@@ -50,6 +50,7 @@ const VENDOR_LINKS = [
   { href: "/vendor/live-auction", icon: "sensors", label: "Live Auction" },
   { href: "/vendor/purchase-order", icon: "description", label: "Purchase Orders" },
   { href: "/vendor/payments", icon: "payments", label: "Payments" },
+  { href: "/vendor/transactions", icon: "receipt_long", label: "Transactions" },
   { href: "/vendor/handover", icon: "inventory", label: "Handover & Compliance" },
   { href: "/vendor/ratings", icon: "star_rate", label: "Ratings" },
   { href: "/vendor/reports", icon: "bar_chart", label: "Reports" },
@@ -64,6 +65,7 @@ const CLIENT_LINKS = [
   { href: "/client/live-auction", icon: "sensors", label: "Live Auction" },
   { href: "/client/purchase-order", icon: "description", label: "Purchase Orders" },
   { href: "/client/handover", icon: "inventory", label: "Handover & Gate Pass" },
+  { href: "/client/transactions", icon: "receipt_long", label: "Transactions" },
   { href: "/client/ratings", icon: "star_rate", label: "Rate Vendors" },
   { href: "/client/reports", icon: "bar_chart", label: "Reports" },
   { href: "/client/documents", icon: "folder_open", label: "Documents" },
@@ -83,6 +85,7 @@ const USER_LINKS = [
   { href: "/user/my-products", icon: "inventory_2", label: "My Products" },
   { href: "/user/quotes", icon: "request_quote", label: "Vendor Quotes" },
   { href: "/user/track", icon: "local_shipping", label: "Track Pickup" },
+  { href: "/user/transactions", icon: "receipt_long", label: "Transactions" },
   { href: "/user/profile", icon: "person", label: "Profile" },
 ];
 

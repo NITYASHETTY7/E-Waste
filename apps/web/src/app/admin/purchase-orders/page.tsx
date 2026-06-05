@@ -18,7 +18,21 @@ export default function AdminPurchaseOrders() {
     try {
       // Fetch COMPLETED auctions which will have the post-auction data
       const res = await api.get('/auctions?status=COMPLETED');
-      setPoListings(res.data);
+      const completed = res.data ?? [];
+      
+      // Enrich each with post-auction details to ensure auctionDocs are fetched properly
+      const enriched = await Promise.all(
+        completed.map(async (a: any) => {
+          try {
+            const r = await api.get(`/auctions/${a.id}/post-auction`);
+            return r.data;
+          } catch {
+            return a;
+          }
+        })
+      );
+      
+      setPoListings(enriched);
     } catch (e) {
       showToast("Failed to fetch purchase orders", "error");
     } finally {

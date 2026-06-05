@@ -29,13 +29,13 @@ export class PickupsService {
     const docs = await Promise.all(
       pickup.pickupDocs.map(async (doc) => ({
         ...doc,
-        signedUrl: await this.s3.getSignedUrl(doc.s3Key, doc.s3Bucket),
+        signedUrl: await this.s3.getSignedUrl(doc.s3Key, doc.s3Bucket, 3600, doc.fileName),
       })),
     );
     const auctionDocs = await Promise.all(
       (pickup.auction?.auctionDocs ?? []).map(async (doc) => ({
         ...doc,
-        signedUrl: await this.s3.getSignedUrl(doc.s3Key, doc.s3Bucket).catch(() => null),
+        signedUrl: await this.s3.getSignedUrl(doc.s3Key, doc.s3Bucket, 3600, doc.fileName).catch(() => null),
       })),
     );
     // Merge Invoice into auctionDocs for frontend visibility
@@ -253,7 +253,7 @@ export class PickupsService {
         userId: clientUser.id,
         type: 'weight_reconciled',
         title: 'Weight Reconciled',
-        message: `Weight for "${pickup.auction.title}" has been reconciled. Final weight: ${data.finalWeight} kg, Final amount: ₹${data.finalAmount}.`,
+        message: `Weight for "${pickup.auction.title}" has been reconciled. Final weight: ${data.finalWeight} kg, Final amount: INR${data.finalAmount}.`,
         link: `/client/handover`,
       }).catch(() => {});
     }
@@ -263,7 +263,7 @@ export class PickupsService {
         userId: vendorUser.id,
         type: 'weight_reconciled',
         title: 'Weight Reconciled',
-        message: `Weight for "${pickup.auction.title}" has been reconciled. Final weight: ${data.finalWeight} kg, Final amount: ₹${data.finalAmount}.`,
+        message: `Weight for "${pickup.auction.title}" has been reconciled. Final weight: ${data.finalWeight} kg, Final amount: INR${data.finalAmount}.`,
         link: `/vendor/pickups`,
       }).catch(() => {});
     }
@@ -357,13 +357,13 @@ export class PickupsService {
         const docs = await Promise.all(
           pickup.pickupDocs.map(async (doc) => ({
             ...doc,
-            signedUrl: await this.s3.getSignedUrl(doc.s3Key, doc.s3Bucket),
+            signedUrl: await this.s3.getSignedUrl(doc.s3Key, doc.s3Bucket, 3600, doc.fileName),
           })),
         );
         const auctionDocs = await Promise.all(
           (pickup.auction?.auctionDocs ?? []).map(async (doc) => ({
             ...doc,
-            signedUrl: await this.s3.getSignedUrl(doc.s3Key, doc.s3Bucket).catch(() => null),
+            signedUrl: await this.s3.getSignedUrl(doc.s3Key, doc.s3Bucket, 3600, doc.fileName).catch(() => null),
           })),
         );
         const mergedAuctionDocs = [...auctionDocs, ...docs.filter(d => d.type === DocumentType.INVOICE)];
@@ -386,14 +386,14 @@ export class PickupsService {
     const docs = await Promise.all(
       pickup.pickupDocs.map(async (doc) => ({
         ...doc,
-        signedUrl: await this.s3.getSignedUrl(doc.s3Key, doc.s3Bucket),
+        signedUrl: await this.s3.getSignedUrl(doc.s3Key, doc.s3Bucket, 3600, doc.fileName),
       })),
     );
 
     const auctionDocs = await Promise.all(
       (pickup.auction?.auctionDocs ?? []).map(async (doc) => ({
         ...doc,
-        signedUrl: await this.s3.getSignedUrl(doc.s3Key, doc.s3Bucket).catch(() => null),
+        signedUrl: await this.s3.getSignedUrl(doc.s3Key, doc.s3Bucket, 3600, doc.fileName).catch(() => null),
       })),
     );
 

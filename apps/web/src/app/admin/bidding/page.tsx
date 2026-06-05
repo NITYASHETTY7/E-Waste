@@ -5,28 +5,36 @@ import { useApp } from "@/context/AppContext";
 import { formatDate } from "@/utils/format";
 import DecisionModal from "@/components/admin/DecisionModal";
 
-function exportCSV(bids: { id: string; vendorName: string; amount: number; status: string; createdAt: string; listingId: string }[], listings: { id: string; title: string; category: string; weight: number }[]) {
-  const header = ["Bid ID", "Listing", "Category", "Weight(KG)", "Vendor", "Amount(INR)", "Status", "Date"];
+function exportCSV(bids: any[], listings: any[]) {
+  const clean = (val: any) => {
+    if (val === undefined || val === null) return "";
+    return String(val).replace(/,/g, ' ').replace(/[^\x20-\x7E]/g, '').trim();
+  };
+
+  const header = ["Bid ID", "Listing Title", "Material Category", "Weight (KG)", "Vendor Name", "Bid Amount (INR)", "Bid Status", "Date Submitted"];
   const rows = bids.map(bid => {
     const listing = listings.find(l => l.id === bid.listingId);
     return [
       bid.id,
-      listing?.title || "Unknown",
-      listing?.category || "—",
+      clean(listing?.title || "Unknown"),
+      clean(listing?.category || "—"),
       listing?.weight || 0,
-      bid.vendorName,
+      clean(bid.vendorName),
       bid.amount,
-      bid.status,
-      formatDate(bid.createdAt),
+      bid.status.toUpperCase(),
+      new Date(bid.createdAt).toLocaleDateString('en-IN'),
     ];
   });
-  const csv = "\uFEFF" + [header, ...rows].map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
+
+  const csv = [header, ...rows].map(row => row.join(",")).join("\n");
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = `WeConnect_Bidding_${new Date().toISOString().split("T")[0]}.csv`;
+  a.download = `weconnect_bids_report_${new Date().toISOString().split("T")[0]}.csv`;
+  document.body.appendChild(a);
   a.click();
+  document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
 
@@ -56,7 +64,7 @@ export default function AdminBidding() {
     <div className="space-y-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="flex justify-between items-end">
         <div>
-          <h2 className="text-3xl font-headline font-extrabold tracking-tight text-[color:var(--color-on-surface)]">Bidding / Live Bids</h2>
+          <h2 className="text-3xl font-headline font-extrabold tracking-tight text-[color:var(--color-on-surface)]">Bids</h2>
           <p className="text-[color:var(--color-on-surface-variant)] mt-1">Monitor all bidding activity and financial settlements across the platform.</p>
         </div>
         <button onClick={() => exportCSV(bids, listings)}

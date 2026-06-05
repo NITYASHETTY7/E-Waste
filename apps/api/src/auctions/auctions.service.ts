@@ -542,7 +542,7 @@ export class AuctionsService {
       userId: vendorUserId,
       type: 'auction_won',
       title: 'You Won the Auction!',
-      message: `Congratulations! You won the auction for "${auction.title}" with a bid of ₹${winningBid?.amount || 0}.`,
+      message: `Congratulations! You won the auction for "${auction.title}" with a bid of INR${winningBid?.amount || 0}.`,
       link: '/vendor/purchase-order',
     }).catch(() => {});
 

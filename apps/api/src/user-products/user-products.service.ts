@@ -84,12 +84,12 @@ export class UserProductsService {
       products.map(async p => ({
         ...p,
         photoUrls: await Promise.all(
-          p.photoS3Keys.map(key =>
-            this.s3.getSignedUrl(key, p.photoS3Bucket ?? undefined),
+          p.photoS3Keys.map((key, idx) =>
+            this.s3.getSignedUrl(key, p.photoS3Bucket ?? undefined, 3600, `${p.name.replace(/[^a-z0-9]/gi, '_')}_photo_${idx + 1}.jpg`),
           ),
         ),
         invoiceUrl: p.invoiceS3Key
-          ? await this.s3.getSignedUrl(p.invoiceS3Key, p.invoiceS3Bucket ?? undefined)
+          ? await this.s3.getSignedUrl(p.invoiceS3Key, p.invoiceS3Bucket ?? undefined, 3600, `${p.name.replace(/[^a-z0-9]/gi, '_')}_invoice.pdf`)
           : null,
       })),
     );
@@ -111,12 +111,12 @@ export class UserProductsService {
       products.map(async p => ({
         ...p,
         photoUrls: await Promise.all(
-          p.photoS3Keys.map(key =>
-            this.s3.getSignedUrl(key, p.photoS3Bucket ?? undefined),
+          p.photoS3Keys.map((key, idx) =>
+            this.s3.getSignedUrl(key, p.photoS3Bucket ?? undefined, 3600, `${p.name.replace(/[^a-z0-9]/gi, '_')}_photo_${idx + 1}.jpg`),
           ),
         ),
         invoiceUrl: p.invoiceS3Key
-          ? await this.s3.getSignedUrl(p.invoiceS3Key, p.invoiceS3Bucket ?? undefined)
+          ? await this.s3.getSignedUrl(p.invoiceS3Key, p.invoiceS3Bucket ?? undefined, 3600, `${p.name.replace(/[^a-z0-9]/gi, '_')}_invoice.pdf`)
           : null,
       })),
     );
@@ -235,7 +235,7 @@ export class UserProductsService {
       userId: product.userId,
       type: 'quote_received',
       title: 'New Quote Received',
-      message: `You have received a new quote of ₹${offeredPrice.toLocaleString('en-IN')} from "${quote.vendorCompany.name}" for your product "${product.name}".`,
+      message: `You have received a new quote of INR${offeredPrice.toLocaleString('en-IN')} from "${quote.vendorCompany.name}" for your product "${product.name}".`,
       link: `/client/listings`,
     }).catch(() => {});
 
@@ -303,7 +303,7 @@ export class UserProductsService {
     await this.notifications.notifyCompanyUsers(quote.vendorCompanyId, {
       type: 'quote_accepted',
       title: 'Quote Accepted & Pickup Requested',
-      message: `Your quote of ₹${quote.offeredPrice.toLocaleString('en-IN')} for "${product.name}" has been accepted. Pickup is requested.`,
+      message: `Your quote of INR${quote.offeredPrice.toLocaleString('en-IN')} for "${product.name}" has been accepted. Pickup is requested.`,
       link: `/vendor/individual-products`,
     }).catch(() => {});
 

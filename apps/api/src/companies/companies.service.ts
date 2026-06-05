@@ -173,8 +173,8 @@ export class CompaniesService {
     });
   }
 
-  async getSignedUrl(s3Key: string, s3Bucket?: string) {
-    const url = await this.s3.getSignedUrl(s3Key, s3Bucket);
+  async getSignedUrl(s3Key: string, s3Bucket?: string, fileName?: string) {
+    const url = await this.s3.getSignedUrl(s3Key, s3Bucket, 3600, fileName);
     return { url };
   }
 

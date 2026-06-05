@@ -60,9 +60,16 @@ export class S3Service {
     key: string,
     bucket?: string,
     expiresIn = 3600,
+    downloadName?: string,
   ): Promise<string> {
     const b = bucket || this.privateBucket;
-    const command = new GetObjectCommand({ Bucket: b, Key: key });
+    const cleanName = downloadName ? downloadName.replace(/[^a-z0-9.]/gi, '_').toLowerCase() : undefined;
+    
+    const command = new GetObjectCommand({ 
+      Bucket: b, 
+      Key: key,
+      ResponseContentDisposition: cleanName ? `attachment; filename="${cleanName}"` : undefined
+    });
     return getSignedUrl(this.s3, command, { expiresIn });
   }
 

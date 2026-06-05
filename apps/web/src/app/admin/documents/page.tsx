@@ -108,10 +108,12 @@ export default function AdminDocuments() {
     if (!doc.s3Key) return;
     setUrlLoading(doc.id);
     try {
-      // For payment proofs, fetch via payments endpoint
-      // For others, fetch via the companies endpoint
       const res = await api.get(`/companies/signed-url`, {
-        params: { s3Key: doc.s3Key, s3Bucket: doc.s3Bucket },
+        params: { 
+          s3Key: doc.s3Key, 
+          s3Bucket: doc.s3Bucket,
+          fileName: doc.fileName 
+        },
       });
       window.open(res.data.url, "_blank");
     } catch (e) {

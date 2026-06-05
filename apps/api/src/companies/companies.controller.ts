@@ -36,13 +36,13 @@ export class CompaniesController {
     return this.companiesService.findAll(type, status);
   }
 
-  // Must be before :id routes — NestJS matches in declaration order
   @Get('signed-url')
   getSignedUrl(
     @Query('s3Key') s3Key: string,
     @Query('s3Bucket') s3Bucket?: string,
+    @Query('fileName') fileName?: string,
   ) {
-    return this.companiesService.getSignedUrl(s3Key, s3Bucket);
+    return this.companiesService.getSignedUrl(s3Key, s3Bucket, fileName);
   }
 
   @Get(':id')

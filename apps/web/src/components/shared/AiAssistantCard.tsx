@@ -1,9 +1,11 @@
 "use client";
 
 import React from "react";
-import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
 
 export function AiAssistantCard() {
+  const router = useRouter();
+
   return (
     <div className="mx-4 mt-6 p-5 rounded-3xl bg-gradient-to-br from-indigo-600 via-purple-600 to-indigo-700 relative overflow-hidden shadow-xl shadow-indigo-500/20 group cursor-default">
       {/* Decorative Orbs */}
@@ -25,9 +27,12 @@ export function AiAssistantCard() {
           Get insights and automate your daily tasks with our new smart assistant.
         </p>
         
-        <button className="w-full h-9 bg-white text-indigo-600 rounded-xl text-xs font-black flex items-center justify-center gap-2 hover:bg-slate-50 active:scale-95 transition-all shadow-lg dark:bg-slate-900">
+        <button 
+          onClick={() => router.push('/admin/ai-assistant')}
+          className="w-full h-9 bg-white text-indigo-600 rounded-xl text-xs font-black flex items-center justify-center gap-2 hover:bg-slate-50 active:scale-95 transition-all shadow-lg dark:bg-slate-900 group-hover:shadow-white/10"
+        >
           Ask AI Assistant
-          <span className="material-symbols-outlined text-sm">arrow_forward</span>
+          <span className="material-symbols-outlined text-sm group-hover:translate-x-1 transition-transform">arrow_forward</span>
         </button>
       </div>
     </div>

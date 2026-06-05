@@ -7,6 +7,36 @@ import api from "@/lib/api";
 
 type ReviewStep = "decision" | "approve";
 
+function exportListingsCSV(listings: any[]) {
+  const clean = (val: any) => {
+    if (val === undefined || val === null) return "";
+    return String(val).replace(/,/g, ' ').replace(/[^\x20-\x7E]/g, '').trim();
+  };
+
+  const header = ["Listing ID", "Title", "Client", "Category", "Weight (KG)", "Status", "Date Submitted", "Location"];
+  const rows = listings.map(l => [
+    l.id,
+    clean(l.title),
+    clean(l.userName || "Unknown"),
+    clean(l.category),
+    l.weight || 0,
+    l.status.toUpperCase(),
+    new Date(l.createdAt).toLocaleDateString('en-IN'),
+    clean(l.location || "—"),
+  ]);
+
+  const csv = [header, ...rows].map(row => row.join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `weconnect_listings_report_${new Date().toISOString().split("T")[0]}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 export default function AdminListings() {
   const { listings, bids, users, uploadProcessedSheet, refreshData, addNotification } = useApp();
   const [search, setSearch] = useState("");

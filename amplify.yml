@@ -1,24 +1,18 @@
 version: 1
 applications:
   - appRoot: apps/api
-    backend:
-      phases:
-        build:
-          commands:
-            - npm install -g @nestjs/cli
-            - cd ../.. && npm install
-            - npx prisma generate --schema=prisma/schema
-            - cd apps/api && npm run build
     frontend:
       phases:
         preBuild:
           commands:
+            - npm install -g @nestjs/cli
             - cd ../.. && npm install
         build:
           commands:
+            - npx prisma generate --schema=apps/api/prisma/schema/config.prisma
             - cd apps/api && npm run build
       artifacts:
-        baseDirectory: dist
+        baseDirectory: apps/api/dist
         files:
           - '**/*'
       cache:

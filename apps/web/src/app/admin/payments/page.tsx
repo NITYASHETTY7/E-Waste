@@ -101,7 +101,7 @@ export default function AdminPayments() {
       }
       // Otherwise fetch a pre-signed S3 URL
       const bucket = payment.proofS3Bucket || 'ecoloop-uploads';
-      const res = await api.get(\`/companies/signed-url?s3Key=\${encodeURIComponent(proofKey)}&s3Bucket=\${encodeURIComponent(bucket)}\`);
+      const res = await api.get(`/companies/signed-url?s3Key=${encodeURIComponent(proofKey)}&s3Bucket=${encodeURIComponent(bucket)}`);
       const signedUrl = res.data?.url || res.data?.signedUrl || res.data;
       if (typeof signedUrl === 'string') {
         const isImage = /\.(png|jpg|jpeg|gif|webp)$/i.test(proofKey);

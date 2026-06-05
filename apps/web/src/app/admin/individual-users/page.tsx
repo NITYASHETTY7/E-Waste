@@ -9,10 +9,10 @@ export default function AdminIndividualUsers() {
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "active" | "inactive">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "active" | "rejected" | "onhold">("all");
 
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
-  const [pendingAction, setPendingAction] = useState<"reject" | "hold" | null>(null);
+  const [pendingAction, setPendingAction] = useState<"reject" | "hold" | "revoke" | null>(null);
   const [pendingReason, setPendingReason] = useState("");
   const [actionLoading, setActionLoading] = useState(false);
 
@@ -95,6 +95,7 @@ export default function AdminIndividualUsers() {
       if (statusFilter === "active") return s === "active";
       if (statusFilter === "pending") return s === "pending";
       if (statusFilter === "rejected") return s === "rejected";
+      if (statusFilter === "onhold") return s === "onhold";
       return true;
     })
     .filter(u =>
@@ -162,7 +163,7 @@ export default function AdminIndividualUsers() {
             className="w-full pl-10 pr-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl text-sm text-slate-900 dark:text-white placeholder:text-slate-400 outline-none focus:ring-2 focus:ring-[#1E8E3E]/20 focus:border-[#1E8E3E] transition-all" />
         </div>
         <div className="flex gap-1 p-1 bg-slate-100 dark:bg-slate-800/50 rounded-xl w-full sm:w-fit overflow-x-auto">
-          {(["all", "pending", "active", "rejected"] as const).map(f => (
+          {(["all", "pending", "active", "rejected", "onhold"] as const).map(f => (
             <button key={f} onClick={() => setStatusFilter(f as any)}
               className={`flex-shrink-0 px-4 py-1.5 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${statusFilter === f ? "bg-white dark:bg-slate-700 shadow-sm text-slate-900 dark:text-white" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"}`}>
               {f}

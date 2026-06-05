@@ -23,8 +23,8 @@ export default function TransactionHistory() {
     try {
       setLoading(true);
       const url = currentUser.role === 'vendor' 
-        ? \`/payments/by-company/\${currentUser.companyId}\`
-        : \`/payments/by-user/\${currentUser.id}\`;
+        ? `/payments/by-company/${currentUser.companyId}`
+        : `/payments/by-user/${currentUser.id}`;
       const res = await api.get(url);
       setPayments(res.data);
     } catch {
@@ -49,7 +49,7 @@ export default function TransactionHistory() {
         return;
       }
       const bucket = payment.proofS3Bucket || 'ecoloop-uploads';
-      const res = await api.get(\`/companies/signed-url?s3Key=\${encodeURIComponent(proofKey)}&s3Bucket=\${encodeURIComponent(bucket)}\`);
+      const res = await api.get(`/companies/signed-url?s3Key=${encodeURIComponent(proofKey)}&s3Bucket=${encodeURIComponent(bucket)}`);
       const signedUrl = res.data?.url || res.data?.signedUrl || res.data;
       if (typeof signedUrl === 'string') {
         const isImage = /\.(png|jpg|jpeg|gif|webp)$/i.test(proofKey);
@@ -79,7 +79,7 @@ export default function TransactionHistory() {
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className={\`fixed top-6 right-6 px-6 py-3 rounded-xl shadow-xl z-50 text-white font-bold text-sm \${toast.type === "success" ? "bg-emerald-600" : "bg-red-600"}\`}
+              className={`fixed top-6 right-6 px-6 py-3 rounded-xl shadow-xl z-50 text-white font-bold text-sm ${toast.type === "success" ? "bg-emerald-600" : "bg-red-600"}`}
             >
               {toast.msg}
             </motion.div>
@@ -124,14 +124,14 @@ export default function TransactionHistory() {
                         <span className="text-xs font-black text-slate-400 uppercase tracking-widest">
                           {itemRef}
                         </span>
-                        <span className={\`text-[9px] px-2.5 py-0.5 rounded-full font-black uppercase \${meta.color}\`}>{meta.label}</span>
+                        <span className={`text-[9px] px-2.5 py-0.5 rounded-full font-black uppercase ${meta.color}`}>{meta.label}</span>
                       </div>
                       <h3 className="font-bold text-slate-900 truncate dark:text-white">
                         {itemName}
                       </h3>
                       <div className="flex gap-4 mt-2 flex-wrap">
                         <span className="text-xs text-slate-500">
-                          Total Amount: <span className={\`font-bold \${isPenalty ? 'text-red-600 dark:text-red-500' : 'text-[#1E8E3E] dark:text-emerald-500'}\`}>₹{totalAmount.toLocaleString()}</span>
+                          Total Amount: <span className={`font-bold ${isPenalty ? 'text-red-600 dark:text-red-500' : 'text-[#1E8E3E] dark:text-emerald-500'}`}>₹{totalAmount.toLocaleString()}</span>
                         </span>
                         {!isIndividual && !isPenalty && currentUser?.role !== 'vendor' && (
                           <span className="text-xs text-slate-500">

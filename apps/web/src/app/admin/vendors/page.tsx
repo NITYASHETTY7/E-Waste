@@ -124,7 +124,7 @@ export default function AdminVendors() {
     isLockingRef.current = true;
     setLockingVendor(true);
     try {
-      await api.patch(\`/companies/admin/\${lockModal.vendorId}/lock\`, { reason: lockReason });
+      await api.patch(`/companies/admin/${lockModal.vendorId}/lock`, { reason: lockReason });
       showToast("Vendor locked.");
       setLockModal({ isOpen: false, vendorId: null });
       setLockReason("");
@@ -143,7 +143,7 @@ export default function AdminVendors() {
     isApplyingPenaltyRef.current = true;
     setApplyingPenalty(true);
     try {
-      await api.post(\`/companies/admin/\${penaltyModal.vendorId}/penalty\`, { amount: Number(penaltyAmount), reason: penaltyReason });
+      await api.post(`/companies/admin/${penaltyModal.vendorId}/penalty`, { amount: Number(penaltyAmount), reason: penaltyReason });
       showToast("Penalty applied.");
       setPenaltyModal({ isOpen: false, vendorId: null });
       setPenaltyAmount("");

@@ -228,7 +228,7 @@ export default function AdminManageAuction() {
               </button>
               <button 
                 onClick={async () => {
-                  const ok = await action("Generate Documents", () => api.post(\`/auctions/\${auctionId}/generate-docs\`, docsForm));
+                  const ok = await action("Generate Documents", () => api.post(`/auctions/${auctionId}/generate-docs`, docsForm));
                   if (ok) setShowDocsModal(false);
                 }}
                 disabled={busy === "Generate Documents"}

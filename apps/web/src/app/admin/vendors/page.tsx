@@ -29,6 +29,7 @@ export default function AdminVendors() {
   const [penaltyAmount, setPenaltyAmount] = useState("");
   const [penaltyReason, setPenaltyReason] = useState("");
   const [applyingPenalty, setApplyingPenalty] = useState(false);
+  const [lockingVendor, setLockingVendor] = useState(false);
 
   const fetchVendors = async () => {
     try {
@@ -118,7 +119,8 @@ export default function AdminVendors() {
   };
 
   const handleLock = async () => {
-    if (!lockModal.vendorId || !lockReason.trim()) return;
+    if (!lockModal.vendorId || !lockReason.trim() || lockingVendor) return;
+    setLockingVendor(true);
     try {
       await api.patch(`/companies/admin/${lockModal.vendorId}/lock`, { reason: lockReason });
       showToast("Vendor locked.");
@@ -127,6 +129,8 @@ export default function AdminVendors() {
       fetchVendors();
     } catch (err: any) {
       showToast(err.response?.data?.message || "Failed to lock.", "error");
+    } finally {
+      setLockingVendor(false);
     }
   };
 
@@ -589,10 +593,12 @@ export default function AdminVendors() {
                 value={lockReason} onChange={e => setLockReason(e.target.value)} />
             </div>
             <div className="flex justify-end gap-3">
-              <button onClick={() => { setLockModal({ isOpen: false, vendorId: null }); setLockReason(""); }}
-                className="px-5 py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 hover:bg-slate-50">Cancel</button>
-              <button onClick={handleLock} disabled={!lockReason.trim()}
-                className="px-5 py-2.5 rounded-xl bg-red-600 text-white text-sm font-bold hover:bg-red-700 disabled:opacity-50">Confirm Lock</button>
+              <button onClick={() => { setLockModal({ isOpen: false, vendorId: null }); setLockReason(""); }} disabled={lockingVendor}
+                className="px-5 py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50">Cancel</button>
+              <button onClick={handleLock} disabled={!lockReason.trim() || lockingVendor}
+                className="px-5 py-2.5 rounded-xl bg-red-600 text-white text-sm font-bold hover:bg-red-700 disabled:opacity-50">
+                {lockingVendor ? "Locking..." : "Confirm Lock"}
+              </button>
             </div>
           </div>
         </div>

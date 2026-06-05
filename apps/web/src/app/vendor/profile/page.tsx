@@ -13,7 +13,7 @@ export default function VendorProfile() {
   const profile = currentUser?.onboardingProfile;
   const docs = currentUser?.documents || [];
   
-  const [tab, setTab] = useState<"profile" | "documents" | "stats" | "settings">("profile");
+  const [tab, setTab] = useState<"profile" | "documents" | "transactions" | "stats" | "settings">("profile");
   const [isEditing, setIsEditing] = useState(false);
   const [kycDocs, setKycDocs] = useState<any[]>([]);
   const [loadingKyc, setLoadingKyc] = useState(false);
@@ -35,11 +35,23 @@ export default function VendorProfile() {
   const [showPasswords, setShowPasswords] = useState({ current: false, new: false, confirm: false });
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error', msg: string } | null>(null);
+  const [txHistory, setTxHistory] = useState<any[]>([]);
+  const [txLoading, setTxLoading] = useState(false);
 
   const showFeedback = (type: 'success' | 'error', msg: string) => {
     setFeedback({ type, msg });
     setTimeout(() => setFeedback(null), 3000);
   };
+
+  useEffect(() => {
+    if (tab === "transactions" && currentUser?.companyId) {
+      setTxLoading(true);
+      api.get(`/payments/by-company/${currentUser.companyId}`)
+        .then(r => setTxHistory(r.data ?? []))
+        .catch(() => {})
+        .finally(() => setTxLoading(false));
+    }
+  }, [tab, currentUser?.companyId]);
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -162,6 +174,7 @@ export default function VendorProfile() {
           {[
             { id: "profile", label: "Business Credentials", icon: "badge" },
             { id: "documents", label: "Certifications", icon: "verified" },
+            { id: "transactions", label: "Transaction History", icon: "receipt_long" },
             { id: "stats", label: "Performance Audit", icon: "analytics" },
             { id: "settings", label: "Account Settings", icon: "settings" },
           ].map((t) => (
@@ -328,6 +341,69 @@ export default function VendorProfile() {
                       <p className="text-slate-400 text-xs">Documents uploaded during onboarding appear here.</p>
                     </div>
                   )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {tab === "transactions" && (
+            <div className="p-8 space-y-6 animate-fade-in">
+              <div>
+                <h4 className="text-xl font-black text-slate-900 dark:text-white">Transaction History</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">All auction payments where you were the winning bidder.</p>
+              </div>
+              {txLoading ? (
+                <div className="py-16 text-center">
+                  <span className="material-symbols-outlined text-4xl text-slate-200 animate-spin block mb-2">progress_activity</span>
+                  <p className="text-slate-400 text-sm">Loading transaction history...</p>
+                </div>
+              ) : txHistory.length === 0 ? (
+                <div className="py-16 text-center space-y-2">
+                  <span className="material-symbols-outlined text-5xl text-slate-200 block">receipt_long</span>
+                  <p className="text-slate-400 font-bold text-sm italic">No transactions yet.</p>
+                  <p className="text-slate-400 text-xs">Payment records appear here after you win auctions.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto border border-slate-100 dark:border-slate-800 rounded-2xl">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="bg-slate-50 dark:bg-slate-800/50 text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                        <th className="px-4 py-3">Auction / Lot</th>
+                        <th className="px-4 py-3">Client</th>
+                        <th className="px-4 py-3 text-right">Bid Amount</th>
+                        <th className="px-4 py-3 text-right">Total Paid</th>
+                        <th className="px-4 py-3">UTR / Ref</th>
+                        <th className="px-4 py-3">Date</th>
+                        <th className="px-4 py-3 text-center">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                      {txHistory.map((tx: any) => {
+                        const statusMap: Record<string, { label: string; cls: string }> = {
+                          PENDING:   { label: "Pending",   cls: "bg-amber-100 text-amber-700" },
+                          SUBMITTED: { label: "Submitted", cls: "bg-blue-100 text-blue-700" },
+                          CONFIRMED: { label: "Confirmed", cls: "bg-emerald-100 text-emerald-700" },
+                          REJECTED:  { label: "Rejected",  cls: "bg-red-100 text-red-700" },
+                        };
+                        const s = statusMap[tx.status] ?? statusMap.PENDING;
+                        return (
+                          <tr key={tx.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                            <td className="px-4 py-3 font-bold text-slate-800 dark:text-slate-200 max-w-[160px] truncate" title={tx.auction?.title}>
+                              {tx.auction?.title ?? "—"}
+                            </td>
+                            <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{tx.auction?.client?.name ?? "—"}</td>
+                            <td className="px-4 py-3 font-black text-emerald-700 text-right">₹{(tx.clientAmount || 0).toLocaleString("en-IN")}</td>
+                            <td className="px-4 py-3 font-black text-slate-900 dark:text-white text-right">₹{(tx.totalAmount || 0).toLocaleString("en-IN")}</td>
+                            <td className="px-4 py-3 font-mono text-slate-500 text-[10px]">{tx.utrNumber ?? "—"}</td>
+                            <td className="px-4 py-3 text-slate-500">{new Date(tx.createdAt).toLocaleDateString("en-IN")}</td>
+                            <td className="px-4 py-3 text-center">
+                              <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase ${s.cls}`}>{s.label}</span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </div>

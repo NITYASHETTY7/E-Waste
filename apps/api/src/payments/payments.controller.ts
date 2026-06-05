@@ -35,6 +35,16 @@ export class PaymentsController {
     return this.svc.findAll(status);
   }
 
+  @Get('payments/by-company/:companyId')
+  findByCompany(@Param('companyId') companyId: string) {
+    return this.svc.findByCompany(companyId);
+  }
+
+  @Get('payments/by-user/:userId')
+  findByUser(@Param('userId') userId: string) {
+    return this.svc.findByUser(userId);
+  }
+
   @Get('payments/auction/:auctionId')
   findOne(@Param('auctionId') auctionId: string) {
     return this.svc.findByAuction(auctionId);

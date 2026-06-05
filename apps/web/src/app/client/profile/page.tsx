@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useApp } from "@/context/AppContext";
 import { formatDate } from "@/utils/format";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRouter } from "next/navigation";
+import api from "@/lib/api";
 
 function downloadEPRReport(userName: string, listings: { title: string; weight: number }[]) {
   const totalWeight = listings.reduce((s, l) => s + l.weight, 0);
@@ -55,7 +56,7 @@ export default function ClientProfile() {
   const profile = currentUser?.onboardingProfile || {};
   const docs = currentUser?.documents || [];
   
-  const [tab, setTab] = useState<"profile" | "bids" | "documents" | "impact" | "settings">("profile");
+  const [tab, setTab] = useState<"profile" | "bids" | "documents" | "impact" | "transactions" | "settings">("profile");
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState({
     name: currentUser?.name || '',
@@ -71,6 +72,18 @@ export default function ClientProfile() {
   const [showPasswords, setShowPasswords] = useState({ current: false, new: false, confirm: false });
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error', msg: string } | null>(null);
+  const [txHistory, setTxHistory] = useState<any[]>([]);
+  const [txLoading, setTxLoading] = useState(false);
+
+  useEffect(() => {
+    if (tab === "transactions" && currentUser?.companyId) {
+      setTxLoading(true);
+      api.get(`/payments/by-company/${currentUser.companyId}`)
+        .then(r => setTxHistory(r.data ?? []))
+        .catch(() => {})
+        .finally(() => setTxLoading(false));
+    }
+  }, [tab, currentUser?.companyId]);
 
   const myListings = listings.filter(l => l.userId === currentUser?.id);
   const completedListings = myListings.filter(l => l.status === "completed");
@@ -143,6 +156,7 @@ export default function ClientProfile() {
             { id: "bids", label: "Recent Bids", icon: "gavel" },
             { id: "documents", label: "Legal Documents", icon: "description" },
             { id: "impact", label: "Sustainability Hub", icon: "eco" },
+            { id: "transactions", label: "Transaction History", icon: "receipt_long" },
             { id: "settings", label: "Account Settings", icon: "settings" },
           ].map((t) => (
             <button
@@ -364,6 +378,69 @@ export default function ClientProfile() {
                   </div>
                 )}
               </div>
+            </div>
+          )}
+
+          {tab === "transactions" && (
+            <div className="p-8 space-y-6 animate-fade-in">
+              <div>
+                <h4 className="text-xl font-black text-slate-900 dark:text-white">Transaction History</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium mt-1">All payment records for your auction lots and recycling transactions.</p>
+              </div>
+              {txLoading ? (
+                <div className="py-16 text-center">
+                  <span className="material-symbols-outlined text-4xl text-slate-200 animate-spin block mb-2">progress_activity</span>
+                  <p className="text-slate-400 text-sm">Loading transaction history...</p>
+                </div>
+              ) : txHistory.length === 0 ? (
+                <div className="py-16 text-center space-y-2">
+                  <span className="material-symbols-outlined text-5xl text-slate-200 block">receipt_long</span>
+                  <p className="text-slate-400 font-bold text-sm italic">No transactions yet.</p>
+                  <p className="text-slate-400 text-xs">Payment records will appear here once auction lots are sold.</p>
+                </div>
+              ) : (
+                <div className="overflow-x-auto border border-slate-100 dark:border-slate-800 rounded-2xl">
+                  <table className="w-full text-left border-collapse text-xs">
+                    <thead>
+                      <tr className="bg-slate-50 dark:bg-slate-800/50 text-[10px] font-black text-slate-400 uppercase tracking-wider">
+                        <th className="px-4 py-3">Auction / Lot</th>
+                        <th className="px-4 py-3">Vendor</th>
+                        <th className="px-4 py-3 text-right">Bid Amount</th>
+                        <th className="px-4 py-3 text-right">Commission</th>
+                        <th className="px-4 py-3">UTR / Ref</th>
+                        <th className="px-4 py-3">Date</th>
+                        <th className="px-4 py-3 text-center">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                      {txHistory.map((tx: any) => {
+                        const statusMap: Record<string, { label: string; cls: string }> = {
+                          PENDING:   { label: "Pending",   cls: "bg-amber-100 text-amber-700" },
+                          SUBMITTED: { label: "Submitted", cls: "bg-blue-100 text-blue-700" },
+                          CONFIRMED: { label: "Confirmed", cls: "bg-emerald-100 text-emerald-700" },
+                          REJECTED:  { label: "Rejected",  cls: "bg-red-100 text-red-700" },
+                        };
+                        const s = statusMap[tx.status] ?? statusMap.PENDING;
+                        return (
+                          <tr key={tx.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                            <td className="px-4 py-3 font-bold text-slate-800 dark:text-slate-200 max-w-[180px] truncate" title={tx.auction?.title}>
+                              {tx.auction?.title ?? "—"}
+                            </td>
+                            <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{tx.auction?.winner?.name ?? "—"}</td>
+                            <td className="px-4 py-3 font-black text-slate-900 dark:text-white text-right">₹{(tx.clientAmount || 0).toLocaleString("en-IN")}</td>
+                            <td className="px-4 py-3 text-blue-600 font-bold text-right">₹{(tx.commissionAmount || 0).toLocaleString("en-IN")}</td>
+                            <td className="px-4 py-3 font-mono text-slate-500 text-[10px]">{tx.utrNumber ?? "—"}</td>
+                            <td className="px-4 py-3 text-slate-500">{formatDate(tx.createdAt)}</td>
+                            <td className="px-4 py-3 text-center">
+                              <span className={`px-2.5 py-1 rounded-full text-[9px] font-black uppercase ${s.cls}`}>{s.label}</span>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
 

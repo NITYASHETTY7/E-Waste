@@ -72,6 +72,58 @@ export class PaymentsService {
     });
   }
 
+  // Fetch all payments where the company is the client OR the winning vendor
+  async findByCompany(companyId: string) {
+    return this.prisma.payment.findMany({
+      where: {
+        auction: {
+          OR: [
+            { clientId: companyId },
+            { winnerId: companyId },
+          ],
+        },
+      },
+      include: {
+        auction: {
+          include: {
+            client: { select: { id: true, name: true } },
+            winner: { select: { id: true, name: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  // Fetch payments linked to auctions from listings owned by this user (individual user)
+  // Individual users use the quote/pickup flow, so we return their product transactions
+  async findByUser(userId: string) {
+    // Individual users have UserProductPickup records (not auction payments)
+    return this.prisma.userProductPickup.findMany({
+      where: {
+        product: { userId },
+      },
+      include: {
+        product: {
+          select: {
+            id: true,
+            name: true,
+            weightKg: true,
+            askingPrice: true,
+            acceptedQuoteId: true,
+            quotes: {
+              where: { status: 'accepted' },
+              include: { vendorCompany: { select: { id: true, name: true } } },
+              take: 1,
+            },
+          },
+        },
+        vendorCompany: { select: { id: true, name: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
   // Vendor uploads payment proof (screenshot / UTR)
   async uploadProof(id: string, file: Express.Multer.File, utrNumber?: string) {
     const payment = await this.prisma.payment.findUnique({

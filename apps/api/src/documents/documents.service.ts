@@ -22,7 +22,7 @@ export class DocumentsService {
     auctionTitle: string,
     totalWeight: number,
     winningAmount: number,
-    terms?: { paymentTerms: string; deliveryTerms: string; penaltyClause: string; specialConditions: string },
+    terms?: { paymentTerms?: string; deliveryTerms?: string; penaltyClause?: string; specialConditions?: string },
   ): Promise<string> {
     const s3Key = `work-orders/${auctionId}/WO-${Date.now()}.pdf`;
 

@@ -629,7 +629,7 @@ export class AuctionsService {
     return auction;
   }
 
-  async generatePostAuctionDocs(id: string, data?: { paymentTerms: string; deliveryTerms: string; penaltyClause: string; specialConditions: string }) {
+  async generatePostAuctionDocs(id: string, data?: { paymentTerms?: string; deliveryTerms?: string; penaltyClause?: string; specialConditions?: string }) {
     const auction = await this.prisma.auction.findUnique({
       where: { id },
       include: {

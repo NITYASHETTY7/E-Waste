@@ -95,15 +95,12 @@ export class UserProductsService {
       products.map(async (p) => ({
         ...p,
         photoUrls: await Promise.all(
-          p.photoS3Keys.map((key) =>
-            this.s3.getSignedUrl(key, p.photoS3Bucket ?? undefined),
+          p.photoS3Keys.map((key, idx) =>
+            this.s3.getSignedUrl(key, p.photoS3Bucket ?? undefined, 3600, `${p.name.replace(/[^a-z0-9]/gi, '_')}_photo_${idx + 1}.jpg`),
           ),
         ),
         invoiceUrl: p.invoiceS3Key
-          ? await this.s3.getSignedUrl(
-              p.invoiceS3Key,
-              p.invoiceS3Bucket ?? undefined,
-            )
+          ? await this.s3.getSignedUrl(p.invoiceS3Key, p.invoiceS3Bucket ?? undefined, 3600, `${p.name.replace(/[^a-z0-9]/gi, '_')}_invoice.pdf`)
           : null,
       })),
     );
@@ -125,15 +122,12 @@ export class UserProductsService {
       products.map(async (p) => ({
         ...p,
         photoUrls: await Promise.all(
-          p.photoS3Keys.map((key) =>
-            this.s3.getSignedUrl(key, p.photoS3Bucket ?? undefined),
+          p.photoS3Keys.map((key, idx) =>
+            this.s3.getSignedUrl(key, p.photoS3Bucket ?? undefined, 3600, `${p.name.replace(/[^a-z0-9]/gi, '_')}_photo_${idx + 1}.jpg`),
           ),
         ),
         invoiceUrl: p.invoiceS3Key
-          ? await this.s3.getSignedUrl(
-              p.invoiceS3Key,
-              p.invoiceS3Bucket ?? undefined,
-            )
+          ? await this.s3.getSignedUrl(p.invoiceS3Key, p.invoiceS3Bucket ?? undefined, 3600, `${p.name.replace(/[^a-z0-9]/gi, '_')}_invoice.pdf`)
           : null,
       })),
     );
@@ -270,15 +264,13 @@ export class UserProductsService {
     });
 
     // Notify product owner in-app
-    await this.notifications
-      .createInAppNotification({
-        userId: product.userId,
-        type: 'quote_received',
-        title: 'New Quote Received',
-        message: `You have received a new quote of ₹${offeredPrice.toLocaleString('en-IN')} from "${quote.vendorCompany.name}" for your product "${product.name}".`,
-        link: `/client/listings`,
-      })
-      .catch((err) => console.error('Background task error:', err));
+    await this.notifications.createInAppNotification({
+      userId: product.userId,
+      type: 'quote_received',
+      title: 'New Quote Received',
+      message: `You have received a new quote of INR${offeredPrice.toLocaleString('en-IN')} from "${quote.vendorCompany.name}" for your product "${product.name}".`,
+      link: `/client/listings`,
+    }).catch((err) => console.error('Background task error:', err));
 
     return quote;
   }
@@ -346,14 +338,12 @@ export class UserProductsService {
     }
 
     // Notify vendor company users in-app
-    await this.notifications
-      .notifyCompanyUsers(quote.vendorCompanyId, {
-        type: 'quote_accepted',
-        title: 'Quote Accepted & Pickup Requested',
-        message: `Your quote of ₹${quote.offeredPrice.toLocaleString('en-IN')} for "${product.name}" has been accepted. Pickup is requested.`,
-        link: `/vendor/individual-products`,
-      })
-      .catch((err) => console.error('Background task error:', err));
+    await this.notifications.notifyCompanyUsers(quote.vendorCompanyId, {
+      type: 'quote_accepted',
+      title: 'Quote Accepted & Pickup Requested',
+      message: `Your quote of INR${quote.offeredPrice.toLocaleString('en-IN')} for "${product.name}" has been accepted. Pickup is requested.`,
+      link: `/vendor/individual-products`,
+    }).catch((err) => console.error('Background task error:', err));
 
     return { success: true };
   }
@@ -435,6 +425,18 @@ export class UserProductsService {
       bankAccountHolder?: string;
       bankName?: string;
       bankAccountNumber?: string;
+      bankIfscCode?: string;
+      bankAccountType?: string;
+    },
+  ) {
+    const { passwordHash, ...safe } = (await this.prisma.user.update({
+      where: { id: userId },
+      data,
+    })) as any;
+    return safe;
+  }
+}
+er?: string;
       bankIfscCode?: string;
       bankAccountType?: string;
     },

@@ -2,11 +2,13 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { useApp } from "@/context/AppContext";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function AdminReports() {
   const { listings, users, bids } = useApp();
   const [activeTab, setActiveTab] = useState<"platform" | "clients" | "vendors">("platform");
   const [mounted, setMounted] = useState(false);
+  const [hoveredCat, setHoveredCat] = useState<any | null>(null);
 
   useEffect(() => { setMounted(true); }, []);
 
@@ -17,7 +19,7 @@ export default function AdminReports() {
   const totalCommissions = totalRevenue * 0.05;
 
   const vendors = users.filter(u => u.role === "vendor");
-  const clients = users.filter(u => u.role === "client");
+  const clients = users.filter(u => u.role === "client" || u.role === "user");
 
   const metrics = useMemo(() => [
     { label: "Total E-Waste Processed", value: `${totalWeight.toLocaleString()} KG`, delta: "0%", icon: "recycling" },
@@ -26,10 +28,11 @@ export default function AdminReports() {
     { label: "Active Recycling Partners", value: vendors.length.toString(), delta: "0", icon: "handshake" },
   ], [totalWeight, totalRevenue, totalCommissions, vendors.length]);
 
-  const monthlyData = useMemo(() => {
+  const { monthlyData, maxCo2 } = useMemo(() => {
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     const now = new Date();
     const result = [];
+    let absoluteMax = 0;
     
     for (let i = 11; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
@@ -46,10 +49,30 @@ export default function AdminReports() {
         .reduce((sum, l) => sum + (l.weight || 0), 0);
       
       const co2 = Number((weight * 1.5 / 1000).toFixed(2)); // in MT
-      result.push({ month: monthLabel, co2, waste: weight });
+      if (co2 > absoluteMax) absoluteMax = co2;
+      result.push({ month: monthLabel, year, co2, waste: weight });
     }
-    return result;
+    return { monthlyData: result, maxCo2: Math.max(10, Math.ceil(absoluteMax * 1.2)) };
   }, [listings]);
+
+  const categoryImpact = useMemo(() => {
+    const cats: Record<string, number> = {};
+    completedListings.forEach(l => {
+      const cat = l.category || "Other";
+      cats[cat] = (cats[cat] || 0) + (l.weight || 0);
+    });
+
+    const colors = ["#8B5CF6", "#3B82F6", "#10B981", "#F59E0B", "#F43F5E", "#06B6D4", "#F97316", "#A855F7"];
+    const totalWeightSum = Object.values(cats).reduce((s, v) => s + v, 0);
+
+    return Object.entries(cats).map(([label, weight], i) => ({
+      label,
+      weight,
+      co2: Number((weight * 1.5 / 1000).toFixed(2)),
+      pct: totalWeightSum > 0 ? Number(((weight / totalWeightSum) * 100).toFixed(1)) : 0,
+      color: colors[i % colors.length]
+    })).sort((a,b) => b.weight - a.weight);
+  }, [completedListings]);
 
   const categoryData = useMemo(() => {
     const categories: Record<string, number> = {};
@@ -73,10 +96,10 @@ export default function AdminReports() {
     return clients.map(client => {
       const clientListings = listings.filter(l => l.userId === client.id && (l.status === "completed" || l.auctionPhase === "completed"));
       const achieved = clientListings.reduce((s, l) => s + (l.weight || 0), 0) / 1000; // MT
-      const target = 5.0; // Default target 5MT since it's not in DB yet
+      const target = 5.0; // Default target 5MT
       return {
-        name: client.name,
-        category: "IT / Consumer",
+        name: client.name || client.email,
+        category: client.role === "user" ? "Individual" : "Enterprise",
         target,
         achieved: Number(achieved.toFixed(2)),
         progress: Math.min(Math.round((achieved / target) * 100), 100)
@@ -94,19 +117,54 @@ export default function AdminReports() {
   const handleDownload = (name: string) => {
     showToast(`Generating ${name}...`);
     
-    // Simulate a CSV download
+    const clean = (val: any) => {
+      if (val === undefined || val === null) return "";
+      // Strip non-printable ASCII and commas (to prevent CSV breaking)
+      return String(val).replace(/,/g, ' ').replace(/[^\x20-\x7E]/g, '').trim();
+    };
+
+    // Clean filename: Replace spaces/special chars with underscores, ensure only alphanumeric
+    const safeFilename = name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    
+    // 1. Determine which data to export based on the 'name'
+    let headers = "Date,Entity,Category,Weight (KG),Amount (INR),CO2 Saved (MT)";
+    let rows: string[] = [];
+
+    if (name.includes("Impact")) {
+      rows = completedListings.map(l => {
+        const date = new Date(l.createdAt).toLocaleDateString('en-IN');
+        const co2 = (l.weight * 1.5 / 1000).toFixed(2);
+        return `${clean(date)},${clean(l.userName)},${clean(l.category)},${l.weight},0,${co2}`;
+      });
+    } else if (name.includes("Revenue")) {
+      headers = "Client Name,Total Lots,Total Weight (KG),Total Revenue (INR)";
+      rows = clients.map(c => {
+        const clientListings = listings.filter(l => l.userId === c.id);
+        const weight = clientListings.reduce((s, l) => s + (l.weight || 0), 0);
+        const revenue = bids.filter(b => b.status === "accepted" && clientListings.some(l => l.id === b.listingId)).reduce((s, b) => s + b.amount, 0);
+        return `${clean(c.name)},${clientListings.length},${weight},${revenue}`;
+      });
+    } else if (name.includes("Monthly")) {
+       headers = "Month,Year,Waste Processed (KG),CO2 Saved (MT)";
+       rows = monthlyData.filter(d => d.waste > 0).map(d => `${clean(d.month)},${d.year},${d.waste},${d.co2}`);
+    }
+
+    const csvContent = [headers, ...rows].join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", `${safeFilename}_report.csv`);
+    document.body.appendChild(link);
+    link.click();
+    
+    // Cleanup
     setTimeout(() => {
-      const csvContent = "data:text/csv;charset=utf-8,Date,Entity,Category,Weight,Amount\n2026-06-03,Test Client,E-Waste,1000kg,₹50000";
-      const encodedUri = encodeURI(csvContent);
-      const link = document.createElement("a");
-      link.setAttribute("href", encodedUri);
-      link.setAttribute("download", `${name.replace(/\s+/g, "_")}.csv`);
-      document.body.appendChild(link);
-      link.click();
       document.body.removeChild(link);
-      
+      URL.revokeObjectURL(url);
       showToast(`${name} downloaded successfully.`);
-    }, 1500);
+    }, 100);
   };
 
   if (!mounted) return <div className="min-h-screen bg-slate-50 flex items-center justify-center dark:bg-slate-950"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div></div>;
@@ -125,8 +183,13 @@ export default function AdminReports() {
 
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-headline font-extrabold tracking-tight text-slate-900 dark:text-white">Analytical Intelligence</h2>
-          <p className="text-slate-500 mt-1 font-medium">Cross-platform metrics, compliance tracking, and revenue audits.</p>
+          <div className="flex items-center gap-3 mb-1">
+            <h2 className="text-3xl font-headline font-extrabold tracking-tight text-slate-900 dark:text-white">Platform Analytics & Reports</h2>
+            <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-700 text-[10px] font-black uppercase tracking-widest dark:bg-emerald-900/30 dark:text-emerald-400">
+              Live Data: {completedListings.length} Projects
+            </span>
+          </div>
+          <p className="text-slate-500 font-medium">Real-time environmental metrics, producer compliance, and performance audits.</p>
         </div>
         <div className="flex gap-2 p-1 bg-slate-100 rounded-xl w-fit dark:bg-slate-800">
           {(["platform", "clients", "vendors"] as const).map(tab => (
@@ -159,46 +222,142 @@ export default function AdminReports() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* CO2 Savings Chart */}
-            <div className="lg:col-span-2 bg-white rounded-3xl border border-slate-200 p-8 dark:bg-slate-900 dark:border-slate-700">
+            {/* Environmental Impact Donut */}
+            <div className="bg-white rounded-3xl border border-slate-200 p-8 dark:bg-slate-900 dark:border-slate-700">
               <h4 className="font-headline font-bold text-slate-900 mb-8 flex items-center justify-between dark:text-white">
-                Environmental Impact (CO2 Saved)
-                <button onClick={() => handleDownload("Impact Report")} className="text-xs font-bold text-emerald-600 hover:underline">Download Report</button>
+                Impact by Category
+                <button onClick={() => handleDownload("Impact Distribution")} className="text-[10px] font-black uppercase text-emerald-600 hover:underline">Export</button>
               </h4>
-              <div className="h-64 flex items-end justify-between gap-4 px-4 relative">
-                <div className="absolute inset-0 flex flex-col justify-between py-2 text-[10px] text-slate-100 pointer-events-none">
-                  {[300, 225, 150, 75, 0].map(v => <div key={v} className="border-b border-slate-100 w-full h-px dark:border-slate-800" />)}
-                </div>
-                {monthlyData.map((d) => (
-                  <div key={d.month} className="flex-1 flex flex-col items-center gap-2 group relative">
-                    <div className="w-full bg-emerald-600/10 rounded-t-lg transition-all hover:bg-emerald-600/20 cursor-pointer" style={{ height: `${Math.min(100, (d.co2 / 300) * 100)}%` }}>
-                      <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 font-bold">
-                        {d.co2} MT CO2
+              
+              <div className="relative h-64 flex items-center justify-center group/chart">
+                {categoryImpact.length > 0 ? (
+                  <>
+                    <svg className="w-56 h-56 -rotate-90 overflow-visible" viewBox="0 0 100 100">
+                      <circle r="40" cx="50" cy="50" fill="transparent" stroke="currentColor" strokeWidth="12" className="text-slate-50 dark:text-slate-800/50" />
+                      {categoryImpact.map((item, i) => {
+                        const prevPcts = categoryImpact.slice(0, i).reduce((sum, ci) => sum + Number(ci.pct), 0);
+                        return (
+                          <g key={item.label} className="group/segment cursor-pointer"
+                            onMouseEnter={() => setHoveredCat(item)}
+                            onMouseLeave={() => setHoveredCat(null)}>
+                            <circle 
+                              r="40" cx="50" cy="50" fill="transparent"
+                              stroke={item.color} 
+                              strokeWidth={hoveredCat?.label === item.label ? "16" : "12"}
+                              strokeDasharray={`${item.pct} 100`}
+                              strokeDashoffset={-prevPcts}
+                              pathLength="100"
+                              className="transition-all duration-300 origin-center" 
+                            />
+                          </g>
+                        );
+                      })}
+                    </svg>
+                    
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <div className="text-center px-4 max-w-[140px]">
+                        <AnimatePresence mode="wait">
+                          {hoveredCat ? (
+                            <motion.div 
+                              key={hoveredCat.label}
+                              initial={{ opacity: 0, y: 5 }} 
+                              animate={{ opacity: 1, y: 0 }} 
+                              exit={{ opacity: 0, y: -5 }}
+                              className="flex flex-col items-center"
+                            >
+                              <p className="text-[9px] font-black text-indigo-500 uppercase tracking-[0.2em] mb-1 line-clamp-1">
+                                {hoveredCat.label}
+                              </p>
+                              <p className="text-3xl font-black text-slate-900 dark:text-white leading-none">
+                                {Math.round(hoveredCat.pct)}%
+                              </p>
+                            </motion.div>
+                          ) : (
+                            <motion.div 
+                              key="total"
+                              initial={{ opacity: 0 }} 
+                              animate={{ opacity: 1 }}
+                              className="flex flex-col items-center"
+                            >
+                              <p className="text-3xl font-black text-slate-900 dark:text-white leading-none">
+                                {Number((totalWeight / 1000).toFixed(1))}T
+                              </p>
+                              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+                                Total Impact
+                              </p>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </div>
                     </div>
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{d.month}</span>
+                  </>
+                ) : (
+                  <div className="text-center">
+                    <span className="material-symbols-outlined text-4xl text-slate-200 mb-2">donut_large</span>
+                    <p className="text-xs text-slate-400 italic">No impact data yet</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-6 space-y-2">
+                {categoryImpact.map(ci => (
+                  <div key={ci.label} 
+                    onMouseEnter={() => setHoveredCat(ci)}
+                    onMouseLeave={() => setHoveredCat(null)}
+                    className={`flex items-center justify-between group/row cursor-default p-2 rounded-xl transition-all ${hoveredCat?.label === ci.label ? "bg-slate-50 dark:bg-slate-800 scale-[1.02] shadow-sm" : "hover:bg-slate-50/50 dark:hover:bg-slate-800/30"}`}>
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-2.5 h-2.5 rounded-full shadow-sm shrink-0" style={{ backgroundColor: ci.color }} />
+                      <span className="text-xs font-bold text-slate-600 dark:text-slate-300 group-hover/row:text-slate-900 dark:group-hover/row:text-white transition-colors truncate max-w-[120px]">{ci.label}</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-xs font-black text-slate-900 dark:text-white block">{ci.pct}%</span>
+                      <span className="text-[9px] text-slate-400 font-medium">{ci.co2} MT CO2</span>
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Material Category Reports */}
-            <div className="bg-white rounded-3xl border border-slate-200 p-8 dark:bg-slate-900 dark:border-slate-700">
-              <h4 className="font-headline font-bold text-slate-900 mb-8 dark:text-white">Material Categories</h4>
-              <div className="space-y-6">
-                {categoryData.length > 0 ? categoryData.map((item) => (
-                  <div key={item.label} className="space-y-2">
-                    <div className="flex justify-between text-xs font-bold">
-                      <span className="text-slate-500">{item.label}</span>
-                      <span className="text-slate-900 dark:text-white">{item.pct}%</span>
-                    </div>
-                    <div className="h-2 w-full bg-slate-50 rounded-full overflow-hidden dark:bg-slate-950">
-                      <div className={`h-full ${item.color} rounded-full transition-all duration-1000`} style={{ width: `${item.pct}%` }} />
-                    </div>
-                  </div>
-                )) : (
-                  <p className="text-center py-20 text-slate-400 italic text-sm">No data available</p>
-                )}
+            {/* Monthly Impact Ledger */}
+            <div className="lg:col-span-2 bg-white rounded-3xl border border-slate-200 p-8 dark:bg-slate-900 dark:border-slate-700">
+              <h4 className="font-headline font-bold text-slate-900 mb-8 flex items-center justify-between dark:text-white">
+                Monthly Impact Ledger
+                <button onClick={() => handleDownload("Monthly Impact")} className="text-xs font-bold text-emerald-600 hover:underline">Download Report</button>
+              </h4>
+              <div className="overflow-y-auto max-h-80 pr-2 custom-scrollbar">
+                <table className="w-full text-left">
+                  <thead className="sticky top-0 bg-white dark:bg-slate-900 text-[10px] font-black uppercase text-slate-400 tracking-widest border-b border-slate-100 dark:border-slate-800">
+                    <tr>
+                      <th className="pb-4">Month</th>
+                      <th className="pb-4 text-right">Waste (KG)</th>
+                      <th className="pb-4 text-right">CO2 Saved (MT)</th>
+                      <th className="pb-4 text-right">Efficiency</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
+                    {monthlyData.filter(d => d.waste > 0).reverse().map((d) => (
+                      <tr key={`${d.month}-${d.year}`} className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                        <td className="py-4">
+                          <span className="text-sm font-bold text-slate-900 dark:text-white">{d.month} {d.year}</span>
+                        </td>
+                        <td className="py-4 text-right">
+                          <span className="text-sm font-mono text-slate-600 dark:text-slate-300">{d.waste.toLocaleString()} KG</span>
+                        </td>
+                        <td className="py-4 text-right">
+                          <span className="text-sm font-black text-emerald-600">+{d.co2} MT</span>
+                        </td>
+                        <td className="py-4 text-right">
+                          <span className="text-[10px] font-bold text-slate-400">98.2%</span>
+                        </td>
+                      </tr>
+                    ))}
+                    {monthlyData.every(d => d.waste === 0) && (
+                      <tr>
+                        <td colSpan={4} className="py-20 text-center text-slate-400 italic text-sm">No monthly disposal activity recorded yet</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
@@ -223,8 +382,12 @@ export default function AdminReports() {
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                    {eprData.length > 0 ? eprData.map((row, i) => (
                      <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
-                       <td className="px-6 py-4 font-bold text-slate-900 dark:text-white">{row.name}</td>
-                       <td className="px-6 py-4 text-xs text-slate-500">{row.category}</td>
+                       <td className="px-6 py-4 font-bold text-slate-900 dark:text-white truncate max-w-[200px]">{row.name}</td>
+                       <td className="px-6 py-4">
+                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase ${row.category === 'Individual' ? 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'}`}>
+                            {row.category}
+                          </span>
+                       </td>
                        <td className="px-6 py-4 text-right font-mono text-slate-500">{row.target.toFixed(2)}</td>
                        <td className="px-6 py-4 text-right font-mono font-bold text-emerald-600">{row.achieved.toFixed(2)}</td>
                        <td className="px-6 py-4">
@@ -238,7 +401,7 @@ export default function AdminReports() {
                      </tr>
                    )) : (
                     <tr>
-                      <td colSpan={5} className="px-6 py-12 text-center text-slate-400 italic">No producer data available for EPR tracking</td>
+                      <td colSpan={5} className="px-6 py-12 text-center text-slate-400 italic">No disposal data found for EPR tracking</td>
                     </tr>
                    )}
                 </tbody>

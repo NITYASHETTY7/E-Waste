@@ -1203,6 +1203,10 @@ export class RequirementsService {
     if (!req) throw new NotFoundException('Requirement not found');
     const key = field === 'raw' ? req.rawS3Key : req.processedS3Key;
     if (!key) throw new NotFoundException('File not found');
-    return { url: await this.s3.getSignedUrl(key) };
+    
+    const ext = key.split('.').pop();
+    const downloadName = `${req.title.replace(/[^a-z0-9]/gi, '_')}_${field}_list.${ext}`;
+    
+    return { url: await this.s3.getSignedUrl(key, undefined, 3600, downloadName) };
   }
 }

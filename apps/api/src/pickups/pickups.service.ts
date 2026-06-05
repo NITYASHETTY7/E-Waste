@@ -29,15 +29,13 @@ export class PickupsService {
     const docs = await Promise.all(
       pickup.pickupDocs.map(async (doc) => ({
         ...doc,
-        signedUrl: await this.s3.getSignedUrl(doc.s3Key, doc.s3Bucket),
+        signedUrl: await this.s3.getSignedUrl(doc.s3Key, doc.s3Bucket, 3600, doc.fileName),
       })),
     );
     const auctionDocs = await Promise.all(
       (pickup.auction?.auctionDocs ?? []).map(async (doc) => ({
         ...doc,
-        signedUrl: await this.s3
-          .getSignedUrl(doc.s3Key, doc.s3Bucket)
-          .catch(() => null),
+        signedUrl: await this.s3.getSignedUrl(doc.s3Key, doc.s3Bucket, 3600, doc.fileName).catch(() => null),
       })),
     );
     // Merge Invoice into auctionDocs for frontend visibility
@@ -289,27 +287,23 @@ export class PickupsService {
     const vendorUser = pickup.auction.winner?.users?.[0];
 
     if (clientUser?.id) {
-      await this.notifications
-        .createInAppNotification({
-          userId: clientUser.id,
-          type: 'weight_reconciled',
-          title: 'Weight Reconciled',
-          message: `Weight for "${pickup.auction.title}" has been reconciled. Final weight: ${data.finalWeight} kg, Final amount: ₹${data.finalAmount}.`,
-          link: `/client/handover`,
-        })
-        .catch((err) => console.error('Background task error:', err));
+      await this.notifications.createInAppNotification({
+        userId: clientUser.id,
+        type: 'weight_reconciled',
+        title: 'Weight Reconciled',
+        message: `Weight for "${pickup.auction.title}" has been reconciled. Final weight: ${data.finalWeight} kg, Final amount: INR${data.finalAmount}.`,
+        link: `/client/handover`,
+      }).catch((err) => console.error('Background task error:', err));
     }
 
     if (vendorUser?.id) {
-      await this.notifications
-        .createInAppNotification({
-          userId: vendorUser.id,
-          type: 'weight_reconciled',
-          title: 'Weight Reconciled',
-          message: `Weight for "${pickup.auction.title}" has been reconciled. Final weight: ${data.finalWeight} kg, Final amount: ₹${data.finalAmount}.`,
-          link: `/vendor/pickups`,
-        })
-        .catch((err) => console.error('Background task error:', err));
+      await this.notifications.createInAppNotification({
+        userId: vendorUser.id,
+        type: 'weight_reconciled',
+        title: 'Weight Reconciled',
+        message: `Weight for "${pickup.auction.title}" has been reconciled. Final weight: ${data.finalWeight} kg, Final amount: INR${data.finalAmount}.`,
+        link: `/vendor/pickups`,
+      }).catch((err) => console.error('Background task error:', err));
     }
 
     return pickup;
@@ -407,15 +401,13 @@ export class PickupsService {
         const docs = await Promise.all(
           pickup.pickupDocs.map(async (doc) => ({
             ...doc,
-            signedUrl: await this.s3.getSignedUrl(doc.s3Key, doc.s3Bucket),
+            signedUrl: await this.s3.getSignedUrl(doc.s3Key, doc.s3Bucket, 3600, doc.fileName),
           })),
         );
         const auctionDocs = await Promise.all(
           (pickup.auction?.auctionDocs ?? []).map(async (doc) => ({
             ...doc,
-            signedUrl: await this.s3
-              .getSignedUrl(doc.s3Key, doc.s3Bucket)
-              .catch(() => null),
+            signedUrl: await this.s3.getSignedUrl(doc.s3Key, doc.s3Bucket, 3600, doc.fileName).catch(() => null),
           })),
         );
         const mergedAuctionDocs = [
@@ -441,16 +433,14 @@ export class PickupsService {
     const docs = await Promise.all(
       pickup.pickupDocs.map(async (doc) => ({
         ...doc,
-        signedUrl: await this.s3.getSignedUrl(doc.s3Key, doc.s3Bucket),
+        signedUrl: await this.s3.getSignedUrl(doc.s3Key, doc.s3Bucket, 3600, doc.fileName),
       })),
     );
 
     const auctionDocs = await Promise.all(
       (pickup.auction?.auctionDocs ?? []).map(async (doc) => ({
         ...doc,
-        signedUrl: await this.s3
-          .getSignedUrl(doc.s3Key, doc.s3Bucket)
-          .catch(() => null),
+        signedUrl: await this.s3.getSignedUrl(doc.s3Key, doc.s3Bucket, 3600, doc.fileName).catch(() => null),
       })),
     );
 

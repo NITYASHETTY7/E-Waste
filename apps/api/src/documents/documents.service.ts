@@ -212,17 +212,17 @@ export class DocumentsService {
     <tr><th>Description</th><th>Category</th><th>Qty (kg)</th><th>Unit Price</th><th>Total Value</th></tr>
     <tr>
       <td>${p.auctionTitle}</td><td>${p.category || 'E-Waste'}</td><td>${p.totalWeight} kg</td>
-      <td>₹${p.totalWeight > 0 ? (p.winningAmount / p.totalWeight).toFixed(2) : '—'}/kg</td>
-      <td>₹${p.winningAmount.toLocaleString('en-IN')}</td>
+      <td>INR${p.totalWeight > 0 ? (p.winningAmount / p.totalWeight).toFixed(2) : '—'}/kg</td>
+      <td>INR${p.winningAmount.toLocaleString('en-IN')}</td>
     </tr>
   </table>
 </div>
 <div class="section"><div class="section-title">Commercial Summary</div>
   <table>
     <tr><th>Component</th><th>Amount</th></tr>
-    <tr><td>Material Value (payable to Client)</td><td>₹${p.winningAmount.toLocaleString('en-IN')}</td></tr>
-    <tr><td>WeConnect Platform Fee (5%)</td><td>₹${p.commissionAmount.toLocaleString('en-IN')}</td></tr>
-    <tr><td class="total">Total Payable by Vendor</td><td class="total">₹${(p.winningAmount + p.commissionAmount).toLocaleString('en-IN')}</td></tr>
+    <tr><td>Material Value (payable to Client)</td><td>INR${p.winningAmount.toLocaleString('en-IN')}</td></tr>
+    <tr><td>WeConnect Platform Fee (5%)</td><td>INR${p.commissionAmount.toLocaleString('en-IN')}</td></tr>
+    <tr><td class="total">Total Payable by Vendor</td><td class="total">INR${(p.winningAmount + p.commissionAmount).toLocaleString('en-IN')}</td></tr>
   </table>
 </div>
 <div class="section"><div class="section-title">Terms & Conditions</div>
@@ -265,7 +265,7 @@ export class DocumentsService {
 <p><strong>Facilitated by:</strong> WeConnect E-Waste Aggregator Platform</p>
 <h2>1. Scope of Work</h2>
 <p>Party B agrees to collect, transport, and responsibly recycle/dispose of the following e-waste material from Party A's premises, as won in a competitive auction process on the WeConnect platform.</p>
-<p><strong>Lot:</strong> ${p.auctionTitle} &nbsp;|&nbsp; <strong>Estimated Weight:</strong> ${p.totalWeight} kg &nbsp;|&nbsp; <strong>Agreed Value:</strong> ₹${p.winningAmount.toLocaleString('en-IN')}</p>
+<p><strong>Lot:</strong> ${p.auctionTitle} &nbsp;|&nbsp; <strong>Estimated Weight:</strong> ${p.totalWeight} kg &nbsp;|&nbsp; <strong>Agreed Value:</strong> INR${p.winningAmount.toLocaleString('en-IN')}</p>
 <h2>2. Obligations of Party B (Vendor)</h2>
 <ul>
   <li>Pick up material within 15 working days of gate pass issuance.</li>
@@ -286,7 +286,7 @@ export class DocumentsService {
   <li><strong>Delivery Terms:</strong> ${p.deliveryTerms || 'Pickup within 15 working days.'}</li>
   <li><strong>Penalty Clause:</strong> ${p.penaltyClause || 'Standard penalties apply.'}</li>
   ${p.specialConditions ? `<li><strong>Special Conditions:</strong> ${p.specialConditions}</li>` : ''}
-  <li>Party B shall pay ₹${p.winningAmount.toLocaleString('en-IN')} to Party A as material value. An additional platform fee of 5% is payable to WeConnect.</li>
+  <li>Party B shall pay INR${p.winningAmount.toLocaleString('en-IN')} to Party A as material value. An additional platform fee of 5% is payable to WeConnect.</li>
 </ul>
 <h2>5. Compliance & Liability</h2>
 <p>Party B shall be solely responsible for compliance with all applicable environmental regulations. Any non-compliance shall constitute a material breach of this agreement and may result in penalties, account suspension, or legal action.</p>
@@ -335,16 +335,16 @@ export class DocumentsService {
     <tr>
       <td>${p.auctionTitle}</td>
       <td>${p.finalWeight} kg (verified)</td>
-      <td>₹${p.finalWeight > 0 ? (p.finalAmount / p.finalWeight).toFixed(2) : '—'}/kg</td>
-      <td>₹${p.finalAmount.toLocaleString('en-IN')}</td>
+      <td>INR${p.finalWeight > 0 ? (p.finalAmount / p.finalWeight).toFixed(2) : '—'}/kg</td>
+      <td>INR${p.finalAmount.toLocaleString('en-IN')}</td>
     </tr>
   </table>
   <table>
-    <tr><td>Sub-Total</td><td>₹${p.finalAmount.toLocaleString('en-IN')}</td></tr>
-    <tr><td>GST @ 18%</td><td>₹${tax.toLocaleString('en-IN')}</td></tr>
-    <tr><td class="total">Grand Total</td><td class="total">₹${grandTotal.toLocaleString('en-IN')}</td></tr>
-    <tr><td>Platform Commission (5%)</td><td>₹${p.commissionAmount.toLocaleString('en-IN')}</td></tr>
-    <tr><td>Net Payable to Client</td><td>₹${p.finalAmount.toLocaleString('en-IN')}</td></tr>
+    <tr><td>Sub-Total</td><td>INR${p.finalAmount.toLocaleString('en-IN')}</td></tr>
+    <tr><td>GST @ 18%</td><td>INR${tax.toLocaleString('en-IN')}</td></tr>
+    <tr><td class="total">Grand Total</td><td class="total">INR${grandTotal.toLocaleString('en-IN')}</td></tr>
+    <tr><td>Platform Commission (5%)</td><td>INR${p.commissionAmount.toLocaleString('en-IN')}</td></tr>
+    <tr><td>Net Payable to Client</td><td>INR${p.finalAmount.toLocaleString('en-IN')}</td></tr>
   </table>
 </div>
 <div class="sig">
@@ -432,7 +432,7 @@ export class DocumentsService {
                     <td><%= auctionTitle %></td>
                     <td>E-Waste</td>
                     <td><%= totalWeight %> Kg</td>
-                    <td class="total">₹<%= winningAmount.toLocaleString('en-IN') %></td>
+                    <td class="total">INR <%= winningAmount.toLocaleString('en-IN') %></td>
                 </tr>
             </table>
         </div>

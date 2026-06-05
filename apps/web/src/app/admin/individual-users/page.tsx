@@ -4,6 +4,35 @@ import { useState, useEffect } from "react";
 import api from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 
+function exportIndividualUsersCSV(users: any[]) {
+  const clean = (val: any) => {
+    if (val === undefined || val === null) return "";
+    return String(val).replace(/,/g, ' ').replace(/[^\x20-\x7E]/g, '').trim();
+  };
+
+  const header = ["User ID", "Full Name", "Email", "Phone", "Status", "Date Registered", "Verification Status"];
+  const rows = users.map(u => [
+    u.id,
+    clean(u.name),
+    clean(u.email),
+    clean(u.phone || "—"),
+    u.status,
+    new Date(u.createdAt).toLocaleDateString('en-IN'),
+    u.emailVerified && u.phoneVerified ? "Fully Verified" : "Pending Verification",
+  ]);
+
+  const csv = [header, ...rows].map(row => row.join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `weconnect_individual_users_report_${new Date().toISOString().split("T")[0]}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 export default function AdminIndividualUsers() {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);

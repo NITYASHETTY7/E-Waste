@@ -332,10 +332,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
   };
 
+  const mapUserProductToListing = (p: any): Listing => {
+    return {
+      id: p.id,
+      title: p.name,
+      description: p.description || '',
+      category: p.category || 'Individual',
+      weight: p.weightKg || 0,
+      location: p.city || 'Unknown',
+      userId: p.userId,
+      userName: p.user?.name || 'Individual User',
+      createdAt: p.createdAt,
+      auctionPhase: p.status === 'COMPLETED' ? 'completed' : 'live',
+      status: p.status === 'COMPLETED' ? 'completed' : 'active',
+      targetPrice: p.askingPrice,
+      requirementId: p.id,
+      requirementStatus: p.status,
+      images: p.photoUrls || [],
+    } as Listing;
+  };
+
   const fetchAllData = async () => {
     try {
-      const [requirementsRes, bidsRes, usersRes, auctionsRes, auditsRes, notificationsRes, profileRes] = await Promise.all([
+      const [requirementsRes, userProductsRes, bidsRes, usersRes, auctionsRes, auditsRes, notificationsRes, profileRes] = await Promise.all([
         api.get('/requirements').catch(() => ({ data: [] })),
+        api.get('/user-products/admin/all').catch(() => ({ data: [] })),
         api.get('/auctions/bids').catch(() => ({ data: [] })),
         api.get('/users').catch(() => ({ data: [] })),
         api.get('/auctions').catch(() => ({ data: [] })),
@@ -344,7 +365,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         api.get('/auth/profile').catch(() => null),
       ]);
 
-      const backendListings = (requirementsRes.data || []).map(mapRequirementToListing);
+      const backendListings = [
+        ...(requirementsRes.data || []).map(mapRequirementToListing),
+        ...(userProductsRes.data || []).map(mapUserProductToListing),
+      ];
       
       const backendBidsRaw = bidsRes.data || [];
       const bidsByAuction: Record<string, any[]> = {};

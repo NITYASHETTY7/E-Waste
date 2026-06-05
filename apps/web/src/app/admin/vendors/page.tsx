@@ -4,6 +4,37 @@ import { useState, useEffect, useRef } from "react";
 import api from "@/lib/api";
 import { motion, AnimatePresence } from "framer-motion";
 
+function exportVendorsCSV(vendors: any[]) {
+  const clean = (val: any) => {
+    if (val === undefined || val === null) return "";
+    return String(val).replace(/,/g, ' ').replace(/[^\x20-\x7E]/g, '').trim();
+  };
+
+  const header = ["Vendor ID", "Company Name", "GST Number", "PAN Number", "City", "State", "Status", "Rating", "Total Penalties (INR)"];
+  const rows = vendors.map(v => [
+    v.id,
+    clean(v.name),
+    clean(v.gstNumber || "—"),
+    clean(v.panNumber || "—"),
+    clean(v.city || "—"),
+    clean(v.state || "—"),
+    v.status,
+    v.rating?.toFixed(1) || "0.0",
+    v.penaltyAmount || 0,
+  ]);
+
+  const csv = [header, ...rows].map(row => row.join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `weconnect_vendors_report_${new Date().toISOString().split("T")[0]}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 export default function AdminVendors() {
   const [vendors, setVendors] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -184,9 +215,16 @@ export default function AdminVendors() {
         )}
       </AnimatePresence>
 
-      <div>
-        <h2 className="text-3xl font-headline font-extrabold tracking-tight text-[color:var(--color-on-surface)]">Vendor Management</h2>
-        <p className="text-[color:var(--color-on-surface-variant)] mt-1">Review vendor applications, monitor performance, and manage risk controls.</p>
+      <div className="flex justify-between items-end">
+        <div>
+          <h2 className="text-3xl font-headline font-extrabold tracking-tight text-[color:var(--color-on-surface)]">Vendor Management</h2>
+          <p className="text-[color:var(--color-on-surface-variant)] mt-1">Review vendor applications, monitor performance, and manage risk controls.</p>
+        </div>
+        <button onClick={() => exportVendorsCSV(vendors)}
+          className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-5 py-2.5 rounded-xl font-bold hover:opacity-80 transition-opacity text-sm border border-slate-200 dark:border-slate-700">
+          <span className="material-symbols-outlined text-lg">download</span>
+          Export CSV
+        </button>
       </div>
 
       {/* Stats */}

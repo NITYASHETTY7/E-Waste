@@ -121,7 +121,11 @@ export default function AdminDocuments() {
     setUrlLoading(doc.id);
     try {
       const res = await api.get(`/companies/signed-url`, {
-        params: { s3Key: doc.s3Key, s3Bucket: doc.s3Bucket },
+        params: { 
+          s3Key: doc.s3Key, 
+          s3Bucket: doc.s3Bucket,
+          fileName: doc.fileName 
+        },
       });
       window.open(res.data.url, "_blank");
     } catch (e) {

@@ -7,12 +7,15 @@ model Payment {
   utrNumber        String?
   proofS3Key       String?
   proofS3Bucket    String?
-  auctionId        String        @unique
+  auctionId        String?       @unique
   adminNotes       String?
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
   paymentProofUrl  String?
-  auction          Auction       @relation(fields: [auctionId], references: [id], onDelete: Cascade)
+  isPenalty        Boolean       @default(false)
+  penaltyCompanyId String?
+  auction          Auction?      @relation(fields: [auctionId], references: [id], onDelete: Cascade)
+  penaltyCompany   Company?      @relation("PenaltyPayments", fields: [penaltyCompanyId], references: [id], onDelete: Cascade)
   pickup           Pickup?
 }
 

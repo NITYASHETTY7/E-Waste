@@ -137,20 +137,31 @@ export default function VendorPayments() {
   };
 
   const handlePayPenalty = async () => {
-    if (!penaltyPayModal || !penaltyUtr) return;
+    if (!penaltyPayModal || !penaltyUtr || !penaltyFile) return;
     setPayingPenalty(true);
     try {
-      // Clear penalty amount on company profile
+      const fd = new FormData();
+      fd.append("companyId", currentUser.companyId);
+      fd.append("amount", penaltyPayModal.amount.toString());
+      fd.append("utrNumber", penaltyUtr);
+      fd.append("file", penaltyFile);
+
+      await api.post("/payments/penalty", fd, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      // Still clear it locally for immediate UI update
       await api.patch(`/companies/${currentUser.companyId}`, { penaltyAmount: 0 });
-      
-      showToast("Penalty paid successfully. Outstanding balance cleared.");
+
+      showToast("Penalty payment submitted for verification. Outstanding balance cleared.");
       setPenaltyPayModal(null);
       setPenaltyUtr("");
       setPenaltyFile(null);
-      await refreshData();
-      await fetchAuctions();
-    } catch {
-      showToast("Failed to process penalty payment", "error");
+      
+      // refresh user
+      await api.get('/auth/me'); 
+    } catch (err: any) {
+      showToast(err.response?.data?.message || "Failed to process penalty payment", "error");
     } finally {
       setPayingPenalty(false);
     }

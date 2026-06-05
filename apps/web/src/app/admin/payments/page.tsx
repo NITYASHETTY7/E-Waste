@@ -187,33 +187,46 @@ export default function AdminPayments() {
                 const meta = statusMeta(payment.status);
                 const auction = payment.auction;
                 const hasProof = !!(payment.proofS3Key || payment.paymentProofUrl);
+                const isPenalty = payment.isPenalty;
 
                 return (
                   <div key={payment.id} className="p-5 flex items-start justify-between gap-4 hover:bg-slate-50/50 dark:hover:bg-slate-800/30">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <span className="text-xs font-black text-slate-400 uppercase tracking-widest">
-                          {auction?.id?.substring(0, 8) || '—'}
+                          {isPenalty ? 'PENALTY' : auction?.id?.substring(0, 8) || '—'}
                         </span>
                         <span className={`text-[9px] px-2.5 py-0.5 rounded-full font-black uppercase ${meta.color}`}>{meta.label}</span>
                       </div>
-                      <h3 className="font-bold text-slate-900 truncate dark:text-white">{auction?.title || "Unknown Auction"}</h3>
+                      <h3 className="font-bold text-slate-900 truncate dark:text-white">
+                        {isPenalty ? `Penalty Payment - ${payment.penaltyCompany?.name || 'Unknown Vendor'}` : auction?.title || "Unknown Auction"}
+                      </h3>
                       <p className="text-xs text-slate-500 mt-0.5">
-                        Client: <span className="font-semibold">{auction?.client?.name || "—"}</span>
-                        {" · "}
-                        Vendor: <span className="font-semibold">{auction?.winner?.name || "—"}</span>
+                        {isPenalty ? (
+                          <>Vendor: <span className="font-semibold text-red-600 dark:text-red-400">{payment.penaltyCompany?.name || "—"}</span></>
+                        ) : (
+                          <>
+                            Client: <span className="font-semibold">{auction?.client?.name || "—"}</span>
+                            {" · "}
+                            Vendor: <span className="font-semibold">{auction?.winner?.name || "—"}</span>
+                          </>
+                        )}
                       </p>
 
                       <div className="flex gap-4 mt-2 flex-wrap">
                         <span className="text-xs text-slate-500">
-                          Total: <span className="font-bold text-[#1E8E3E] dark:text-emerald-500">₹{(payment.totalAmount || 0).toLocaleString()}</span>
+                          Total: <span className={`font-bold ${isPenalty ? 'text-red-600 dark:text-red-500' : 'text-[#1E8E3E] dark:text-emerald-500'}`}>₹{(payment.totalAmount || 0).toLocaleString()}</span>
                         </span>
-                        <span className="text-xs text-slate-500">
-                          Client gets: <span className="font-bold text-slate-700 dark:text-slate-300">₹{(payment.clientAmount || 0).toLocaleString()}</span>
-                        </span>
-                        <span className="text-xs text-slate-500">
-                          Commission: <span className="font-bold">₹{(payment.commissionAmount || 0).toLocaleString()}</span>
-                        </span>
+                        {!isPenalty && (
+                          <>
+                            <span className="text-xs text-slate-500">
+                              Client gets: <span className="font-bold text-slate-700 dark:text-slate-300">₹{(payment.clientAmount || 0).toLocaleString()}</span>
+                            </span>
+                            <span className="text-xs text-slate-500">
+                              Commission: <span className="font-bold">₹{(payment.commissionAmount || 0).toLocaleString()}</span>
+                            </span>
+                          </>
+                        )}
                       </div>
 
                       {(payment.status === "SUBMITTED" || payment.status === "CONFIRMED") && (

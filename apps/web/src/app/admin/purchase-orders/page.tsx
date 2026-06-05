@@ -75,16 +75,29 @@ export default function AdminPurchaseOrders() {
     emdPending: poListings.filter(l => l.emdStatus === "submitted").length,
   };
 
-  const printPO = (listing: typeof poListings[0]) => {
+  const printDocument = (listing: typeof poListings[0], type: "PO" | "WO" | "AGREEMENT") => {
     const winBid = getWinBid(listing.id, listing.winnerVendorId!);
     const vendor = getVendor(listing.winnerVendorId!);
     const client = getClient(listing.userId);
     const commission = Math.round((winBid?.amount || 0) * 0.05);
     const clientAmount = (winBid?.amount || 0) - commission;
 
+    let docTitle = "PURCHASE ORDER";
+    let docRef = `PO Number: ${listing.poNumber || 'WC-DRAFT'}`;
+    let termsLabel = "Payment Terms";
+    
+    if (type === "WO") {
+      docTitle = "WORK ORDER";
+      docRef = `WO Number: WO-${listing.poNumber?.replace('WC-', '') || 'DRAFT'}`;
+    } else if (type === "AGREEMENT") {
+      docTitle = "VENDOR AGREEMENT";
+      docRef = `Agreement Ref: AG-${listing.poNumber?.replace('WC-', '') || 'DRAFT'}`;
+      termsLabel = "Commercial Terms";
+    }
+
     const html = `
-<!DOCTYPE html><html><head><title>Purchase Order ${listing.poNumber}</title>
-<style>body{font-family:Arial,sans-serif;max-width:800px;margin:40px auto;color:#111}
+<!DOCTYPE html><html><head><title>${docTitle} - ${listing.poNumber}</title>
+<style>body{font-family:Arial,sans-serif;max-width:800px;margin:40px auto;color:#111;line-height:1.5}
 h1{color:#1e8e3e;border-bottom:3px solid #1e8e3e;padding-bottom:8px}
 table{width:100%;border-collapse:collapse;margin:16px 0}
 th{background:#f1f5f9;padding:10px;text-align:left;border:1px solid #e2e8f0}
@@ -98,10 +111,15 @@ td{padding:10px;border:1px solid #e2e8f0}
 @media print{body{margin:0}}</style>
 </head><body>
 <div style="display:flex;justify-content:space-between;align-items:center">
-  <div><h1 style="margin:0">PURCHASE ORDER</h1><p style="color:#64748b;margin:4px 0">WeConnect E-Waste Aggregator Platform</p></div>
-  <div style="text-align:right"><div class="label">PO Number</div><div style="font-size:22px;font-weight:900;color:#1e8e3e">${listing.poNumber || 'WC-DRAFT'}</div>
+  <div><h1 style="margin:0">${docTitle}</h1><p style="color:#64748b;margin:4px 0">WeConnect E-Waste Aggregator Platform</p></div>
+  <div style="text-align:right"><div class="label">Reference</div><div style="font-size:18px;font-weight:900;color:#1e8e3e">${docRef}</div>
   <div class="label">Date</div><div>${listing.poIssuedAt ? new Date(listing.poIssuedAt).toLocaleDateString('en-IN') : new Date().toLocaleDateString('en-IN')}</div></div>
 </div>
+
+${type === "AGREEMENT" ? `
+<p style="margin-top:20px; text-align:justify;">This Agreement is made and entered into as of the date specified above by and between the Buyer (Client) and the Seller (Vendor) via the WeConnect platform, regarding the collection, processing, and recycling of e-waste materials as specified below.</p>
+` : ''}
+
 <div class="grid">
   <div class="section"><div class="label">Buyer (Client)</div><div class="val">${client?.name || listing.userName}</div>
   <div style="font-size:12px;color:#64748b;margin-top:4px">${client?.onboardingProfile?.address || ''}, ${client?.onboardingProfile?.city || ''}</div>
@@ -109,19 +127,37 @@ td{padding:10px;border:1px solid #e2e8f0}
   <div class="section"><div class="label">Seller (Vendor)</div><div class="val">${vendor?.name || listing.winnerVendorName}</div>
   <div style="font-size:12px;color:#64748b;margin-top:4px">${vendor?.onboardingProfile?.address || ''}, ${vendor?.onboardingProfile?.city || ''}</div></div>
 </div>
+
+${type === "WO" ? `
+<h3 style="margin-top:24px;color:#334155;border-bottom:1px solid #e2e8f0;padding-bottom:4px;">Scope of Work</h3>
+<p style="text-align:justify;font-size:14px;">The Vendor agrees to safely collect, transport, and environmentally process the e-waste items listed below from the Client's premises in accordance with the E-Waste (Management) Rules, 2022, and issue applicable destruction/recycling certificates within 30 days of pickup.</p>
+` : ''}
+
 <table><thead><tr><th>Description</th><th>Category</th><th>Est. Qty</th><th>Unit</th><th>Rate (₹)</th><th>Amount (₹)</th></tr></thead>
 <tbody><tr><td>${listing.title}</td><td>${listing.category}</td><td>${listing.weight}</td><td>KG</td>
 <td>${winBid ? Math.round((winBid.amount || 0) / listing.weight).toLocaleString() : '—'}</td>
 <td><b>${(winBid?.amount || 0).toLocaleString()}</b></td></tr>
 <tr><td colspan="5" style="text-align:right"><b>WeConnect Commission (5%)</b></td><td style="color:#ef4444">−₹${commission.toLocaleString()}</td></tr>
 <tr><td colspan="5" style="text-align:right"><b>Net Payable to Client</b></td><td><b style="color:#1e8e3e">₹${clientAmount.toLocaleString()}</b></td></tr></tbody></table>
+
 <div class="grid">
-  <div><div class="label">Payment Terms</div><div class="val">${listing.poPaymentTerms || '—'}</div></div>
-  <div><div class="label">Delivery Terms</div><div class="val">${listing.poDeliveryTerms || '—'}</div></div>
+  <div><div class="label">${termsLabel}</div><div class="val">${listing.poPaymentTerms || '—'}</div></div>
+  <div><div class="label">Delivery & Pickup Terms</div><div class="val">${listing.poDeliveryTerms || '—'}</div></div>
   <div><div class="label">Penalty Clause</div><div class="val">${listing.poPenaltyClause || '—'}</div></div>
   ${listing.poSpecialConditions ? `<div><div class="label">Special Conditions</div><div class="val">${listing.poSpecialConditions}</div></div>` : ''}
 </div>
-<p style="font-size:12px;color:#64748b;margin-top:16px">This Purchase Order is generated by WeConnect E-Waste Aggregator platform and is subject to platform terms and conditions. EMD amount of ₹${(listing.emdAmount || 0).toLocaleString()} is ${listing.emdStatus === 'not_required' ? 'not applicable' : listing.emdStatus === 'verified' ? 'verified and on record' : 'pending'}.</p>
+
+${type === "AGREEMENT" ? `
+<h3 style="margin-top:24px;color:#334155;border-bottom:1px solid #e2e8f0;padding-bottom:4px;">Terms & Conditions</h3>
+<ol style="font-size:13px;color:#334155;padding-left:16px;">
+  <li>The Vendor confirms possessing valid CPCB/SPCB authorization for handling the stipulated e-waste category.</li>
+  <li>Data destruction (if applicable) must be executed before final processing, with a certificate provided to the Client.</li>
+  <li>Discrepancies in weight exceeding 5% at the time of pickup must be mutually verified and documented.</li>
+  <li>Both parties adhere to the indemnification policies as defined in the WeConnect Platform Master Service Agreement.</li>
+</ol>
+` : ''}
+
+<p style="font-size:12px;color:#64748b;margin-top:16px">This ${docTitle} is generated by WeConnect E-Waste Aggregator platform and is subject to platform terms and conditions. EMD amount of ₹${(listing.emdAmount || 0).toLocaleString()} is ${listing.emdStatus === 'not_required' ? 'not applicable' : listing.emdStatus === 'verified' ? 'verified and on record' : 'pending'}.</p>
 <div class="sig">
   <div class="sig-box">Authorised Signatory — Client<br><br><br><br>${client?.name || 'Client'}<br>Date: _______________</div>
   <div class="sig-box">Authorised Signatory — Vendor<br><br><br><br>${vendor?.name || 'Vendor'}<br>Date: _______________</div>
@@ -130,6 +166,7 @@ td{padding:10px;border:1px solid #e2e8f0}
     const w = window.open('', '_blank');
     if (w) { w.document.write(html); w.document.close(); w.print(); }
   };
+
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20 relative">
@@ -211,14 +248,24 @@ td{padding:10px;border:1px solid #e2e8f0}
                     {(!listing.poStatus || listing.poStatus === "pending") && (
                       <button onClick={() => { setPoModal({ open: true, listingId: listing.id }); setForm({ paymentTerms: PAYMENT_TERMS[0], deliveryTerms: DELIVERY_TERMS[0], penaltyClause: "2% per week of delay, capped at 10%", specialConditions: "" }); }}
                         className="px-4 py-2 rounded-xl bg-primary text-white text-xs font-black uppercase hover:bg-primary/90 transition-colors">
-                        Issue PO
+                        Generate Documents
                       </button>
                     )}
                     {listing.poStatus && listing.poStatus !== "pending" && (
-                      <button onClick={() => printPO(listing)}
-                        className="px-4 py-2 rounded-xl border border-primary text-primary text-xs font-black uppercase hover:bg-primary/5 transition-colors flex items-center gap-1">
-                        <span className="material-symbols-outlined text-sm">print</span>Print / Download
-                      </button>
+                      <div className="flex gap-2 flex-wrap bg-slate-50 dark:bg-slate-800/50 p-1.5 rounded-xl border border-slate-200 dark:border-slate-700">
+                        <button onClick={() => printDocument(listing, "PO")}
+                          className="px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-bold shadow-sm hover:text-primary transition-colors flex items-center gap-1 border border-slate-200 dark:border-slate-700">
+                          <span className="material-symbols-outlined text-sm">receipt_long</span> PO
+                        </button>
+                        <button onClick={() => printDocument(listing, "WO")}
+                          className="px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-bold shadow-sm hover:text-primary transition-colors flex items-center gap-1 border border-slate-200 dark:border-slate-700">
+                          <span className="material-symbols-outlined text-sm">assignment</span> Work Order
+                        </button>
+                        <button onClick={() => printDocument(listing, "AGREEMENT")}
+                          className="px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[10px] font-bold shadow-sm hover:text-primary transition-colors flex items-center gap-1 border border-slate-200 dark:border-slate-700">
+                          <span className="material-symbols-outlined text-sm">handshake</span> Agreement
+                        </button>
+                      </div>
                     )}
                     {listing.emdStatus === "submitted" && (
                       <button onClick={() => handleVerifyEMD(listing.id)}
@@ -250,11 +297,12 @@ td{padding:10px;border:1px solid #e2e8f0}
         </div>
       )}
 
-      {/* Issue PO Modal */}
+      {/* Generate Documents Modal */}
       {poModal.open && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-lg p-6 space-y-4 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-xl font-headline font-extrabold text-slate-900 dark:text-white">Issue Purchase Order</h3>
+            <h3 className="text-xl font-headline font-extrabold text-slate-900 dark:text-white">Generate Trade Documents</h3>
+            <p className="text-xs text-slate-500 mt-1">Configure the commercial terms. This will automatically generate a Purchase Order, Work Order, and Vendor Agreement.</p>
             {(() => {
               const listing = listings.find(l => l.id === poModal.listingId);
               const winBid = listing && getWinBid(listing.id, listing.winnerVendorId!);
@@ -288,7 +336,7 @@ td{padding:10px;border:1px solid #e2e8f0}
             </div>
             <div className="flex justify-end gap-3 pt-2">
               <button onClick={() => setPoModal({ open: false, listingId: null })} className="px-5 py-2.5 rounded-xl border border-slate-200 text-sm font-bold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300">Cancel</button>
-              <button onClick={handleIssuePO} className="px-5 py-2.5 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary/90">Issue PO</button>
+              <button onClick={handleIssuePO} className="px-5 py-2.5 rounded-xl bg-primary text-white text-sm font-bold hover:bg-primary/90">Generate Documents</button>
             </div>
           </div>
         </div>

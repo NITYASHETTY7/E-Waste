@@ -60,6 +60,17 @@ export class PaymentsController {
     return this.svc.uploadProof(id, file, utrNumber);
   }
 
+  @Post('payments/penalty')
+  @UseInterceptors(FileInterceptor('file'))
+  createPenaltyPayment(
+    @Body('companyId') companyId: string,
+    @Body('amount') amount: string,
+    @UploadedFile() file: Express.Multer.File,
+    @Body('utrNumber') utrNumber?: string,
+  ) {
+    return this.svc.createPenaltyPayment(companyId, parseFloat(amount), file, utrNumber);
+  }
+
   // Route called by frontend AppContext: POST /payments/auction/:auctionId/proof
   @Post('payments/auction/:auctionId/proof')
   @UseInterceptors(FileInterceptor('file'))

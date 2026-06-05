@@ -70,6 +70,7 @@ model Company {
   users              User[]
   userProductPickups UserProductPickup[]
   userProductQuotes  UserProductQuote[]
+  penaltyPayments    Payment[]           @relation("PenaltyPayments")
 }
 
 model KycDocument {

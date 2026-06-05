@@ -67,6 +67,7 @@ export class PaymentsService {
             winner: { select: { id: true, name: true } },
           },
         },
+        penaltyCompany: { select: { id: true, name: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -156,6 +157,45 @@ export class PaymentsService {
     return updatedPayment;
   }
 
+  // Vendor uploads penalty payment proof
+  async createPenaltyPayment(
+    companyId: string,
+    amount: number,
+    file: Express.Multer.File,
+    utrNumber?: string,
+  ) {
+    const { key } = await this.s3.upload(file, `penalties/${companyId}`);
+    
+    // Create the payment record for tracking
+    const payment = await this.prisma.payment.create({
+      data: {
+        clientAmount: 0,
+        commissionAmount: 0,
+        totalAmount: amount,
+        status: PaymentStatus.SUBMITTED,
+        proofS3Key: key,
+        proofS3Bucket: 'ecoloop-uploads',
+        paymentProofUrl: key,
+        utrNumber,
+        isPenalty: true,
+        penaltyCompanyId: companyId,
+      },
+    });
+
+    // Notify admins
+    const company = await this.prisma.company.findUnique({ where: { id: companyId } });
+    await this.notifications
+      .notifyAdmins({
+        type: 'penalty_payment_uploaded',
+        title: 'Penalty Payment Uploaded',
+        message: `Vendor "${company?.name || 'Unknown'}" uploaded penalty payment proof for ₹${amount}.`,
+        link: '/admin/payments',
+      })
+      .catch((err) => console.error('Background task error:', err));
+
+    return payment;
+  }
+
   // Admin verifies payment → notify vendor and client
   async verifyPayment(id: string, adminNotes?: string) {
     const payment = await this.prisma.payment.update({
@@ -168,10 +208,34 @@ export class PaymentsService {
             client: { include: { users: { take: 1 } } },
           },
         },
+        penaltyCompany: { include: { users: { take: 1 } } },
       },
     });
 
+    if (payment.isPenalty && payment.penaltyCompanyId) {
+      // Clear penalty amount on company once transaction is confirmed
+      await this.prisma.company.update({
+        where: { id: payment.penaltyCompanyId },
+        data: { penaltyAmount: 0 },
+      });
+      
+      const vendorUser = payment.penaltyCompany?.users?.[0];
+      if (vendorUser?.id) {
+        await this.notifications
+          .createInAppNotification({
+            userId: vendorUser.id,
+            type: 'penalty_cleared',
+            title: 'Penalty Cleared',
+            message: `Your penalty payment of ₹${payment.totalAmount} has been verified and your account is clear.`,
+            link: '/vendor/profile',
+          })
+          .catch((err) => console.error('Background task error:', err));
+      }
+      return payment;
+    }
+
     const auction = payment.auction;
+    if (!auction) return payment;
 
     // Auto-clear penalty on company once transaction is confirmed
     if (auction.winnerId && auction.winner?.penaltyAmount) {

@@ -155,7 +155,7 @@ export class PaymentsService {
       .notifyAdmins({
         type: 'payment_proof_uploaded',
         title: 'Payment Proof Uploaded',
-        message: `Vendor "${payment.auction.winner?.name || 'Winner'}" uploaded payment proof for "${payment.auction.title}".`,
+        message: `Vendor "${payment.auction?.winner?.name || 'Winner'}" uploaded payment proof for "${payment.auction?.title || 'Auction'}".`,
         link: '/admin/payments',
       })
       .catch((err) => console.error('Background task error:', err));

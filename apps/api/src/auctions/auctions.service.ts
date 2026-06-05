@@ -566,32 +566,6 @@ export class AuctionsService {
     });
 
     const winningBid = auction.bids[0];
-    const vendorAddress = 'Address on file';
-
-    try {
-      const workOrderS3Key = await this.documents.generateWorkOrderPdf(
-        auction.id,
-        auction.client.name,
-        winningBid?.vendor?.name || 'Vendor',
-        vendorAddress,
-        auction.title,
-        auction.requirement?.totalWeight || 0,
-        winningBid?.amount || 0,
-      );
-
-      await this.prisma.auctionDocument.create({
-        data: {
-          auctionId: auction.id,
-          type: DocumentType.WORK_ORDER,
-          s3Key: workOrderS3Key,
-          s3Bucket: process.env.AWS_S3_BUCKET_NAME || 'ecoloop-docs',
-          fileName: `WO-${auction.id.substring(0, 8).toUpperCase()}.pdf`,
-          mimeType: 'application/pdf',
-        },
-      });
-    } catch (e) {
-      console.error('Failed to generate work order', e);
-    }
 
     if (winningBid?.vendor?.email) {
       await this.notifications
@@ -706,14 +680,20 @@ export class AuctionsService {
     });
     const bucket = this.s3.getPrivateBucket();
 
-    const results: { type: string; s3Key: string; fileName: string }[] = [];
+    // Remove existing documents of these types to allow regeneration with updated terms
+    await this.prisma.auctionDocument.deleteMany({
+      where: {
+        auctionId: id,
+        type: {
+          in: [DocumentType.PURCHASE_ORDER, DocumentType.AGREEMENT, DocumentType.WORK_ORDER],
+        },
+      },
+    });
+
+    const results = [];
 
     // Generate Purchase Order PDF
-    const hasPO = auction.auctionDocs.some(
-      (d) => d.type === DocumentType.PURCHASE_ORDER,
-    );
-    if (!hasPO) {
-      try {
+    try {
         const poKey = await this.documents.generatePoPdf({
           auctionId: id,
           poNumber,
@@ -755,14 +735,9 @@ export class AuctionsService {
           `Failed to generate Purchase Order: ${e.message}`,
         );
       }
-    }
 
     // Generate Agreement PDF
-    const hasAgr = auction.auctionDocs.some(
-      (d) => d.type === DocumentType.AGREEMENT,
-    );
-    if (!hasAgr) {
-      try {
+    try {
         const agrKey = await this.documents.generateAgreementPdf({
           auctionId: id,
           clientName,
@@ -797,14 +772,9 @@ export class AuctionsService {
           `Failed to generate Agreement: ${e.message}`,
         );
       }
-    }
 
-    // Ensure Work Order exists — generate if missing
-    const hasWO = auction.auctionDocs.some(
-      (d) => d.type === DocumentType.WORK_ORDER,
-    );
-    if (!hasWO) {
-      try {
+    // Generate Work Order PDF
+    try {
         const woKey = await this.documents.generateWorkOrderPdf(
           id,
           clientName,
@@ -836,7 +806,6 @@ export class AuctionsService {
           `Failed to generate Work Order: ${e.message}`,
         );
       }
-    }
 
     // Upsert payment record
     await this.prisma.payment.upsert({

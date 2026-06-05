@@ -436,15 +436,3 @@ export class UserProductsService {
     return safe;
   }
 }
-er?: string;
-      bankIfscCode?: string;
-      bankAccountType?: string;
-    },
-  ) {
-    const { passwordHash, ...safe } = (await this.prisma.user.update({
-      where: { id: userId },
-      data,
-    })) as any;
-    return safe;
-  }
-}
